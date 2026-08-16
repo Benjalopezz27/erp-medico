@@ -1,0 +1,12 @@
+{
+  "name": "@erp/backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "NestJS Modular Monolith Backend API for Medical Distributor ERP",
+  "scripts": {
+    "build": "echo \"Backend build placeholder\"",
+    "lint": "echo \"Backend lint placeholder\"",
+    "test": "echo \"Backend test placeholder\"",
+    "start:dev": "echo \"Backend dev placeholder\""
+  }
+}
