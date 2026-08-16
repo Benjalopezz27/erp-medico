@@ -1,0 +1,12 @@
+{
+  "name": "@erp/frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vite + React 19 SPA Frontend for Medical Distributor ERP",
+  "scripts": {
+    "build": "echo \"Frontend build placeholder\"",
+    "lint": "echo \"Frontend lint placeholder\"",
+    "test": "echo \"Frontend test placeholder\"",
+    "dev": "echo \"Frontend dev placeholder\""
+  }
+}
