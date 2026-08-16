@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build & Dist
+dist/
+build/
+.next/
+out/
+
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+!.env.example
+
+# Certificates & Private Keys (NEVER COMMIT)
+certs/
+secrets/
+*.p12
+*.pem
+*.pfx
+*.key
+*.crt
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor Files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+
+# Workspace & Notes
+.obsidian/
+scratch/
