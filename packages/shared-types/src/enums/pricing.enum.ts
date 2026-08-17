@@ -1,0 +1,6 @@
+export enum PriceReviewStatus {
+  PENDIENTE = 'PENDIENTE',
+  APROBADO = 'APROBADO',
+  RECHAZADO = 'RECHAZADO',
+  POSPUESTO = 'POSPUESTO',
+}

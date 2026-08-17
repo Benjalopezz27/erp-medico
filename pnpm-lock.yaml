@@ -10,6 +10,9 @@ importers:
 
   apps/backend:
     dependencies:
+      '@erp/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
       '@nestjs/common':
         specifier: ^10.4.1
         version: 10.4.22(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -125,6 +128,9 @@ importers:
 
   apps/frontend:
     dependencies:
+      '@erp/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
       '@hookform/resolvers':
         specifier: ^3.10.0
         version: 3.10.0(react-hook-form@7.85.0(react@19.2.8))
@@ -199,7 +205,11 @@ importers:
         specifier: ^6.1.0
         version: 6.4.3(@types/node@22.20.1)(jiti@1.21.7)(terser@5.50.0)
 
-  packages/shared-types: {}
+  packages/shared-types:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
 
 packages:
 
