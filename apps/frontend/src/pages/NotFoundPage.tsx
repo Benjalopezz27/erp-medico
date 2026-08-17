@@ -16,7 +16,8 @@ export const NotFoundPage: React.FC = () => {
             <span className="text-4xl font-black text-slate-900 font-mono">404</span>
             <h2 className="text-lg font-bold text-slate-800">Página no encontrada</h2>
             <p className="text-xs text-slate-500 max-w-xs mx-auto">
-              La ruta a la que intenta acceder no existe o no tiene permisos suficientes para visualizarla.
+              La ruta a la que intenta acceder no existe o no tiene permisos suficientes para
+              visualizarla.
             </p>
           </div>
           <div className="pt-2">

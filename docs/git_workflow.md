@@ -3,7 +3,7 @@
 **Versión:** 1.0  
 **Modelo:** Single Developer  
 **Repositorio:** GitHub (`erp-medico`)  
-**Stack relevante:** pnpm monorepo · Node.js · GitHub Actions  
+**Stack relevante:** pnpm monorepo · Node.js · GitHub Actions
 
 ---
 
@@ -31,6 +31,7 @@ main
 ```
 
 ### `main`
+
 - **Propósito:** Producción. Lo que está desplegado en Hetzner.
 - **Regla:** Solo recibe merges desde `dev` al finalizar un **milestone de pago** (cada 25% del proyecto) o releases intermedios acordados con el cliente.
 - **Protección:** Branch protection rule en GitHub:
@@ -39,11 +40,13 @@ main
   - No force push
 
 ### `dev`
+
 - **Propósito:** Integración continua. Staging / demo del cliente.
 - **Regla:** Toda feature branch se mergea aquí al terminar la historia. Es la rama que el cliente ve en los demos de fin de sprint.
 - **Protección:** Require CI to pass. Sí permite self-merge (sin PR review requerido de otro dev).
 
 ### `feat/sN-usXX-descripcion`
+
 - **Propósito:** Una rama por User Story.
 - **Nomeneclatura:** `feat/s{sprint}-us{numero}-{descripcion-corta-kebab}`
   - Ejemplos: `feat/s1-us01-auth-jwt`, `feat/s3-us13-importer-wizard`, `feat/s8-us26-arca-wsfe`
@@ -51,12 +54,14 @@ main
 - **Tamaño:** Una historia = una rama. Si la historia es muy grande, se puede subdividir en `feat/s1-us04-product-form` y `feat/s1-us04-unit-conversions`.
 
 ### `fix/descripcion`
+
 - **Propósito:** Bug fixes encontrados durante el sprint en curso (no urgentes).
 - **Base:** Desde `dev`.
 - **Nomeneclatura:** `fix/descripcion-corta-kebab`
   - Ejemplo: `fix/stock-negative-concurrent-edge`
 
 ### `hotfix/descripcion`
+
 - **Propósito:** Bug crítico en producción (`main`) que no puede esperar al fin del sprint.
 - **Base:** Desde `main`.
 - **Merge:** A `main` **Y** a `dev` (para no perder el fix en el siguiente release).
@@ -69,6 +74,7 @@ main
 Usar el estándar [Conventional Commits](https://www.conventionalcommits.org/) con el número de US como scope.
 
 ### Formato
+
 ```
 <tipo>(<scope>): <descripción imperativa en minúsculas>
 
@@ -79,17 +85,17 @@ Usar el estándar [Conventional Commits](https://www.conventionalcommits.org/) c
 
 ### Tipos permitidos
 
-| Tipo | Cuándo usarlo |
-|------|--------------|
-| `feat` | Nueva funcionalidad de usuario |
-| `fix` | Corrección de bug |
-| `refactor` | Cambio de código sin cambio de comportamiento externo |
-| `test` | Agregar o corregir tests |
-| `docs` | Cambios en documentación |
-| `chore` | Tareas de mantenimiento (deps, config, scripts) |
-| `ci` | Cambios en GitHub Actions o Docker |
-| `style` | Cambios de formato sin impacto en lógica (prettier, lint) |
-| `perf` | Mejoras de rendimiento |
+| Tipo       | Cuándo usarlo                                             |
+| ---------- | --------------------------------------------------------- |
+| `feat`     | Nueva funcionalidad de usuario                            |
+| `fix`      | Corrección de bug                                         |
+| `refactor` | Cambio de código sin cambio de comportamiento externo     |
+| `test`     | Agregar o corregir tests                                  |
+| `docs`     | Cambios en documentación                                  |
+| `chore`    | Tareas de mantenimiento (deps, config, scripts)           |
+| `ci`       | Cambios en GitHub Actions o Docker                        |
+| `style`    | Cambios de formato sin impacto en lógica (prettier, lint) |
+| `perf`     | Mejoras de rendimiento                                    |
 
 ### Scope
 
@@ -107,13 +113,16 @@ docs: update sprint_plan.md with Sprint 8 task breakdown
 ```
 
 ### Reglas adicionales
+
 - **Imperativo, minúsculas, sin punto final** en la descripción
 - **Máximo 72 caracteres** en la primera línea
 - Si el commit cierra una issue de GitHub: `Closes #42` en el footer
 - **No usar** `git commit -m "fixes"`, `git commit -m "wip"`, `git commit -m "asdfgh"`
 
 ### Breaking Changes
+
 Agregar `!` después del tipo o `BREAKING CHANGE:` en el footer:
+
 ```
 feat(us46)!: rename SystemConfig.arca_punto_venta to arca_point_of_sale
 
@@ -233,18 +242,18 @@ v1.x.y  →  mejoras post-MVP (fase 2)
 
 ### Tags por milestone
 
-| Tag | Milestone | Sprint |
-|-----|-----------|--------|
-| `v0.1.0` | Infraestructura + Auth | S0–S1 |
-| `v0.2.0` | Stock + Inventario | S2 |
-| `v0.3.0` | Proveedores + Importador | S3 |
-| `v0.4.0` | Compras + Recepciones | S4 |
-| `v0.5.0` | Facturas Prov. + Costos | S5 |
-| `v0.6.0` | Precios + Clientes | S6 |
-| `v0.7.0` | Punto de Venta | S7 |
-| `v0.8.0` | ARCA integrado | S8 — **Hito de pago #3** |
-| `v0.9.0` | Cta Cte + Cheques | S9 |
-| `v1.0.0` | MVP completo — Go-Live | S10 — **Hito de pago #4** |
+| Tag      | Milestone                | Sprint                    |
+| -------- | ------------------------ | ------------------------- |
+| `v0.1.0` | Infraestructura + Auth   | S0–S1                     |
+| `v0.2.0` | Stock + Inventario       | S2                        |
+| `v0.3.0` | Proveedores + Importador | S3                        |
+| `v0.4.0` | Compras + Recepciones    | S4                        |
+| `v0.5.0` | Facturas Prov. + Costos  | S5                        |
+| `v0.6.0` | Precios + Clientes       | S6                        |
+| `v0.7.0` | Punto de Venta           | S7                        |
+| `v0.8.0` | ARCA integrado           | S8 — **Hito de pago #3**  |
+| `v0.9.0` | Cta Cte + Cheques        | S9                        |
+| `v1.0.0` | MVP completo — Go-Live   | S10 — **Hito de pago #4** |
 
 Los tags de hito de pago corresponden a los 4 pagos del 25% acordados en el contrato.
 
@@ -258,6 +267,7 @@ Dado que no hay otro developer para hacer code review, este checklist reemplaza 
 ### Self-Review — feat/sN-usXX-descripcion
 
 **Código**
+
 - [ ] La lógica de negocio está en el Service, no en el Controller
 - [ ] DTOs tienen validaciones con class-validator
 - [ ] No hay console.log / debuggers olvidados
@@ -266,16 +276,19 @@ Dado que no hay otro developer para hacer code review, este checklist reemplaza 
 - [ ] Transacciones TypeORM con QueryRunner donde hay múltiples escrituras
 
 **Tests**
+
 - [ ] Tests unitarios del Service escritos y pasando
 - [ ] Casos edge cubiertos (stock insuficiente, duplicados, valores negativos)
 - [ ] `pnpm --filter backend run test` pasa localmente
 
 **Frontend**
+
 - [ ] Validación de formularios con Zod schema
 - [ ] Estados de loading y error manejados en la UI
 - [ ] Rol correcto requerido (ADMINISTRADOR vs VENDEDOR)
 
 **General**
+
 - [ ] Swagger actualizado (decoradores en Controller)
 - [ ] Migración reversible (`typeorm migration:revert` no rompe nada)
 - [ ] No hay secrets hardcodeados ni en .env committed
@@ -287,6 +300,7 @@ Dado que no hay otro developer para hacer code review, este checklist reemplaza 
 ## 7. GitHub Actions Workflows
 
 ### CI — `.github/workflows/ci.yml`
+
 **Trigger:** Push a cualquier rama + PR a `dev` y `main`
 
 ```yaml
@@ -317,10 +331,10 @@ jobs:
           POSTGRES_DB: erp_test
           POSTGRES_USER: erp_user
           POSTGRES_PASSWORD: erp_pass
-        ports: ["5432:5432"]
+        ports: ['5432:5432']
       redis:
         image: redis:7-alpine
-        ports: ["6379:6379"]
+        ports: ['6379:6379']
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v3
@@ -348,6 +362,7 @@ jobs:
 ```
 
 ### CD — `.github/workflows/deploy.yml`
+
 **Trigger:** Push a `main` (solo en releases/merges a main)
 
 ```yaml
@@ -383,6 +398,7 @@ jobs:
 > **Secrets requeridos en GitHub:** `HETZNER_HOST`, `HETZNER_USER`, `HETZNER_SSH_KEY`
 
 ### Opcional — Lint de Markdown
+
 **Trigger:** Push con cambios en `docs/`
 
 ```yaml
@@ -390,7 +406,7 @@ name: Lint Docs
 
 on:
   push:
-    paths: ["docs/**/*.md"]
+    paths: ['docs/**/*.md']
 
 jobs:
   markdownlint:
@@ -407,6 +423,7 @@ jobs:
 ### Branch Protection Rules
 
 **Para `main`:**
+
 ```
 ✓ Require a pull request before merging
 ✓ Require status checks to pass before merging
@@ -419,6 +436,7 @@ jobs:
 ```
 
 **Para `dev`:**
+
 ```
 ✓ Require status checks to pass before merging
     - lint
@@ -427,6 +445,7 @@ jobs:
 ```
 
 ### `.gitignore` recomendado
+
 ```gitignore
 # Dependencies
 node_modules/

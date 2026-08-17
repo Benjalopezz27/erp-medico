@@ -2,9 +2,10 @@
 **Módulo:** Clientes  
 **Ruta:** `/customers/:id`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR  
-**Sprint:** Sprint 4 — US-21  
+**Sprint:** Sprint 4 — US-21
 
 ## Descripción
+
 Vista unificada del cliente, mostrando sus datos, precios especiales asignados y su cuenta corriente detallada.
 
 ## Estados
@@ -55,6 +56,7 @@ Vista unificada del cliente, mostrando sus datos, precios especiales asignados y
 ```
 
 ## Notas de Interacción
+
 - La pestaña activa dependerá desde dónde accede el usuario. Si entra desde CtaCte, default = Cuenta Corriente.
 - Los precios especiales se aplican por sobre cualquier otra regla de precios durante la Venta.
 - "Registrar Cobro" redirigirá a Tesorería o abrirá un modal de recibos imputando las facturas pendientes.

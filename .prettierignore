@@ -1,0 +1,10 @@
+dist/
+build/
+node_modules/
+pnpm-lock.yaml
+*.tsbuildinfo
+coverage/
+.next/
+out/
+.obsidian/
+scratch/

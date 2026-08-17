@@ -2,9 +2,10 @@
 **Módulo:** Configuración Global  
 **Ruta:** `/admin/config`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 4 — US-34  
+**Sprint:** Sprint 4 — US-34
 
 ## Descripción
+
 Configuraciones globales del negocio, integración fiscal ARCA y umbrales del sistema.
 
 ## Estados
@@ -37,5 +38,6 @@ Configuraciones globales del negocio, integración fiscal ARCA y umbrales del si
 ```
 
 ## Notas de Interacción
+
 - La Tolerancia de Diferencia de Costos es el porcentaje máximo de variación permitido entre el costo de sistema y el costo en la factura del proveedor antes de marcar la factura como OBSERVADA.
 - Condición Fiscal Dropdown: `RESPONSABLE_INSCRIPTO`, `MONOTRIBUTO`, `EXENTO`.

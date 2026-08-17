@@ -2,9 +2,10 @@
 **Módulo:** Compras  
 **Ruta:** `/purchases/supplier-invoices`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR (solo ver)  
-**Sprint:** Sprint 4 — US-16  
+**Sprint:** Sprint 4 — US-16
 
 ## Descripción
+
 Pantalla principal para listar y gestionar facturas de proveedores. Permite conciliar facturas contra recepciones de mercadería y destacar aquellas que superan las tolerancias de costo (OBSERVADA).
 
 ## Estados
@@ -39,6 +40,7 @@ Pantalla principal para listar y gestionar facturas de proveedores. Permite conc
 ```
 
 ## Notas de Interacción
+
 - La factura en estado OBSERVADA (Diferencia > Tolerancia) se resalta en naranja.
 - Acciones sobre OBSERVADA (Autorizar/Rechazar) se realizan dentro de "Detalles" o con un menú contextual.
 - El botón [+ Registrar Factura] abre el flujo de conciliación (seleccionar recepción -> cargar factura).

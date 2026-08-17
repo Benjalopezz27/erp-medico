@@ -1,9 +1,4 @@
-import {
-  createRouter,
-  createRoute,
-  createRootRoute,
-  Outlet,
-} from '@tanstack/react-router';
+import { createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { LoginPage } from '@/pages/LoginPage';

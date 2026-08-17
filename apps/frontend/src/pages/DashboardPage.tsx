@@ -34,7 +34,13 @@ export const DashboardPage: React.FC = () => {
             </Badge>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Puesto de trabajo único • Operación en tiempo real • {new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            Puesto de trabajo único • Operación en tiempo real •{' '}
+            {new Date().toLocaleDateString('es-AR', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
           </p>
         </div>
 

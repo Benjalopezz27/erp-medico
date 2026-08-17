@@ -2,9 +2,10 @@
 **Módulo:** Clientes  
 **Ruta:** `/customers`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR  
-**Sprint:** Sprint 4 — US-20  
+**Sprint:** Sprint 4 — US-20
 
 ## Descripción
+
 Directorio de clientes de la distribuidora. Permite visualizar deuda rápidamente y gestionar datos fiscales.
 
 ## Estados
@@ -52,5 +53,6 @@ Directorio de clientes de la distribuidora. Permite visualizar deuda rápidament
 ```
 
 ## Notas de Interacción
+
 - El saldo en cuenta corriente (Saldo CtaCte) se muestra en rojo y con alerta si el cliente tiene deuda pendiente, caso contrario en negro/gris.
 - Límite de Crédito define el máximo saldo adeudado permitido antes de bloquear ventas a cuenta.

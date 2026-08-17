@@ -2,9 +2,10 @@
 **Módulo:** Productos  
 **Ruta:** `/prices/review`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 4 — US-18  
+**Sprint:** Sprint 4 — US-18
 
 ## Descripción
+
 Bandeja de entrada para revisar y aprobar cambios sugeridos en los precios de venta, basándose en la variación de costos. El sistema no modifica precios automáticamente.
 
 ## Estados
@@ -48,6 +49,7 @@ Bandeja de entrada para revisar y aprobar cambios sugeridos en los precios de ve
 ```
 
 ## Notas de Interacción
+
 - "Aprobar con Precio Custom" (Custom) abre un input en lugar del texto del precio sugerido.
 - La diferencia de costo (`∆ Costo%`) se resalta si es muy alta.
 - Al aprobar, el precio se actualiza inmediatamente en el catálogo.

@@ -3,9 +3,10 @@
 **Módulo:** Compras  
 **Ruta:** `/purchases/orders/new`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 2 — US-13  
+**Sprint:** Sprint 2 — US-13
 
 ## Descripción
+
 Formulario para la creación y emisión de una nueva Orden de Compra.
 
 ## Estados
@@ -39,6 +40,7 @@ Formulario para la creación y emisión de una nueva Orden de Compra.
 ```
 
 ## Notas de Interacción
+
 - Al seleccionar proveedor, el ProductSearchInput solo debería mostrar, o priorizar, los productos que tienen catálogo con ese proveedor.
 - Unidad de Compra se trae del catálogo del proveedor, si existe.
 - El Monto Total se recalcula en base a Cantidad * Costo Esperado de cada ítem.

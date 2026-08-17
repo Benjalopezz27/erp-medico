@@ -2,9 +2,10 @@
 **Módulo:** Stock  
 **Ruta:** `/stock/:productId`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR (solo lectura)  
-**Sprint:** Sprint 2 — US-06  
+**Sprint:** Sprint 2 — US-06
 
 ## Descripción
+
 Vista detallada del histórico de movimientos de stock (kardex/ledger) de un producto específico y su gráfico de evolución.
 
 ## Estados
@@ -66,6 +67,7 @@ Vista detallada del histórico de movimientos de stock (kardex/ledger) de un pro
 ```
 
 ## Notas de Interacción
+
 - Todo movimiento debe quedar registrado en el Ledger con su respectivo Tipo, Motivo, y Referencia.
 - El saldo posterior (S.Pos) debe cuadrar siempre.
 - Un ajuste de salida que baje el stock de 0 no debe ser permitido (regla de negocio).

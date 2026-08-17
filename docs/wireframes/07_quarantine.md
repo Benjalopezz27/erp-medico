@@ -2,9 +2,10 @@
 **Módulo:** Stock  
 **Ruta:** `/stock/quarantine`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 2 — US-07  
+**Sprint:** Sprint 2 — US-07
 
 ## Descripción
+
 Panel para gestionar productos apartados del stock disponible (mercadería vencida, dañada, a revisar o devolver).
 
 ## Estados
@@ -64,6 +65,7 @@ Al seleccionar "Reingresar a Stock":
 ```
 
 ## Notas de Interacción
+
 - Regla crítica: El stock en esta tabla está completamente aislado del stock para ventas.
 - Reingresar requiere confirmación y registro en el ledger como ingreso desde cuarentena.
 - Las acciones cambian el estado del lote en cuarentena o lo eliminan de esta tabla (en caso de reingreso o destrucción/merma total).

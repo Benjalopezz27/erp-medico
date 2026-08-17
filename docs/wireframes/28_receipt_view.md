@@ -2,9 +2,10 @@
 **Módulo:** CtaCte  
 **Ruta:** `/receipts/:id`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR  
-**Sprint:** Sprint 3 — US-11  
+**Sprint:** Sprint 3 — US-11
 
 ## Descripción
+
 Vista del recibo generado, lista para imprimir o guardar en PDF.
 
 ## Estados
@@ -48,4 +49,5 @@ Vista del recibo generado, lista para imprimir o guardar en PDF.
 ```
 
 ## Notas de Interacción
+
 - Formato adaptado para hoja A4 estándar.
