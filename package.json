@@ -18,6 +18,8 @@
     "test:cov": "pnpm -r run test:cov",
     "dev:backend": "pnpm --filter @erp/backend run start:dev",
     "dev:frontend": "pnpm --filter @erp/frontend run dev",
+    "db:migrate": "pnpm --filter @erp/backend run migration:run",
+    "db:revert": "pnpm --filter @erp/backend run migration:revert",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
