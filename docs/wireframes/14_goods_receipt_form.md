@@ -3,9 +3,10 @@
 **Módulo:** Compras  
 **Ruta:** `/purchases/orders/:id/receive`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 2 — US-14  
+**Sprint:** Sprint 2 — US-14
 
 ## Descripción
+
 Interfaz para registrar el ingreso al stock (Recepción) contra una Orden de Compra, documentado mediante un Remito de proveedor.
 
 ## Estados
@@ -40,7 +41,8 @@ Interfaz para registrar el ingreso al stock (Recepción) contra una Orden de Com
 ```
 
 ## Notas de Interacción
+
 - "Ya Rec" muestra cantidades ingresadas en remitos anteriores.
 - Si "A Recibir" es mayor que lo pendiente (Ped - Ya Rec), mostrar error o warning en línea y permitir forzar ingreso excedente solo con confirmación.
-- "Un. B" (Unidades Base Equiv) = A Recibir * Factor de Conversión de la Unidad de Compra. Es *read-only* y muestra cuánto impactará en el stock real.
+- "Un. B" (Unidades Base Equiv) = A Recibir * Factor de Conversión de la Unidad de Compra. Es _read-only_ y muestra cuánto impactará en el stock real.
 - "Costo N." (Costo Neto) define el costo de la mercadería que ingresa.

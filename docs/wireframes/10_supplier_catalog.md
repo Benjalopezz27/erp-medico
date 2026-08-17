@@ -3,9 +3,10 @@
 **Módulo:** Compras  
 **Ruta:** `/suppliers/:id/catalog`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 2 — US-10  
+**Sprint:** Sprint 2 — US-10
 
 ## Descripción
+
 Gestiona la asociación entre los códigos/SKUs del proveedor y los productos internos del sistema, incluyendo equivalencias de unidades (Factor de Conversión) y costos de referencia.
 
 ## Estados
@@ -39,6 +40,7 @@ Gestiona la asociación entre los códigos/SKUs del proveedor y los productos in
 ```
 
 ## Notas de Interacción
+
 - El campo "Producto Interno" es un buscador autocompletable.
 - "Factor Conversión": cuántas unidades base (Ej. Unidad) tiene la Unidad de Compra (Ej. Caja x 12).
 - "Costo Habitual": sirve de referencia.

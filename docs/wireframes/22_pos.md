@@ -2,9 +2,10 @@
 **Módulo:** Ventas  
 **Ruta:** `/sales/new`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR  
-**Sprint:** Sprint 2 — US-05  
+**Sprint:** Sprint 2 — US-05
 
 ## Descripción
+
 Pantalla de Punto de Venta (POS) para crear nuevas ventas, con búsqueda rápida de productos, panel de totales, y selección múltiple de medios de pago.
 
 ## Estados
@@ -43,6 +44,7 @@ Pantalla de Punto de Venta (POS) para crear nuevas ventas, con búsqueda rápida
 ```
 
 ## Notas de Interacción
+
 - El layout está dividido 60/40.
 - Si se selecciona `Venta a Crédito`, el checkbox `Requiere Factura` se tilda y deshabilita automáticamente.
 - El stock se valida inline en la fila del producto (ej: "Stock insuf").

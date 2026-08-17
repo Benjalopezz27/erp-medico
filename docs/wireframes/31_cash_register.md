@@ -2,9 +2,10 @@
 **Módulo:** Tesorería  
 **Ruta:** `/treasury/cash-register`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 4 — US-14  
+**Sprint:** Sprint 4 — US-14
 
 ## Descripción
+
 Control de la caja registradora o caja chica, permitiendo apertura, registro de movimientos y cierre/arqueo.
 
 ## Estados
@@ -56,5 +57,6 @@ Control de la caja registradora o caja chica, permitiendo apertura, registro de 
 ```
 
 ## Notas de Interacción
+
 - La diferencia durante el arqueo se calcula automáticamente: Saldo Físico - Saldo Esperado.
 - Si hay diferencia, se debe obligar a ingresar una observación al cerrar.

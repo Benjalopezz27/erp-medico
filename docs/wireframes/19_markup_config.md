@@ -2,9 +2,10 @@
 **Módulo:** Configuración / Precios  
 **Ruta:** `/admin/markups`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 4 — US-19  
+**Sprint:** Sprint 4 — US-19
 
 ## Descripción
+
 Define las reglas de rentabilidad (markup) para calcular los precios sugeridos en base a los costos. Soporta jerarquía: Producto > Categoría > Global.
 
 ## Estados
@@ -44,5 +45,6 @@ Define las reglas de rentabilidad (markup) para calcular los precios sugeridos e
 ```
 
 ## Notas de Interacción
+
 - Al agregar una excepción por producto, se usa un componente buscador asíncrono de productos.
 - Preview (no graficado por espacio): Al lado del input de edición, podría mostrarse un simulador "Costo $100 -> Precio Venta $135".

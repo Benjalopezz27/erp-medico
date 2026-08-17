@@ -38,9 +38,7 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuToggle }) => {
 
   const handleToggleRole = () => {
     const nextRole: UserRole =
-      user?.role === UserRole.ADMINISTRADOR
-        ? UserRole.VENDEDOR
-        : UserRole.ADMINISTRADOR;
+      user?.role === UserRole.ADMINISTRADOR ? UserRole.VENDEDOR : UserRole.ADMINISTRADOR;
     switchRole(nextRole);
   };
 

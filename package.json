@@ -23,6 +23,11 @@
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,md}\"",
     "clean": "pnpm -r exec rimraf dist node_modules"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
   }
 }

@@ -3,9 +3,10 @@
 **Módulo:** Importador  
 **Ruta:** `/importer`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 2 — US-11  
+**Sprint:** Sprint 2 — US-11
 
 ## Descripción
+
 Asistente (wizard) de 4 pasos para la importación masiva de listas de precios o actualizaciones de catálogo desde archivos Excel o CSV.
 
 ## Estados
@@ -105,5 +106,6 @@ Asistente (wizard) de 4 pasos para la importación masiva de listas de precios o
 ```
 
 ## Notas de Interacción
+
 - Si hay errores bloqueantes en el Paso 3, el botón de Siguiente debe estar deshabilitado.
 - SKUs desconocidos requieren asociar a un producto interno, o marcarlos para saltar.

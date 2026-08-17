@@ -3,9 +3,10 @@
 **Módulo:** Compras  
 **Ruta:** `/purchases/backorders`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 2 — US-15  
+**Sprint:** Sprint 2 — US-15
 
 ## Descripción
+
 Panel de seguimiento de mercadería pedida que aún no ha sido entregada, agrupada por proveedor para facilitar los reclamos.
 
 ## Estados
@@ -37,6 +38,7 @@ Panel de seguimiento de mercadería pedida que aún no ha sido entregada, agrupa
 ```
 
 ## Notas de Interacción
+
 - "Antig." (Días transcurridos) muestra un badge rojo [URGENTE] si > 14 días.
 - "Registrar Recepción" lleva a `/purchases/orders/:id/receive` para la OC correspondiente, para facilitar la resolución rápida.
 - Agrupación colapsable por proveedor.

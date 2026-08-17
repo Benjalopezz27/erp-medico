@@ -3,9 +3,10 @@
 **Módulo:** Proveedores  
 **Ruta:** `/suppliers`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 2 — US-09  
+**Sprint:** Sprint 2 — US-09
 
 ## Descripción
+
 Listado de proveedores del sistema. Permite la búsqueda, creación, edición de proveedores y el acceso rápido a sus medios de contacto, así como a su catálogo específico de productos.
 
 ## Estados
@@ -54,6 +55,7 @@ Listado de proveedores del sistema. Permite la búsqueda, creación, edición de
 ```
 
 ## Notas de Interacción
+
 - Botones de "Whatsapp" y "Email" abren una nueva pestaña con links `wa.me/<numero>` y `mailto:<email>`.
 - Validar formato de CUIT.
 - El catálogo dirige a `/suppliers/:id/catalog`.

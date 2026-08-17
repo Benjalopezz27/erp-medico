@@ -2,7 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { Lock, Mail, AlertCircle, ArrowRight, Shield, User as UserIcon } from 'lucide-react';
 import { useAuthStore, UserRole } from '@/stores/authStore';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 

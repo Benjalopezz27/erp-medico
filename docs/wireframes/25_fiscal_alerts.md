@@ -2,9 +2,10 @@
 **Módulo:** Ventas / Admin  
 **Ruta:** `/admin/fiscal-alerts`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 2 — US-08  
+**Sprint:** Sprint 2 — US-08
 
 ## Descripción
+
 Monitor de comprobantes que fallaron al comunicarse con ARCA/AFIP y quedaron pendientes o fueron rechazados.
 
 ## Estados
@@ -40,5 +41,6 @@ Monitor de comprobantes que fallaron al comunicarse con ARCA/AFIP y quedaron pen
 ```
 
 ## Notas de Interacción
+
 - La alerta global suele aparecer en el dashboard o navbar. Esta pantalla es el listado detallado.
 - "Reintentar" lanza nuevamente el job de facturación electrónica.

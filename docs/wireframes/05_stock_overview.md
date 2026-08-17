@@ -2,9 +2,10 @@
 **Módulo:** Stock  
 **Ruta:** `/stock`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR (solo lectura)  
-**Sprint:** Sprint 2 — US-05  
+**Sprint:** Sprint 2 — US-05
 
 ## Descripción
+
 Panel central para visualizar el estado del inventario y gestionar niveles de alerta.
 
 ## Estados
@@ -37,6 +38,7 @@ Panel central para visualizar el estado del inventario y gestionar niveles de al
 ```
 
 ## Notas de Interacción
+
 - El botón `[ Ajuste ]` (Ajuste Manual) y `[ Carga Masiva ]` solo son visibles para el rol ADMINISTRADOR.
 - El toggle `[x] Solo Bajo Mínimo` filtra la tabla para mostrar solo productos en estado BAJO o CRÍTICO.
 - Colores de estado:

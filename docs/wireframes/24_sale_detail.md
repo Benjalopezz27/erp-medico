@@ -2,9 +2,10 @@
 **Módulo:** Ventas  
 **Ruta:** `/sales/:id`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR  
-**Sprint:** Sprint 2 — US-07  
+**Sprint:** Sprint 2 — US-07
 
 ## Descripción
+
 Visualización detallada de una venta, incluyendo estado del documento fiscal, y gestión de devoluciones.
 
 ## Estados
@@ -63,4 +64,5 @@ Visualización detallada de una venta, incluyendo estado del documento fiscal, y
 ```
 
 ## Notas de Interacción
+
 - La devolución requiere indicar si el producto vuelve al stock APTO (disponible) o NO_APTO (cuarentena/dañado).

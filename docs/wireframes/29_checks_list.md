@@ -2,9 +2,10 @@
 **Módulo:** Tesorería  
 **Ruta:** `/treasury/checks`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 4 — US-12  
+**Sprint:** Sprint 4 — US-12
 
 ## Descripción
+
 Gestión de cheques de terceros, seguimiento de estados y alertas por vencimientos cercanos.
 
 ## Estados
@@ -37,6 +38,7 @@ Gestión de cheques de terceros, seguimiento de estados y alertas por vencimient
 ```
 
 ## Notas de Interacción
+
 - El estado `RECIBIDO` es recién ingresado. Pasa a `EN_CARTERA` cuando la caja se consolida.
 - Desde `EN_CARTERA` se pueden `Depositar`, `Endosar` (a proveedor) o marcar como `Rechazado`.
 - Al rechazar, el sistema debe reversar atómicamente el cobro y reabrir la factura original.

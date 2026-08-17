@@ -2,9 +2,10 @@
 **Módulo:** Productos  
 **Ruta:** `/products`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR  
-**Sprint:** Sprint 1 — US-03  
+**Sprint:** Sprint 1 — US-03
 
 ## Descripción
+
 Pantalla principal del catálogo de productos médicos. Permite buscar, filtrar y acceder a la edición o detalle de stock.
 
 ## Estados
@@ -57,5 +58,6 @@ Pantalla principal del catálogo de productos médicos. Permite buscar, filtrar 
 ```
 
 ## Notas de Interacción
+
 - VENDEDOR no ve el botón `[ + Nuevo Producto ]` ni la columna Markup.
 - Al hacer clic en la fila se abre un menú contextual: `[ Editar ]`, `[ Ver Stock ]`.

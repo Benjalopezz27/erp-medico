@@ -2,9 +2,10 @@
 **Módulo:** CtaCte / Tesorería  
 **Ruta:** `/payments/new`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR  
-**Sprint:** Sprint 3 — US-10  
+**Sprint:** Sprint 3 — US-10
 
 ## Descripción
+
 Pantalla para registrar cobros y aplicarlos a facturas específicas de un cliente.
 
 ## Estados
@@ -47,5 +48,6 @@ Pantalla para registrar cobros y aplicarlos a facturas específicas de un client
 ```
 
 ## Notas de Interacción
+
 - El "Total a Aplicar" debe coincidir exactamente con el "Total Cobrado" para poder registrar el cobro.
 - Si se tilda "Aplicar por Antigüedad Automático", el sistema rellena los inputs de "A Aplicar" empezando por la factura más vieja hasta cubrir el monto cobrado ingresado.

@@ -3,9 +3,10 @@
 **Módulo:** Compras  
 **Ruta:** `/purchases/orders`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 2 — US-12  
+**Sprint:** Sprint 2 — US-12
 
 ## Descripción
+
 Listado y estado de las Órdenes de Compra (OC) emitidas a proveedores.
 
 ## Estados
@@ -42,6 +43,7 @@ Listado y estado de las Órdenes de Compra (OC) emitidas a proveedores.
 ```
 
 ## Notas de Interacción
+
 - "Emitir" solo disponible si estado es BORRADOR.
 - "Recibir" disponible si estado es EMITIDA o PARCIAL.
 - "Cancelar" disponible para EMITIDA y PARCIAL (cancela el saldo pendiente).

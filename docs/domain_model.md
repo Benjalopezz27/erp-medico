@@ -12,7 +12,7 @@
 erDiagram
     USER ||--o{ STOCK_MOVEMENT : registers
     USER ||--o{ AUDIT_LOG : executes
-    
+
     CATEGORY ||--o{ PRODUCT : categorizes
     UNIT ||--o{ PRODUCT : base_unit
     PRODUCT ||--o{ PRODUCT_CONVERSION : has
@@ -21,35 +21,35 @@ erDiagram
     PRODUCT ||--o{ QUARANTINE_STOCK : retains
     PRODUCT ||--o{ SUPPLIER_PRODUCT : mapped_by
     PRODUCT ||--o{ PRICE_REVIEW : reviewed_in
-    
+
     SUPPLIER ||--o{ SUPPLIER_PRODUCT : supplies
     SUPPLIER ||--o{ SUPPLIER_IMPORT_TEMPLATE : defines
     SUPPLIER ||--o{ PURCHASE_ORDER : receives
     SUPPLIER ||--o{ GOODS_RECEIPT : delivers
     SUPPLIER ||--o{ SUPPLIER_INVOICE : bills
-    
+
     PURCHASE_ORDER ||--o{ PURCHASE_ORDER_ITEM : contains
     PURCHASE_ORDER ||--o{ GOODS_RECEIPT : generates
     GOODS_RECEIPT ||--o{ GOODS_RECEIPT_ITEM : contains
     GOODS_RECEIPT ||--o{ SUPPLIER_INVOICE : invoiced_by
     SUPPLIER_INVOICE ||--o{ SUPPLIER_INVOICE_ITEM : contains
     SUPPLIER_INVOICE ||--o{ SUPPLIER_COST_ADJUSTMENT : adjusts
-    
+
     CUSTOMER ||--o{ CUSTOMER_SPECIAL_PRICE : receives
     CUSTOMER ||--o{ SALE : buys
     CUSTOMER ||--o{ ACCOUNT_RECEIVABLE : owes
     CUSTOMER ||--o{ PAYMENT : pays
     CUSTOMER ||--o{ CHECK : issues
-    
+
     SALE ||--o{ SALE_ITEM : contains
     SALE ||--o{ FISCAL_DOCUMENT : generates
     SALE ||--o{ ACCOUNT_RECEIVABLE : creates_debt
-    
+
     PAYMENT ||--o{ PAYMENT_ALLOCATION : distributes
     PAYMENT ||--o{ RECEIPT : issues
     ACCOUNT_RECEIVABLE ||--o{ PAYMENT_ALLOCATION : receives_credit
     ACCOUNT_RECEIVABLE ||--o{ ACCOUNT_RECEIVABLE_MOVEMENT : logs
-    
+
     CHECK ||--o{ PAYMENT : used_in
     TREASURY_ACCOUNT ||--o{ TREASURY_MOVEMENT : transacts
     CASH_REGISTER ||--o{ TREASURY_MOVEMENT : captures
@@ -173,55 +173,63 @@ export enum CashRegisterStatus {
 ## 3. Catálogo Completo de Entidades de Dominio
 
 ### 3.1 Usuario y Seguridad
-* **`User`**: `id`, `name`, `email`, `passwordHash`, `role` (`Role`), `isActive`, `createdAt`, `updatedAt`.
-* **`AuditLog`**: `id`, `userId`, `action`, `entityName`, `entityId`, `previousValueJSON`, `newValueJSON`, `createdAt`.
+
+- **`User`**: `id`, `name`, `email`, `passwordHash`, `role` (`Role`), `isActive`, `createdAt`, `updatedAt`.
+- **`AuditLog`**: `id`, `userId`, `action`, `entityName`, `entityId`, `previousValueJSON`, `newValueJSON`, `createdAt`.
 
 ### 3.2 Catálogo de Productos e Inventario
-* **`Category`**: `id`, `name`, `description`.
-* **`Unit`**: `id`, `name`, `symbol` (ej. `Unidad`, `Caja`, `Caja Master`, `Bulto`).
-* **`Product`**: `id`, `internalCode` (unique), `name`, `description`, `categoryId`, `baseUnitId`, `minStock`, `costNet`, `markupPercentage`, `suggestedPriceNet`, `activePriceNet`, `status` (`ACTIVE`|`INACTIVE`).
-* **`ProductUnitConversion`**: `id`, `productId`, `presentationUnitId`, `conversionFactor` (1 presentationUnit = N baseUnits).
-* **`Stock`**: `id`, `productId` (unique), `currentBaseStock` (integer/decimal, $\ge 0$), `minStock`, `updatedAt`.
-* **`StockMovement`**: `id`, `productId`, `movementType` (`StockMovementType`), `quantityBaseUnits`, `previousStock`, `newStock`, `reason`, `referenceType`, `referenceId`, `userId`, `createdAt`.
-* **`QuarantineStock`**: `id`, `productId`, `quantityBaseUnits`, `reason`, `status` (`QuarantineStatus`), `resolutionNotes`, `userId`, `createdAt`, `resolvedAt`.
+
+- **`Category`**: `id`, `name`, `description`.
+- **`Unit`**: `id`, `name`, `symbol` (ej. `Unidad`, `Caja`, `Caja Master`, `Bulto`).
+- **`Product`**: `id`, `internalCode` (unique), `name`, `description`, `categoryId`, `baseUnitId`, `minStock`, `costNet`, `markupPercentage`, `suggestedPriceNet`, `activePriceNet`, `status` (`ACTIVE`|`INACTIVE`).
+- **`ProductUnitConversion`**: `id`, `productId`, `presentationUnitId`, `conversionFactor` (1 presentationUnit = N baseUnits).
+- **`Stock`**: `id`, `productId` (unique), `currentBaseStock` (integer/decimal, $\ge 0$), `minStock`, `updatedAt`.
+- **`StockMovement`**: `id`, `productId`, `movementType` (`StockMovementType`), `quantityBaseUnits`, `previousStock`, `newStock`, `reason`, `referenceType`, `referenceId`, `userId`, `createdAt`.
+- **`QuarantineStock`**: `id`, `productId`, `quantityBaseUnits`, `reason`, `status` (`QuarantineStatus`), `resolutionNotes`, `userId`, `createdAt`, `resolvedAt`.
 
 ### 3.3 Proveedores e Importador
-* **`Supplier`**: `id`, `businessName`, `cuit` (unique), `address`, `phone`, `email`, `whatsApp`, `taxCondition`, `status`.
-* **`SupplierProduct`**: `id`, `supplierId`, `productId`, `supplierProductCode`, `supplierDescription`, `purchaseUnitId`, `conversionFactor`, `habitualCostNet`, `isHabitualSupplier`.
-* **`SupplierImportTemplate`**: `id`, `supplierId`, `templateName`, `mappingRulesJSON`, `createdAt`, `updatedAt`.
+
+- **`Supplier`**: `id`, `businessName`, `cuit` (unique), `address`, `phone`, `email`, `whatsApp`, `taxCondition`, `status`.
+- **`SupplierProduct`**: `id`, `supplierId`, `productId`, `supplierProductCode`, `supplierDescription`, `purchaseUnitId`, `conversionFactor`, `habitualCostNet`, `isHabitualSupplier`.
+- **`SupplierImportTemplate`**: `id`, `supplierId`, `templateName`, `mappingRulesJSON`, `createdAt`, `updatedAt`.
 
 ### 3.4 Compras, Recepción y Costos Definitivos
-* **`PurchaseOrder`**: `id`, `orderNumber` (unique), `supplierId`, `status` (`PurchaseOrderStatus`), `expectedDeliveryDate`, `notes`, `userId`, `createdAt`, `updatedAt`.
-* **`PurchaseOrderItem`**: `id`, `purchaseOrderId`, `productId`, `purchaseUnitId`, `orderedQty`, `receivedQty`, `pendingQty`, `expectedCostUnitNet`.
-* **`GoodsReceipt`**: `id`, `receiptNumber` (unique), `purchaseOrderId`, `supplierId`, `remitoNumber`, `receiptDate`, `userId`, `status`.
-* **`GoodsReceiptItem`**: `id`, `goodsReceiptId`, `purchaseOrderItemId`, `productId`, `receivedQtyPurchaseUnit`, `receivedQtyBaseUnits`, `provisionalCostUnitNet`.
-* **`SupplierInvoice`**: `id`, `invoiceNumber`, `supplierId`, `goodsReceiptId`, `invoiceDate`, `netTotal`, `taxTotal`, `totalAmount`, `status` (`SupplierInvoiceStatus`), `disputeReason`, `approvedByUserId`, `createdAt`.
-* **`SupplierInvoiceItem`**: `id`, `supplierInvoiceId`, `goodsReceiptItemId`, `productId`, `invoicedQty`, `netCostUnit`, `lineDiffPercentage`, `lineStatus`.
-* **`SupplierCostAdjustment`**: `id`, `supplierInvoiceId`, `productId`, `costDiffUnitNet`, `stockRevaluationTotal`, `cogsAdjustmentTotal`, `createdAt`.
+
+- **`PurchaseOrder`**: `id`, `orderNumber` (unique), `supplierId`, `status` (`PurchaseOrderStatus`), `expectedDeliveryDate`, `notes`, `userId`, `createdAt`, `updatedAt`.
+- **`PurchaseOrderItem`**: `id`, `purchaseOrderId`, `productId`, `purchaseUnitId`, `orderedQty`, `receivedQty`, `pendingQty`, `expectedCostUnitNet`.
+- **`GoodsReceipt`**: `id`, `receiptNumber` (unique), `purchaseOrderId`, `supplierId`, `remitoNumber`, `receiptDate`, `userId`, `status`.
+- **`GoodsReceiptItem`**: `id`, `goodsReceiptId`, `purchaseOrderItemId`, `productId`, `receivedQtyPurchaseUnit`, `receivedQtyBaseUnits`, `provisionalCostUnitNet`.
+- **`SupplierInvoice`**: `id`, `invoiceNumber`, `supplierId`, `goodsReceiptId`, `invoiceDate`, `netTotal`, `taxTotal`, `totalAmount`, `status` (`SupplierInvoiceStatus`), `disputeReason`, `approvedByUserId`, `createdAt`.
+- **`SupplierInvoiceItem`**: `id`, `supplierInvoiceId`, `goodsReceiptItemId`, `productId`, `invoicedQty`, `netCostUnit`, `lineDiffPercentage`, `lineStatus`.
+- **`SupplierCostAdjustment`**: `id`, `supplierInvoiceId`, `productId`, `costDiffUnitNet`, `stockRevaluationTotal`, `cogsAdjustmentTotal`, `createdAt`.
 
 ### 3.5 Precios
-* **`MarkupConfiguration`**: `id`, `level` (`PRODUCT`|`CATEGORY`|`GLOBAL`), `targetId`, `markupPercentage`.
-* **`PriceReview`**: `id`, `productId`, `oldCostNet`, `newCostNet`, `oldPriceNet`, `suggestedPriceNet`, `status` (`PriceReviewStatus`), `decisionUserId`, `decisionDate`.
+
+- **`MarkupConfiguration`**: `id`, `level` (`PRODUCT`|`CATEGORY`|`GLOBAL`), `targetId`, `markupPercentage`.
+- **`PriceReview`**: `id`, `productId`, `oldCostNet`, `newCostNet`, `oldPriceNet`, `suggestedPriceNet`, `status` (`PriceReviewStatus`), `decisionUserId`, `decisionDate`.
 
 ### 3.6 Clientes, Ventas y Facturación Fiscal (ARCA)
-* **`Customer`**: `id`, `businessName`, `dniCuit` (unique), `taxCondition`, `address`, `phone`, `email`, `creditLimit`, `specialDiscountPercentage`, `status`.
-* **`CustomerSpecialPrice`**: `id`, `customerId`, `productId`, `specialPriceNet`.
-* **`Sale`**: `id`, `saleNumber` (unique), `customerId`, `paymentMethod` (`PaymentMethod`), `isInvoiced` (boolean), `isCreditSale` (boolean), `netAmount`, `taxAmount`, `totalAmount`, `status` (`SaleStatus`), `userId`, `createdAt`.
-* **`SaleItem`**: `id`, `saleId`, `productId`, `quantityBaseUnits`, `unitPriceNet`, `discountPercentage`, `lineTotalNet`.
-* **`FiscalDocument`**: `id`, `saleId`, `documentType` (`FiscalDocumentType`), `pointOfSale`, `documentNumber`, `cae`, `caeExpirationDate`, `arcaStatus` (`ARCAStatus`), `qrData`, `createdAt`.
+
+- **`Customer`**: `id`, `businessName`, `dniCuit` (unique), `taxCondition`, `address`, `phone`, `email`, `creditLimit`, `specialDiscountPercentage`, `status`.
+- **`CustomerSpecialPrice`**: `id`, `customerId`, `productId`, `specialPriceNet`.
+- **`Sale`**: `id`, `saleNumber` (unique), `customerId`, `paymentMethod` (`PaymentMethod`), `isInvoiced` (boolean), `isCreditSale` (boolean), `netAmount`, `taxAmount`, `totalAmount`, `status` (`SaleStatus`), `userId`, `createdAt`.
+- **`SaleItem`**: `id`, `saleId`, `productId`, `quantityBaseUnits`, `unitPriceNet`, `discountPercentage`, `lineTotalNet`.
+- **`FiscalDocument`**: `id`, `saleId`, `documentType` (`FiscalDocumentType`), `pointOfSale`, `documentNumber`, `cae`, `caeExpirationDate`, `arcaStatus` (`ARCAStatus`), `qrData`, `createdAt`.
 
 ### 3.7 Cuentas Corrientes, Cobranzas y Cheques
-* **`AccountReceivable`**: `id`, `customerId`, `saleId`, `fiscalDocumentId`, `originalAmount`, `currentBalance`, `status` (`AccountReceivableStatus`), `dueDate`, `createdAt`.
-* **`AccountReceivableMovement`**: `id`, `accountReceivableId`, `movementType` (`AccountReceivableMovementType`), `amount`, `balanceAfter`, `referenceId`, `createdAt`.
-* **`Payment`**: `id`, `paymentNumber` (unique), `customerId`, `totalAmount`, `paymentDate`, `userId`, `createdAt`.
-* **`PaymentAllocation`**: `id`, `paymentId`, `accountReceivableId`, `allocatedAmount`, `allocationType` (`DIRECTED`|`GLOBAL_AGE`).
-* **`Receipt`**: `id`, `receiptNumber` (unique), `paymentId`, `customerId`, `printedAt`.
-* **`Check`**: `id`, `bankName`, `checkNumber`, `drawerName`, `amount`, `issueDate`, `dueDate`, `receivedDate`, `customerId`, `status` (`CheckStatus`), `endorsedToSupplierId`, `reversalPaymentId`, `updatedAt`.
+
+- **`AccountReceivable`**: `id`, `customerId`, `saleId`, `fiscalDocumentId`, `originalAmount`, `currentBalance`, `status` (`AccountReceivableStatus`), `dueDate`, `createdAt`.
+- **`AccountReceivableMovement`**: `id`, `accountReceivableId`, `movementType` (`AccountReceivableMovementType`), `amount`, `balanceAfter`, `referenceId`, `createdAt`.
+- **`Payment`**: `id`, `paymentNumber` (unique), `customerId`, `totalAmount`, `paymentDate`, `userId`, `createdAt`.
+- **`PaymentAllocation`**: `id`, `paymentId`, `accountReceivableId`, `allocatedAmount`, `allocationType` (`DIRECTED`|`GLOBAL_AGE`).
+- **`Receipt`**: `id`, `receiptNumber` (unique), `paymentId`, `customerId`, `printedAt`.
+- **`Check`**: `id`, `bankName`, `checkNumber`, `drawerName`, `amount`, `issueDate`, `dueDate`, `receivedDate`, `customerId`, `status` (`CheckStatus`), `endorsedToSupplierId`, `reversalPaymentId`, `updatedAt`.
 
 ### 3.8 Tesorería y Caja
-* **`CashRegister`**: `id`, `openedAt`, `closedAt`, `expectedCashBalance`, `actualCashBalance`, `differenceAmount`, `status` (`CashRegisterStatus`), `userId`.
-* **`TreasuryAccount`**: `id`, `accountType` (`TreasuryAccountType`), `currentBalance`, `updatedAt`.
-* **`TreasuryMovement`**: `id`, `treasuryAccountId`, `movementType`, `amount`, `referenceId`, `description`, `userId`, `createdAt`.
+
+- **`CashRegister`**: `id`, `openedAt`, `closedAt`, `expectedCashBalance`, `actualCashBalance`, `differenceAmount`, `status` (`CashRegisterStatus`), `userId`.
+- **`TreasuryAccount`**: `id`, `accountType` (`TreasuryAccountType`), `currentBalance`, `updatedAt`.
+- **`TreasuryMovement`**: `id`, `treasuryAccountId`, `movementType`, `amount`, `referenceId`, `description`, `userId`, `createdAt`.
 
 ---
 
