@@ -47,7 +47,7 @@ Toda historia de usuario se considera **Done** cuando:
 | S0-T08 | #19          | Crear layout base del frontend (`RootLayout` sidebar + topbar, `AuthLayout`, login/404 stubs)       | Frontend | ✅ Cerrada    |
 | S0-T09 | #20          | Crear package `shared-types` con enums y tipos base del dominio                                     | Shared   | ✅ Cerrada    |
 | S0-T10 | #21          | Configurar ESLint + Prettier en monorepo                                                            | Infra    | ✅ Cerrada    |
-| S0-T11 | #22          | Configurar GitHub Actions CI (`.github/workflows/ci.yml`)                                           | Infra    | ⏳ Pendiente  |
+| S0-T11 | #22          | Configurar GitHub Actions CI (`.github/workflows/ci.yml`)                                           | Infra    | ✅ Cerrada    |
 | S0-T12 | #23          | Crear `.env.example` documentado                                                                    | Infra    | ✅ Completado |
 | S0-T13 | #24          | Crear script de seed inicial de usuarios (`ADMINISTRADOR`, `VENDEDOR`) hasheados                    | Backend  | ⏳ Pendiente  |
 | S0-T14 | #25          | Crear `ArcaMockService` para ambiente de desarrollo                                                 | Backend  | ⏳ Pendiente  |
