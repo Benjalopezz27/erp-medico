@@ -20,6 +20,7 @@ import { ChecksModule } from './modules/checks/checks.module';
 import { TreasuryModule } from './modules/treasury/treasury.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { SystemConfigModule } from './modules/config/system-config.module';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { SystemConfigModule } from './modules/config/system-config.module';
     TreasuryModule,
     ReportsModule,
     SystemConfigModule,
+    HealthModule,
   ],
 })
 export class AppModule {}
