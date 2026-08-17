@@ -18,6 +18,9 @@
     "test:cov": "pnpm -r run test:cov",
     "dev:backend": "pnpm --filter @erp/backend run start:dev",
     "dev:frontend": "pnpm --filter @erp/frontend run dev",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
     "clean": "pnpm -r exec rimraf dist node_modules"
   }
 }
