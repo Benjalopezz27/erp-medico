@@ -1,0 +1,15 @@
+export enum PurchaseOrderStatus {
+  BORRADOR = 'BORRADOR',
+  EMITIDA = 'EMITIDA',
+  PARCIAL = 'PARCIAL',
+  COMPLETADA = 'COMPLETADA',
+  CANCELADA = 'CANCELADA',
+}
+
+export enum SupplierInvoiceStatus {
+  BORRADOR = 'BORRADOR',
+  VALIDANDO = 'VALIDANDO',
+  OBSERVADA = 'OBSERVADA',
+  AUTORIZADA = 'AUTORIZADA',
+  CONFIRMADA = 'CONFIRMADA',
+}

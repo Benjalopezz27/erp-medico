@@ -1,0 +1,48 @@
+export enum PaymentMethod {
+  EFECTIVO = 'EFECTIVO',
+  TRANSFERENCIA = 'TRANSFERENCIA',
+  DEBITO = 'DEBITO',
+  CREDITO = 'CREDITO',
+  QR = 'QR',
+  CHEQUE = 'CHEQUE',
+  CTA_CTE = 'CTA_CTE',
+}
+
+export enum TaxCondition {
+  RESPONSABLE_INSCRIPTO = 'RESPONSABLE_INSCRIPTO',
+  MONOTRIBUTO = 'MONOTRIBUTO',
+  EXENTO = 'EXENTO',
+  CONSUMIDOR_FINAL = 'CONSUMIDOR_FINAL',
+}
+
+export enum AccountReceivableStatus {
+  PENDIENTE = 'PENDIENTE',
+  PARCIAL = 'PARCIAL',
+  CANCELADO = 'CANCELADO',
+}
+
+export enum AccountReceivableMovementType {
+  FACTURA = 'FACTURA',
+  PAGO = 'PAGO',
+  NOTA_CREDITO = 'NOTA_CREDITO',
+  REVERSION_CHEQUE = 'REVERSION_CHEQUE',
+}
+
+export enum CheckStatus {
+  RECIBIDO = 'RECIBIDO',
+  EN_CARTERA = 'EN_CARTERA',
+  DEPOSITADO = 'DEPOSITADO',
+  ENDOSADO = 'ENDOSADO',
+  RECHAZADO = 'RECHAZADO',
+}
+
+export enum TreasuryAccountType {
+  EFECTIVO = 'EFECTIVO',
+  BANCOS = 'BANCOS',
+  CHEQUES_CARTERA = 'CHEQUES_CARTERA',
+}
+
+export enum CashRegisterStatus {
+  ABIERTA = 'ABIERTA',
+  CERRADA = 'CERRADA',
+}
