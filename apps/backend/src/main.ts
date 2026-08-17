@@ -28,9 +28,12 @@ async function bootstrap() {
   // Swagger OpenAPI Documentation
   const swaggerConfig = new DocumentBuilder()
     .setTitle('ERP Distribuidora Médica API')
-    .setDescription('API documentation for Medical Supply Distributor ERP (Argentina)')
+    .setDescription(
+      'API documentation for Medical Supply Distributor ERP (Argentina)',
+    )
     .setVersion('1.0.0')
     .addBearerAuth()
+    .addTag('health', 'System health check and database diagnostics')
     .addTag('auth', 'Authentication and session management')
     .addTag('users', 'User administration and immutable audit log')
     .addTag('products', 'Product catalog and unit conversions')
