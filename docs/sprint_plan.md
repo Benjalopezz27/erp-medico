@@ -45,7 +45,7 @@ Toda historia de usuario se considera **Done** cuando:
 | S0-T06 | #17 | Crear `HealthCheckController` y diagnóstico de base de datos (`GET /api/v1/health`) | Backend | ✅ Cerrada |
 | S0-T07 | #18 | Scaffold Vite + React 19 frontend con dependencias base (TanStack, Tailwind, Lucide, Zod) | Frontend | ✅ Cerrada |
 | S0-T08 | #19 | Crear layout base del frontend (`RootLayout` sidebar + topbar, `AuthLayout`, login/404 stubs) | Frontend | ✅ Cerrada |
-| S0-T09 | #20 | Crear package `shared-types` con enums y tipos base del dominio | Shared | ⏳ Pendiente |
+| S0-T09 | #20 | Crear package `shared-types` con enums y tipos base del dominio | Shared | ✅ Cerrada |
 | S0-T10 | #21 | Configurar ESLint + Prettier en monorepo | Infra | ⏳ Pendiente |
 | S0-T11 | #22 | Configurar GitHub Actions CI (`.github/workflows/ci.yml`) | Infra | ⏳ Pendiente |
 | S0-T12 | #23 | Crear `.env.example` documentado | Infra | ✅ Completado |

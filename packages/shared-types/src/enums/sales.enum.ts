@@ -1,0 +1,23 @@
+export enum SaleStatus {
+  BORRADOR = 'BORRADOR',
+  CONFIRMADA = 'CONFIRMADA',
+  CANCELADA = 'CANCELADA',
+}
+
+export enum FiscalDocumentType {
+  FACTURA_A = 'FACTURA_A',
+  FACTURA_B = 'FACTURA_B',
+  NOTA_CREDITO_A = 'NOTA_CREDITO_A',
+  NOTA_CREDITO_B = 'NOTA_CREDITO_B',
+  NOTA_DEBITO_A = 'NOTA_DEBITO_A',
+  NOTA_DEBITO_B = 'NOTA_DEBITO_B',
+  REMITO = 'REMITO',
+}
+
+export enum ArcaStatus {
+  EMITIDO = 'EMITIDO',
+  PENDIENTE_FACTURACION = 'PENDIENTE_FACTURACION',
+  RECHAZADO = 'RECHAZADO',
+}
+
+export type ARCAStatus = ArcaStatus;

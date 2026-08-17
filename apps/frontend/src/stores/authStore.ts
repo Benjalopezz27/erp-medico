@@ -1,13 +1,8 @@
 import { create } from 'zustand';
+import { UserRole, IUser } from '@erp/shared-types';
 
-export type UserRole = 'ADMINISTRADOR' | 'VENDEDOR';
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: UserRole;
-}
+export { UserRole };
+export type User = IUser;
 
 interface AuthState {
   user: User | null;
@@ -23,17 +18,23 @@ export const useAuthStore = create<AuthState>((set) => ({
     id: '1',
     name: 'Juan Admin',
     email: 'admin@erp.com',
-    role: 'ADMINISTRADOR',
+    role: UserRole.ADMINISTRADOR,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   },
   token: 'mock-jwt-token-sprint-0',
   isAuthenticated: true,
-  login: (email: string, role: UserRole = 'ADMINISTRADOR') =>
+  login: (email: string, role: UserRole = UserRole.ADMINISTRADOR) =>
     set({
       user: {
-        id: role === 'ADMINISTRADOR' ? '1' : '2',
-        name: role === 'ADMINISTRADOR' ? 'Juan Admin' : 'Ana Ventas',
+        id: role === UserRole.ADMINISTRADOR ? '1' : '2',
+        name: role === UserRole.ADMINISTRADOR ? 'Juan Admin' : 'Ana Ventas',
         email,
         role,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       },
       token: 'mock-jwt-token-sprint-0',
       isAuthenticated: true,
@@ -49,14 +50,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       user: state.user
         ? {
             ...state.user,
-            name: role === 'ADMINISTRADOR' ? 'Juan Admin' : 'Ana Ventas',
+            name: role === UserRole.ADMINISTRADOR ? 'Juan Admin' : 'Ana Ventas',
             role,
           }
         : {
-            id: role === 'ADMINISTRADOR' ? '1' : '2',
-            name: role === 'ADMINISTRADOR' ? 'Juan Admin' : 'Ana Ventas',
-            email: role === 'ADMINISTRADOR' ? 'admin@erp.com' : 'vendedor@erp.com',
+            id: role === UserRole.ADMINISTRADOR ? '1' : '2',
+            name: role === UserRole.ADMINISTRADOR ? 'Juan Admin' : 'Ana Ventas',
+            email: role === UserRole.ADMINISTRADOR ? 'admin@erp.com' : 'vendedor@erp.com',
             role,
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           },
       token: 'mock-jwt-token-sprint-0',
       isAuthenticated: true,

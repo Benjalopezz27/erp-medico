@@ -15,7 +15,7 @@ import {
   X,
   HeartPulse,
 } from 'lucide-react';
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, UserRole } from '@/stores/authStore';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -50,7 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const currentPath = routerState.location.pathname;
 
   const filteredNavItems = navItems.filter((item) => {
-    if (item.adminOnly && user?.role !== 'ADMINISTRADOR') {
+    if (item.adminOnly && user?.role !== UserRole.ADMINISTRADOR) {
       return false;
     }
     return true;

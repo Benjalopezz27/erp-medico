@@ -37,7 +37,10 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuToggle }) => {
   };
 
   const handleToggleRole = () => {
-    const nextRole: UserRole = user?.role === 'ADMINISTRADOR' ? 'VENDEDOR' : 'ADMINISTRADOR';
+    const nextRole: UserRole =
+      user?.role === UserRole.ADMINISTRADOR
+        ? UserRole.VENDEDOR
+        : UserRole.ADMINISTRADOR;
     switchRole(nextRole);
   };
 
@@ -97,10 +100,10 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuToggle }) => {
           </div>
 
           <Badge
-            variant={user?.role === 'ADMINISTRADOR' ? 'default' : 'secondary'}
+            variant={user?.role === UserRole.ADMINISTRADOR ? 'default' : 'secondary'}
             className="text-[10px] uppercase font-bold px-2 py-0.5"
           >
-            {user?.role === 'ADMINISTRADOR' ? (
+            {user?.role === UserRole.ADMINISTRADOR ? (
               <span className="flex items-center space-x-1">
                 <Shield className="w-3 h-3 mr-1" /> ADMIN
               </span>

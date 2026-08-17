@@ -12,13 +12,13 @@ export const LoginPage: React.FC = () => {
 
   const [email, setEmail] = useState('admin@erp.com');
   const [password, setPassword] = useState('Admin1234!');
-  const [role, setRole] = useState<UserRole>('ADMINISTRADOR');
+  const [role, setRole] = useState<UserRole>(UserRole.ADMINISTRADOR);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleQuickPreset = (presetRole: UserRole) => {
     setRole(presetRole);
-    if (presetRole === 'ADMINISTRADOR') {
+    if (presetRole === UserRole.ADMINISTRADOR) {
       setEmail('admin@erp.com');
       setPassword('Admin1234!');
     } else {
@@ -77,9 +77,9 @@ export const LoginPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickPreset('ADMINISTRADOR')}
+                onClick={() => handleQuickPreset(UserRole.ADMINISTRADOR)}
                 className={`p-2 rounded-lg border text-xs font-medium flex items-center justify-center space-x-1.5 transition-all ${
-                  role === 'ADMINISTRADOR'
+                  role === UserRole.ADMINISTRADOR
                     ? 'border-blue-500 bg-blue-600/20 text-blue-300'
                     : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700'
                 }`}
@@ -90,9 +90,9 @@ export const LoginPage: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => handleQuickPreset('VENDEDOR')}
+                onClick={() => handleQuickPreset(UserRole.VENDEDOR)}
                 className={`p-2 rounded-lg border text-xs font-medium flex items-center justify-center space-x-1.5 transition-all ${
-                  role === 'VENDEDOR'
+                  role === UserRole.VENDEDOR
                     ? 'border-blue-500 bg-blue-600/20 text-blue-300'
                     : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700'
                 }`}
