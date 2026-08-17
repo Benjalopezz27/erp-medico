@@ -4,7 +4,7 @@
 **Status:** Approved  
 **Deployment model:** Single cloud web application, accessed from one shared workstation  
 **Users:** 4 people sharing a single computer (sequential access — no real concurrent sessions)  
-**Roles:** ADMINISTRADOR / VENDEDOR  
+**Roles:** ADMINISTRADOR / VENDEDOR
 
 ---
 
@@ -22,27 +22,27 @@ The system is accessed from **a single workstation** in the distributor's office
 
 ## 2. Full Stack Decision Table
 
-| Layer | Technology | Discarded Alternative | Key Reason |
-|-------|------------|----------------------|------------|
-| **Backend framework** | NestJS (Node.js / TypeScript) | — | Already decided; modular architecture maps well to bounded contexts |
-| **ORM** | **TypeORM** | Prisma | Native `QueryRunner` + `SELECT FOR UPDATE`; explicit multi-step transactions |
-| **Database** | PostgreSQL 16 | — | Already decided; ACID, immutable ledger, row-level locking |
-| **Frontend** | **Vite + React 19 (SPA)** | Next.js | Pure backoffice — SSR adds complexity with zero benefit |
-| **Routing** | TanStack Router v1 | React Router v6 | Fully type-safe, file-based routes |
-| **Server state** | **TanStack Query v5** | SWR / Apollo | Caching + optimistic updates + retry; ideal for data grids |
-| **UI components** | **shadcn/ui + Tailwind CSS** | Ant Design, MUI | Composable, no vendor lock-in, perfect for data-dense ERP |
-| **Forms** | React Hook Form + Zod | Formik | Performance, shared schema validation with backend |
-| **Data grids** | **TanStack Table v8** | AG Grid | Sufficient for ≤350 products; no paid license required |
-| **Queue / ARCA retry** | BullMQ + Redis | — | Idempotency keys for WSFE; exponential backoff |
-| **Fiscal PDF** | **Puppeteer (headless)** | pdf-lib | HTML → PDF with embedded QR; easier to maintain |
-| **ARCA SOAP** | `soap` npm + Axios | Axios only | `soap` parses WSDL; Axios handles WSAA token refresh |
-| **Auth** | Passport.js + JWT + NestJS Guards | — | Native NestJS integration |
-| **Logging** | Winston + Pino-HTTP | — | Winston for app events; Pino for request-level logging |
-| **Monorepo** | **pnpm workspaces** | Nx / Turborepo | Simpler for solo dev; no build graph overhead |
-| **Containerization** | Docker Compose | Kubernetes | Single VPS, sequential users — K8s is overkill |
-| **CI/CD** | GitHub Actions | — | Already documented |
-| **Hosting** | **Hetzner CX21** (~$6.50 USD/month) | AWS, Render | Cheapest option; direct Docker Compose deploy; Certbot SSL |
-| **Language** | TypeScript (strict) | — | Shared types between backend and frontend via `shared-types` package |
+| Layer                  | Technology                          | Discarded Alternative | Key Reason                                                                   |
+| ---------------------- | ----------------------------------- | --------------------- | ---------------------------------------------------------------------------- |
+| **Backend framework**  | NestJS (Node.js / TypeScript)       | —                     | Already decided; modular architecture maps well to bounded contexts          |
+| **ORM**                | **TypeORM**                         | Prisma                | Native `QueryRunner` + `SELECT FOR UPDATE`; explicit multi-step transactions |
+| **Database**           | PostgreSQL 16                       | —                     | Already decided; ACID, immutable ledger, row-level locking                   |
+| **Frontend**           | **Vite + React 19 (SPA)**           | Next.js               | Pure backoffice — SSR adds complexity with zero benefit                      |
+| **Routing**            | TanStack Router v1                  | React Router v6       | Fully type-safe, file-based routes                                           |
+| **Server state**       | **TanStack Query v5**               | SWR / Apollo          | Caching + optimistic updates + retry; ideal for data grids                   |
+| **UI components**      | **shadcn/ui + Tailwind CSS**        | Ant Design, MUI       | Composable, no vendor lock-in, perfect for data-dense ERP                    |
+| **Forms**              | React Hook Form + Zod               | Formik                | Performance, shared schema validation with backend                           |
+| **Data grids**         | **TanStack Table v8**               | AG Grid               | Sufficient for ≤350 products; no paid license required                       |
+| **Queue / ARCA retry** | BullMQ + Redis                      | —                     | Idempotency keys for WSFE; exponential backoff                               |
+| **Fiscal PDF**         | **Puppeteer (headless)**            | pdf-lib               | HTML → PDF with embedded QR; easier to maintain                              |
+| **ARCA SOAP**          | `soap` npm + Axios                  | Axios only            | `soap` parses WSDL; Axios handles WSAA token refresh                         |
+| **Auth**               | Passport.js + JWT + NestJS Guards   | —                     | Native NestJS integration                                                    |
+| **Logging**            | Winston + Pino-HTTP                 | —                     | Winston for app events; Pino for request-level logging                       |
+| **Monorepo**           | **pnpm workspaces**                 | Nx / Turborepo        | Simpler for solo dev; no build graph overhead                                |
+| **Containerization**   | Docker Compose                      | Kubernetes            | Single VPS, sequential users — K8s is overkill                               |
+| **CI/CD**              | GitHub Actions                      | —                     | Already documented                                                           |
+| **Hosting**            | **Hetzner CX21** (~$6.50 USD/month) | AWS, Render           | Cheapest option; direct Docker Compose deploy; Certbot SSL                   |
+| **Language**           | TypeScript (strict)                 | —                     | Shared types between backend and frontend via `shared-types` package         |
 
 ---
 
@@ -248,7 +248,7 @@ POST /sales  (confirm sale)
 services:
   postgres:
     image: postgres:16-alpine
-    ports: ["5432:5432"]
+    ports: ['5432:5432']
     environment:
       POSTGRES_DB: erp_medico
       POSTGRES_USER: erp_user
@@ -256,11 +256,11 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
+    ports: ['6379:6379']
 
   mailhog:
     image: mailhog/mailhog
-    ports: ["8025:8025", "1025:1025"]
+    ports: ['8025:8025', '1025:1025']
 ```
 
 ```bash
@@ -305,6 +305,7 @@ ARCA_PUNTO_VENTA=1
 ## 9. Production Hosting
 
 **Hetzner CX21** (~$6.50 USD/month):
+
 - 2 vCPU · 4 GB RAM · 40 GB SSD · Ubuntu 24.04
 - Direct Docker Compose deploy (no Kubernetes)
 - Nginx as reverse proxy + Certbot for SSL
@@ -322,13 +323,13 @@ Nginx (reverse proxy + SSL)
 
 ## 10. Anti-Patterns to Avoid
 
-| Anti-pattern | Correct approach |
-|--------------|-----------------|
-| GraphQL | Plain REST — CRUD + a few specialized endpoints |
-| Microservices | Modular NestJS monolith — sequential single-workstation users do not justify the complexity |
-| CQRS + Event Sourcing | Immutable ledger already covers audit — CQRS is over-engineering |
-| Kubernetes | Docker Compose directly on VPS |
-| Prisma | TypeORM for native `SELECT FOR UPDATE` + explicit `QueryRunner` |
-| Next.js | Vite SPA — pure backoffice, no SEO, no public pages |
-| Redux | Zustand (if needed) + TanStack Query for server state |
-| Electron / native app | Cloud web app — no offline requirement |
+| Anti-pattern          | Correct approach                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------- |
+| GraphQL               | Plain REST — CRUD + a few specialized endpoints                                             |
+| Microservices         | Modular NestJS monolith — sequential single-workstation users do not justify the complexity |
+| CQRS + Event Sourcing | Immutable ledger already covers audit — CQRS is over-engineering                            |
+| Kubernetes            | Docker Compose directly on VPS                                                              |
+| Prisma                | TypeORM for native `SELECT FOR UPDATE` + explicit `QueryRunner`                             |
+| Next.js               | Vite SPA — pure backoffice, no SEO, no public pages                                         |
+| Redux                 | Zustand (if needed) + TanStack Query for server state                                       |
+| Electron / native app | Cloud web app — no offline requirement                                                      |

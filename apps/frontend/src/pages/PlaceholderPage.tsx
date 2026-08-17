@@ -10,11 +10,7 @@ interface PlaceholderPageProps {
   sprint: string;
 }
 
-export const PlaceholderPage: React.FC<PlaceholderPageProps> = ({
-  title,
-  description,
-  sprint,
-}) => {
+export const PlaceholderPage: React.FC<PlaceholderPageProps> = ({ title, description, sprint }) => {
   return (
     <div className="max-w-3xl mx-auto space-y-4 animate-in fade-in duration-200">
       <Card className="border-slate-200 shadow-sm">
@@ -34,11 +30,10 @@ export const PlaceholderPage: React.FC<PlaceholderPageProps> = ({
             <Construction className="w-7 h-7" />
           </div>
           <div className="space-y-1 max-w-md mx-auto">
-            <h3 className="text-base font-semibold text-slate-800">
-              Módulo en Desarrollo
-            </h3>
+            <h3 className="text-base font-semibold text-slate-800">Módulo en Desarrollo</h3>
             <p className="text-xs text-slate-500">
-              La funcionalidad para este módulo se implementará en el sprint correspondiente según el plan de arquitectura.
+              La funcionalidad para este módulo se implementará en el sprint correspondiente según
+              el plan de arquitectura.
             </p>
           </div>
           <div className="pt-2">

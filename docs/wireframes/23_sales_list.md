@@ -2,9 +2,10 @@
 **Módulo:** Ventas  
 **Ruta:** `/sales`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR  
-**Sprint:** Sprint 2 — US-06  
+**Sprint:** Sprint 2 — US-06
 
 ## Descripción
+
 Listado general de ventas con filtros y estado de facturación.
 
 ## Estados
@@ -40,5 +41,6 @@ Listado general de ventas con filtros y estado de facturación.
 ```
 
 ## Notas de Interacción
+
 - "Medio" muestra CtaCte, Efect, Transf, Cheque o Mixto.
 - Estado de factura tiene insignias de colores (Verde: Emitido, Amarillo: Pendiente, Gris: Sin Factura).

@@ -2,9 +2,10 @@
 **Módulo:** CtaCte  
 **Ruta:** `/receivables` y `/customers/:id/account`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR  
-**Sprint:** Sprint 3 — US-09  
+**Sprint:** Sprint 3 — US-09
 
 ## Descripción
+
 Gestión de deuda de clientes (Cuentas Corrientes) y antigüedad de saldos.
 
 ## Estados
@@ -56,5 +57,6 @@ Gestión de deuda de clientes (Cuentas Corrientes) y antigüedad de saldos.
 ```
 
 ## Notas de Interacción
+
 - Color rojo para saldos con antigüedad > 30 días o si el estado es moroso.
 - El botón "Registrar Cobro" lleva al formulario de cobro para este cliente.

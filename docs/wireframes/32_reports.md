@@ -2,9 +2,10 @@
 **Módulo:** Reportes  
 **Ruta:** `/reports`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 5 — US-15  
+**Sprint:** Sprint 5 — US-15
 
 ## Descripción
+
 Centro de reportes del sistema. Presenta un layout común para todos los informes.
 
 ## Estados
@@ -47,5 +48,6 @@ Centro de reportes del sistema. Presenta un layout común para todos los informe
 9. **Rentabilidad (Costo vs Precio):** Filtros (Fechas). Columnas (Producto, Costo Promedio, P. Venta, Margen %).
 
 ## Notas de Interacción
+
 - El panel de filtros se adapta dependiendo del reporte seleccionado.
 - La exportación a Excel y PDF toma exactamente las columnas mostradas en pantalla.

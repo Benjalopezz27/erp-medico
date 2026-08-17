@@ -10,9 +10,7 @@ export const AuthLayout: React.FC = () => {
         <div className="inline-flex items-center justify-center p-3 bg-blue-600 text-white rounded-xl shadow-lg shadow-blue-600/30">
           <HeartPulse className="w-8 h-8" />
         </div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">
-          ERP Distribuidora Médica
-        </h1>
+        <h1 className="text-2xl font-bold text-white tracking-tight">ERP Distribuidora Médica</h1>
         <p className="text-xs text-slate-400 font-mono tracking-wider">
           ACCESO AL SISTEMA DE GESTIÓN
         </p>

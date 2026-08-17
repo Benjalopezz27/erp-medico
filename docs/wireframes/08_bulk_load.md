@@ -2,9 +2,10 @@
 **Módulo:** Stock  
 **Ruta:** `/stock/bulk-load`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 2 — US-08  
+**Sprint:** Sprint 2 — US-08
 
 ## Descripción
+
 Asistente (Wizard) para cargar o actualizar saldos iniciales de stock mediante un archivo Excel/CSV.
 
 ## Estados
@@ -83,5 +84,6 @@ Asistente (Wizard) para cargar o actualizar saldos iniciales de stock mediante u
 ```
 
 ## Notas de Interacción
+
 - La carga masiva genera múltiples movimientos de "Ajuste de Stock Inicial" en el ledger.
 - Es crucial mostrar claramente qué productos fueron encontrados (match por código interno) y cuáles fallaron antes de procesar.

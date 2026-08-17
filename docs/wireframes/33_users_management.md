@@ -2,9 +2,10 @@
 **Módulo:** Configuración / Usuarios  
 **Ruta:** `/admin/users`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 4 — US-33  
+**Sprint:** Sprint 4 — US-33
 
 ## Descripción
+
 Pantalla para administrar el acceso al sistema. Solo visible para administradores.
 
 ## Estados
@@ -56,5 +57,6 @@ Pantalla para administrar el acceso al sistema. Solo visible para administradore
 ```
 
 ## Notas de Interacción
+
 - Al intentar eliminar un usuario con ventas o acciones previas, el sistema muestra error/alerta impidiendo la eliminación (integridad referencial). Se debe usar "Desactivar" en su lugar.
 - Dropdown de roles: `ADMINISTRADOR`, `VENDEDOR`.

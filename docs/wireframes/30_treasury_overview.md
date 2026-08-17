@@ -2,9 +2,10 @@
 **Módulo:** Tesorería  
 **Ruta:** `/treasury`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 4 — US-13  
+**Sprint:** Sprint 4 — US-13
 
 ## Descripción
+
 Resumen general de saldos de la empresa y movimientos históricos.
 
 ## Estados
@@ -37,4 +38,5 @@ Resumen general de saldos de la empresa y movimientos históricos.
 ```
 
 ## Notas de Interacción
+
 - "Movimiento Manual" permite registrar ajustes, retiros, o depósitos. Solo disponible para rol ADMINISTRADOR.

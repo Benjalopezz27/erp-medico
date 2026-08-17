@@ -2,9 +2,10 @@
 **Módulo:** Productos  
 **Ruta:** `/products/new` y `/products/:id/edit`  
 **Rol(es):** ADMINISTRADOR  
-**Sprint:** Sprint 1 — US-04  
+**Sprint:** Sprint 1 — US-04
 
 ## Descripción
+
 Formulario para crear o editar la ficha técnica, comercial y de stock de un producto médico.
 
 ## Estados
@@ -66,6 +67,7 @@ Formulario para crear o editar la ficha técnica, comercial y de stock de un pro
 ```
 
 ## Notas de Interacción
+
 - Precio Sugerido = Costo Neto * (1 + Markup / 100). Es read-only y se recalcula en tiempo real.
 - El Código Interno no se puede cambiar una vez creado el producto.
 - En la grilla de conversiones, la 'Equivalencia' es un texto generado dinámicamente ("1 {Unidad Presentación} = {Factor} {Unidad Base}").

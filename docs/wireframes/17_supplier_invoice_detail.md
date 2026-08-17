@@ -2,9 +2,10 @@
 **Módulo:** Compras  
 **Ruta:** `/purchases/supplier-invoices/:id`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR (solo lectura)  
-**Sprint:** Sprint 4 — US-17  
+**Sprint:** Sprint 4 — US-17
 
 ## Descripción
+
 Muestra el detalle de una factura de proveedor y su conciliación contra la recepción de mercadería. Muestra advertencias de diferencia de costos y permite ajustes posteriores.
 
 ## Estados
@@ -57,6 +58,7 @@ Muestra el detalle de una factura de proveedor y su conciliación contra la rece
 ```
 
 ## Notas de Interacción
+
 - Estado VALIDANDO: similar a OBSERVADA pero sin banner de alerta y sin botones de Autorizar/Rechazar si está dentro de la tolerancia (se auto-confirma o requiere confirmación normal).
 - El sistema de ajuste (COGS Ajuste) muestra cómo impacta la diferencia de precios en la mercadería que ya fue vendida vs la que sigue en stock.
 - Solo el ADMINISTRADOR ve los botones de Autorizar/Rechazar.

@@ -2,9 +2,10 @@
 **Módulo:** Dashboard  
 **Ruta:** `/`  
 **Rol(es):** ADMINISTRADOR | VENDEDOR  
-**Sprint:** Sprint 1 — US-03  
+**Sprint:** Sprint 1 — US-03
 
 ## Descripción
+
 Pantalla principal tras el login. Muestra KPIs clave y un resumen de las últimas ventas.
 
 ## Estados
@@ -40,6 +41,7 @@ Pantalla principal tras el login. Muestra KPIs clave y un resumen de las última
 ```
 
 ## Notas de Interacción
+
 - "Bajo Mínimo" redirige a `/stock?filter=alerts`.
 - "Fact. Observ." redirige a `/compras?status=OBSERVADA`.
 - "Cheques 7d" redirige a `/tesoreria/cheques?vencimiento=7d`.
