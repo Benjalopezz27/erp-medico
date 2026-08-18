@@ -8,3 +8,4 @@ export * from './customers.model';
 export * from './sales.model';
 export * from './receivables.model';
 export * from './treasury.model';
+export * from './arca.model';
