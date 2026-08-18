@@ -35,32 +35,32 @@ Toda historia de usuario se considera **Done** cuando:
 
 ### Tareas
 
-| ID     | GitHub Issue | Descripción                                                                                         | Tipo     | Estado       |
-| ------ | ------------ | --------------------------------------------------------------------------------------------------- | -------- | ------------ |
-| S0-T01 | #12          | Crear repositorio y configurar branch strategy (`main`, `dev`, branch protection)                   | Infra    | ✅ Cerrada   |
-| S0-T02 | #13          | Inicializar monorepo `pnpm workspaces` con `apps/backend`, `apps/frontend`, `packages/shared-types` | Infra    | ✅ Cerrada   |
-| S0-T03 | #14          | Configurar Docker Compose (`postgres:16-alpine`, `redis:7-alpine`, `mailhog`)                       | Infra    | ✅ Cerrada   |
-| S0-T04 | #15          | Scaffold NestJS backend con 18 módulos bounded-context del dominio                                  | Backend  | ✅ Cerrada   |
-| S0-T05 | #16          | Configurar TypeORM y sistema de migraciones con PostgreSQL 16                                       | Backend  | ✅ Cerrada   |
-| S0-T06 | #17          | Crear `HealthCheckController` y diagnóstico de base de datos (`GET /api/v1/health`)                 | Backend  | ✅ Cerrada   |
-| S0-T07 | #18          | Scaffold Vite + React 19 frontend con dependencias base (TanStack, Tailwind, Lucide, Zod)           | Frontend | ✅ Cerrada   |
-| S0-T08 | #19          | Crear layout base del frontend (`RootLayout` sidebar + topbar, `AuthLayout`, login/404 stubs)       | Frontend | ✅ Cerrada   |
-| S0-T09 | #20          | Crear package `shared-types` con enums y tipos base del dominio                                     | Shared   | ✅ Cerrada   |
-| S0-T10 | #21          | Configurar ESLint + Prettier en monorepo                                                            | Infra    | ✅ Cerrada   |
-| S0-T11 | #22          | Configurar GitHub Actions CI (`.github/workflows/ci.yml`)                                           | Infra    | ✅ Cerrada   |
-| S0-T12 | #23          | Crear `.env.example` documentado                                                                    | Infra    | ✅ Cerrada   |
-| S0-T13 | #24          | Crear script de seed inicial de usuarios (`ADMINISTRADOR`, `VENDEDOR`) hasheados                    | Backend  | ✅ Cerrada   |
-| S0-T14 | #25          | Crear `ArcaMockService` para ambiente de desarrollo                                                 | Backend  | ✅ Cerrada   |
-| S0-T15 | #26          | Crear README del proyecto con badges e instrucciones                                                | Docs     | ⏳ Pendiente |
+| ID     | GitHub Issue | Descripción                                                                                         | Tipo     | Estado     |
+| ------ | ------------ | --------------------------------------------------------------------------------------------------- | -------- | ---------- |
+| S0-T01 | #12          | Crear repositorio y configurar branch strategy (`main`, `dev`, branch protection)                   | Infra    | ✅ Cerrada |
+| S0-T02 | #13          | Inicializar monorepo `pnpm workspaces` con `apps/backend`, `apps/frontend`, `packages/shared-types` | Infra    | ✅ Cerrada |
+| S0-T03 | #14          | Configurar Docker Compose (`postgres:16-alpine`, `redis:7-alpine`, `mailhog`)                       | Infra    | ✅ Cerrada |
+| S0-T04 | #15          | Scaffold NestJS backend con 18 módulos bounded-context del dominio                                  | Backend  | ✅ Cerrada |
+| S0-T05 | #16          | Configurar TypeORM y sistema de migraciones con PostgreSQL 16                                       | Backend  | ✅ Cerrada |
+| S0-T06 | #17          | Crear `HealthCheckController` y diagnóstico de base de datos (`GET /api/v1/health`)                 | Backend  | ✅ Cerrada |
+| S0-T07 | #18          | Scaffold Vite + React 19 frontend con dependencias base (TanStack, Tailwind, Lucide, Zod)           | Frontend | ✅ Cerrada |
+| S0-T08 | #19          | Crear layout base del frontend (`RootLayout` sidebar + topbar, `AuthLayout`, login/404 stubs)       | Frontend | ✅ Cerrada |
+| S0-T09 | #20          | Crear package `shared-types` con enums y tipos base del dominio                                     | Shared   | ✅ Cerrada |
+| S0-T10 | #21          | Configurar ESLint + Prettier en monorepo                                                            | Infra    | ✅ Cerrada |
+| S0-T11 | #22          | Configurar GitHub Actions CI (`.github/workflows/ci.yml`)                                           | Infra    | ✅ Cerrada |
+| S0-T12 | #23          | Crear `.env.example` documentado                                                                    | Infra    | ✅ Cerrada |
+| S0-T13 | #24          | Crear script de seed inicial de usuarios (`ADMINISTRADOR`, `VENDEDOR`) hasheados                    | Backend  | ✅ Cerrada |
+| S0-T14 | #25          | Crear `ArcaMockService` para ambiente de desarrollo                                                 | Backend  | ✅ Cerrada |
+| S0-T15 | #26          | Crear README del proyecto con badges e instrucciones                                                | Docs     | ✅ Cerrada |
 
 ### ✅ Definition of Done — Sprint 0
 
-- [ ] `docker compose up -d` levanta sin errores
-- [ ] `pnpm --filter backend run start:dev` arranca NestJS en `:3000`
-- [ ] `GET http://localhost:3000/health` responde `200 OK`
-- [ ] `pnpm --filter frontend run dev` arranca Vite en `:5173` y muestra el layout base
-- [ ] `pnpm -r run lint` pasa sin errores
-- [ ] CI pipeline pasa en GitHub Actions
+- [x] `docker compose up -d` levanta sin errores
+- [x] `pnpm --filter @erp/backend run start:dev` arranca NestJS en `:3000`
+- [x] `GET http://localhost:3000/api/v1/health` responde `200 OK`
+- [x] `pnpm --filter @erp/frontend run dev` arranca Vite en `:5173` y muestra el layout base
+- [x] `pnpm -r run lint` pasa sin errores
+- [x] CI pipeline pasa en GitHub Actions
 
 ### 🎬 Demo al Final del Sprint 0
 
