@@ -101,7 +101,26 @@ jobs:
           JWT_SECRET: test-secret-ci-sprint-0
           REDIS_HOST: localhost
           REDIS_PORT: 6379
+          SEED_ADMIN_PASSWORD: TestAdminPassword123!
+          SEED_VENDEDOR_PASSWORD: TestVendedorPassword123!
           ARCA_ENV: development
+
+      - name: Run Backend E2E Tests
+        run: pnpm --filter @erp/backend run test:e2e
+        env:
+          NODE_ENV: test
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: erp_user
+          DB_PASSWORD: erp_pass
+          DB_NAME: erp_test
+          JWT_SECRET: test-secret-ci-sprint-0
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          SEED_ADMIN_PASSWORD: TestAdminPassword123!
+          SEED_VENDEDOR_PASSWORD: TestVendedorPassword123!
+          ARCA_ENV: development
+
 
   build:
     name: Build All Workspace Packages
