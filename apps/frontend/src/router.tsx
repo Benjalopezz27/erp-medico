@@ -1,10 +1,33 @@
-import { createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router';
+import {
+  createRouter,
+  createRoute,
+  createRootRoute,
+  Outlet,
+  redirect,
+} from '@tanstack/react-router';
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { LoginPage } from '@/pages/LoginPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { useAuthStore } from '@/stores/authStore';
+import { isRouteAllowed } from '@/config/permissions.config';
+
+export function requireAuthentication(): void {
+  if (!useAuthStore.getState().isAuthenticated) throw redirect({ to: '/login' });
+}
+
+export function redirectAuthenticatedUser(): void {
+  if (useAuthStore.getState().isAuthenticated) throw redirect({ to: '/' });
+}
+
+export function requireRoutePermission(pathname: string): void {
+  requireAuthentication();
+  if (!isRouteAllowed(pathname, useAuthStore.getState().user?.role)) {
+    throw redirect({ to: '/' });
+  }
+}
 
 // 1. Root Route
 const rootRoute = createRootRoute({
@@ -17,6 +40,7 @@ const authLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'auth',
   component: () => <AuthLayout />,
+  beforeLoad: redirectAuthenticatedUser,
 });
 
 const loginRoute = createRoute({
@@ -30,6 +54,7 @@ const appShellRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'app',
   component: () => <AppShell />,
+  beforeLoad: requireAuthentication,
 });
 
 const indexRoute = createRoute({
@@ -65,6 +90,7 @@ const stockRoute = createRoute({
 const purchasesRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/purchases',
+  beforeLoad: () => requireRoutePermission('/purchases'),
   component: () => (
     <PlaceholderPage
       title="Compras y Recepción"
@@ -101,6 +127,7 @@ const customersRoute = createRoute({
 const suppliersRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/suppliers',
+  beforeLoad: () => requireRoutePermission('/suppliers'),
   component: () => (
     <PlaceholderPage
       title="Proveedores y Catálogos"
@@ -113,6 +140,7 @@ const suppliersRoute = createRoute({
 const receivablesRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/receivables',
+  beforeLoad: () => requireRoutePermission('/receivables'),
   component: () => (
     <PlaceholderPage
       title="Cuentas Corrientes y Cobranzas"
@@ -125,6 +153,7 @@ const receivablesRoute = createRoute({
 const treasuryRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/treasury',
+  beforeLoad: () => requireRoutePermission('/treasury'),
   component: () => (
     <PlaceholderPage
       title="Tesorería y Caja"
@@ -137,6 +166,7 @@ const treasuryRoute = createRoute({
 const reportsRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/reports',
+  beforeLoad: () => requireRoutePermission('/reports'),
   component: () => (
     <PlaceholderPage
       title="Reportes Operativos y Financieros"
@@ -149,6 +179,7 @@ const reportsRoute = createRoute({
 const settingsRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/settings',
+  beforeLoad: () => requireRoutePermission('/settings'),
   component: () => (
     <PlaceholderPage
       title="Configuración del Sistema"

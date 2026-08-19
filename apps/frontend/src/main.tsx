@@ -1,16 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import './index.css';
+import { queryClient } from '@/lib/query-client';
+import { configureSessionManager } from '@/services/session-manager';
+import { router } from '@/router';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5,
-      refetchOnWindowFocus: false,
-    },
-  },
+configureSessionManager({
+  queryClient,
+  getCurrentPath: () => router.state.location.pathname,
+  navigateToLogin: () => router.navigate({ to: '/login', replace: true }),
 });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

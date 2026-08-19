@@ -1,7 +1,8 @@
 import React from 'react';
-import { useRouterState, useNavigate, Link } from '@tanstack/react-router';
-import { Menu, LogOut, User as UserIcon, Shield, ChevronRight, RefreshCw } from 'lucide-react';
+import { useRouterState, Link } from '@tanstack/react-router';
+import { Menu, LogOut, User as UserIcon, Shield, ChevronRight } from 'lucide-react';
 import { useAuthStore, UserRole } from '@/stores/authStore';
+import { sessionTerminator } from '@/services/session-terminator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -24,23 +25,13 @@ const routeTitles: Record<string, string> = {
 };
 
 export const Topbar: React.FC<TopbarProps> = ({ onMenuToggle }) => {
-  const { user, logout, switchRole } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
   const routerState = useRouterState();
-  const navigate = useNavigate();
 
   const currentPath = routerState.location.pathname;
   const currentTitle = routeTitles[currentPath] || 'Página';
 
-  const handleLogout = () => {
-    logout();
-    navigate({ to: '/login' });
-  };
-
-  const handleToggleRole = () => {
-    const nextRole: UserRole =
-      user?.role === UserRole.ADMINISTRADOR ? UserRole.VENDEDOR : UserRole.ADMINISTRADOR;
-    switchRole(nextRole);
-  };
+  const handleLogout = () => void sessionTerminator.terminate('user_logout');
 
   return (
     <header className="h-16 bg-white border-b border-slate-200 px-4 sm:px-6 flex items-center justify-between shadow-sm sticky top-0 z-30">
@@ -68,20 +59,8 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuToggle }) => {
         </nav>
       </div>
 
-      {/* Right section: Role switcher, User widget, Logout */}
+      {/* Right section: User widget and logout */}
       <div className="flex items-center space-x-3">
-        {/* Development Quick Role Switcher */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleToggleRole}
-          className="hidden sm:inline-flex items-center space-x-1.5 text-xs text-slate-600 border-dashed border-slate-300 hover:border-blue-400"
-          title="Cambiar rol activo para pruebas de UI"
-        >
-          <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
-          <span>Cambiar a {user?.role === 'ADMINISTRADOR' ? 'VENDEDOR' : 'ADMIN'}</span>
-        </Button>
-
         {/* User profile & badge */}
         <div className="flex items-center space-x-2 pl-2 border-l border-slate-200">
           <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700">

@@ -1,68 +1,42 @@
 import { create } from 'zustand';
-import { UserRole, IUser } from '@erp/shared-types';
+import type { IAuthSession, IAuthUser } from '@erp/shared-types';
+import { UserRole } from '@erp/shared-types';
 
 export { UserRole };
-export type User = IUser;
+export type User = IAuthUser;
 
-interface AuthState {
-  user: User | null;
+export interface AuthState {
+  user: IAuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
-  login: (email: string, role?: UserRole) => void;
-  logout: () => void;
-  switchRole: (role: UserRole) => void;
+  setSession: (session: IAuthSession) => void;
+  clearSession: () => void;
+  hasRole: (role: UserRole) => boolean;
+  hasAnyRole: (roles: UserRole[]) => boolean;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: {
-    id: '1',
-    name: 'Juan Admin',
-    email: 'admin@erp.com',
-    role: UserRole.ADMINISTRADOR,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  token: 'mock-jwt-token-sprint-0',
-  isAuthenticated: true,
-  login: (email: string, role: UserRole = UserRole.ADMINISTRADOR) =>
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  token: null,
+  isAuthenticated: false,
+  setSession: ({ user, accessToken }) =>
     set({
-      user: {
-        id: role === UserRole.ADMINISTRADOR ? '1' : '2',
-        name: role === UserRole.ADMINISTRADOR ? 'Juan Admin' : 'Ana Ventas',
-        email,
-        role,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      token: 'mock-jwt-token-sprint-0',
-      isAuthenticated: true,
+      user,
+      token: accessToken,
+      isAuthenticated: Boolean(accessToken && user),
     }),
-  logout: () =>
+  clearSession: () =>
     set({
       user: null,
       token: null,
       isAuthenticated: false,
     }),
-  switchRole: (role: UserRole) =>
-    set((state) => ({
-      user: state.user
-        ? {
-            ...state.user,
-            name: role === UserRole.ADMINISTRADOR ? 'Juan Admin' : 'Ana Ventas',
-            role,
-          }
-        : {
-            id: role === UserRole.ADMINISTRADOR ? '1' : '2',
-            name: role === UserRole.ADMINISTRADOR ? 'Juan Admin' : 'Ana Ventas',
-            email: role === UserRole.ADMINISTRADOR ? 'admin@erp.com' : 'vendedor@erp.com',
-            role,
-            isActive: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-      token: 'mock-jwt-token-sprint-0',
-      isAuthenticated: true,
-    })),
+  hasRole: (role: UserRole) => {
+    const { user, isAuthenticated } = get();
+    return isAuthenticated && user !== null && user.role === role;
+  },
+  hasAnyRole: (roles: UserRole[]) => {
+    const { user, isAuthenticated } = get();
+    return isAuthenticated && user !== null && roles.includes(user.role);
+  },
 }));

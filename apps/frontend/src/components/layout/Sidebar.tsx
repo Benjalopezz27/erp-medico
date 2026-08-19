@@ -15,28 +15,28 @@ import {
   X,
   HeartPulse,
 } from 'lucide-react';
-import { useAuthStore, UserRole } from '@/stores/authStore';
+import { useAuthStore } from '@/stores/authStore';
 import { cn } from '@/lib/utils';
+import { isRouteAllowed } from '@/config/permissions.config';
 
 interface NavItem {
   name: string;
   href: string;
   icon: React.ElementType;
-  adminOnly?: boolean;
 }
 
 const navItems: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Productos', href: '/products', icon: Package },
   { name: 'Stock', href: '/stock', icon: Boxes },
-  { name: 'Compras', href: '/purchases', icon: Truck, adminOnly: true },
+  { name: 'Compras', href: '/purchases', icon: Truck },
   { name: 'Ventas', href: '/sales', icon: ShoppingCart },
   { name: 'Clientes', href: '/customers', icon: Users },
-  { name: 'Proveedores', href: '/suppliers', icon: Factory, adminOnly: true },
-  { name: 'Cta Cte', href: '/receivables', icon: Receipt, adminOnly: true },
-  { name: 'Tesorería', href: '/treasury', icon: Landmark, adminOnly: true },
-  { name: 'Reportes', href: '/reports', icon: FileBarChart2, adminOnly: true },
-  { name: 'Configuración', href: '/settings', icon: Settings, adminOnly: true },
+  { name: 'Proveedores', href: '/suppliers', icon: Factory },
+  { name: 'Cta Cte', href: '/receivables', icon: Receipt },
+  { name: 'Tesorería', href: '/treasury', icon: Landmark },
+  { name: 'Reportes', href: '/reports', icon: FileBarChart2 },
+  { name: 'Configuración', href: '/settings', icon: Settings },
 ];
 
 interface SidebarProps {
@@ -49,12 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
 
-  const filteredNavItems = navItems.filter((item) => {
-    if (item.adminOnly && user?.role !== UserRole.ADMINISTRADOR) {
-      return false;
-    }
-    return true;
-  });
+  const filteredNavItems = navItems.filter((item) => isRouteAllowed(item.href, user?.role));
 
   return (
     <>
