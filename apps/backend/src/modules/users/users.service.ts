@@ -257,8 +257,7 @@ export class UsersService {
       const hasRoleChange =
         dto.role !== undefined && dto.role !== targetUser.role;
       const hasActiveChange =
-        dto.isActive !== undefined &&
-        dto.isActive !== targetUser.isActive;
+        dto.isActive !== undefined && dto.isActive !== targetUser.isActive;
 
       if (
         !hasNameChange &&
@@ -273,9 +272,7 @@ export class UsersService {
 
       // Invariant: Self-deactivation prevention
       if (dto.isActive === false && actor.id === targetUser.id) {
-        throw new ConflictException(
-          'Cannot deactivate your own user account',
-        );
+        throw new ConflictException('Cannot deactivate your own user account');
       }
 
       // Invariant: Last active administrator protection
@@ -298,7 +295,7 @@ export class UsersService {
           throw new ConflictException(
             isDeactivatingAdmin
               ? 'Cannot deactivate the last remaining active administrator'
-            : 'Cannot demote the last remaining active administrator',
+              : 'Cannot demote the last remaining active administrator',
           );
         }
       }
@@ -307,11 +304,11 @@ export class UsersService {
       const action =
         dto.isActive === false && targetUser.isActive
           ? AuditAction.DEACTIVATE
-        : dto.isActive === true && !targetUser.isActive
-          ? AuditAction.ACTIVATE
-        : hasRoleChange
-          ? AuditAction.ROLE_CHANGE
-        : AuditAction.UPDATE;
+          : dto.isActive === true && !targetUser.isActive
+            ? AuditAction.ACTIVATE
+            : hasRoleChange
+              ? AuditAction.ROLE_CHANGE
+              : AuditAction.UPDATE;
 
       const previousSnapshot = toPublicUserSnapshot(targetUser);
 

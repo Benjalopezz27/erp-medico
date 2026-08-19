@@ -19,7 +19,9 @@ export class AuditLogResponseDto implements IAuditLog {
   @ApiProperty({ description: 'Unique audit log UUID identifier' })
   id!: string;
 
-  @ApiProperty({ description: 'User ID of the actor who performed the mutation' })
+  @ApiProperty({
+    description: 'User ID of the actor who performed the mutation',
+  })
   actorId!: string;
 
   @ApiPropertyOptional({

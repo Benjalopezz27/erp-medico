@@ -82,7 +82,7 @@ export class CreateAuditLogsTable1700000000002 implements MigrationInterface {
       'audit_logs',
       new TableCheck({
         name: 'CHK_audit_logs_action',
-        expression: `"action" IN ('CREATE', 'UPDATE', 'ROLE_CHANGE', 'ACTIVATE', 'DEACTIVATE')",
+        expression: `"action" IN ('CREATE', 'UPDATE', 'ROLE_CHANGE', 'ACTIVATE', 'DEACTIVATE')`,
       }),
     );
 
@@ -115,7 +115,7 @@ export class CreateAuditLogsTable1700000000002 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
-      CREATE TIGGER trg_prevent_audit_log_modification
+      CREATE TRIGGER trg_prevent_audit_log_modification
       BEFORE UPDATE OR DELETE ON audit_logs
       FOR EACH ROW
       EXECUTE FUNCTION prevent_audit_log_modification();

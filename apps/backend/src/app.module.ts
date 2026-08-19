@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 
 import { AuthModule } from './modules/auth/auth.module';
+import { AuditModule } from './modules/audit/audit.module';
 import { UsersModule } from './modules/users/users.module';
 import { ProductsModule } from './modules/products/products.module';
 import { StockModule } from './modules/stock/stock.module';
@@ -29,6 +30,7 @@ import { HealthModule } from './modules/health/health.module';
       envFilePath: ['.env', '../../.env'],
     }),
     DatabaseModule,
+    AuditModule,
     AuthModule,
     UsersModule,
     ProductsModule,

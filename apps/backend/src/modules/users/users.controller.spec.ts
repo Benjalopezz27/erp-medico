@@ -28,7 +28,9 @@ describe('UsersController', () => {
 
   beforeEach(async () => {
     service = {
-      getStatus: jest.fn().mockReturnValue({ module: 'users', status: 'initialized' }),
+      getStatus: jest
+        .fn()
+        .mockReturnValue({ module: 'users', status: 'initialized' }),
       findAll: jest.fn().mockResolvedValue({
         data: [mockUserResponse],
         meta: {
@@ -43,7 +45,9 @@ describe('UsersController', () => {
       getByIdOrFail: jest.fn().mockResolvedValue(mockUserResponse),
       createByAdmin: jest.fn().mockResolvedValue(mockUserResponse),
       updateByAdmin: jest.fn().mockResolvedValue(mockUserResponse),
-      deactivateByAdmin: jest.fn().mockResolvedValue({ ...mockUserResponse, isActive: false }),
+      deactivateByAdmin: jest
+        .fn()
+        .mockResolvedValue({ ...mockUserResponse, isActive: false }),
       getAuditLogsForUser: jest.fn().mockResolvedValue({
         data: [],
         meta: {
@@ -75,11 +79,19 @@ describe('UsersController', () => {
   });
 
   it('should return status', () => {
-    expect(controller.getStatus()).toEqual({ module: 'users', status: 'initialized' });
+    expect(controller.getStatus()).toEqual({
+      module: 'users',
+      status: 'initialized',
+    });
   });
 
   it('should find all users with pagination query', async () => {
-    const query = { page: 1, limit: 10, sortBy: 'name', sortOrder: 'ASC' as const };
+    const query = {
+      page: 1,
+      limit: 10,
+      sortBy: 'name',
+      sortOrder: 'ASC' as const,
+    };
     const result = await controller.findAll(query);
     expect(service.findAll).toHaveBeenCalledWith(query);
     expect(result.data).toHaveLength(1);
@@ -105,21 +117,38 @@ describe('UsersController', () => {
 
   it('should update user by admin', async () => {
     const dto = { name: 'Updated Name' };
-    const result = await controller.update(mockUserResponse.id, dto, mockAdminActor);
-    expect(service.updateByAdmin).toHaveBeenCalledWith(mockUserResponse.id, dto, mockAdminActor);
+    const result = await controller.update(
+      mockUserResponse.id,
+      dto,
+      mockAdminActor,
+    );
+    expect(service.updateByAdmin).toHaveBeenCalledWith(
+      mockUserResponse.id,
+      dto,
+      mockAdminActor,
+    );
     expect(result.id).toBe(mockUserResponse.id);
   });
 
   it('should deactivate user by admin', async () => {
-    const result = await controller.deactivate(mockUserResponse.id, mockAdminActor);
-    expect(service.deactivateByAdmin).toHaveBeenCalledWith(mockUserResponse.id, mockAdminActor);
+    const result = await controller.deactivate(
+      mockUserResponse.id,
+      mockAdminActor,
+    );
+    expect(service.deactivateByAdmin).toHaveBeenCalledWith(
+      mockUserResponse.id,
+      mockAdminActor,
+    );
     expect(result.isActive).toBe(false);
   });
 
   it('should get audit logs for user', async () => {
     const query = { page: 1, limit: 10 };
     const result = await controller.getAuditLogs(mockUserResponse.id, query);
-    expect(service.getAuditLogsForUser).toHaveBeenCalledWith(mockUserResponse.id, query);
+    expect(service.getAuditLogsForUser).toHaveBeenCalledWith(
+      mockUserResponse.id,
+      query,
+    );
     expect(result.data).toBeDefined();
   });
 });

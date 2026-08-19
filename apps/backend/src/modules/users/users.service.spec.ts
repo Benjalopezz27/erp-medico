@@ -66,9 +66,7 @@ describe('UsersService', () => {
       createQueryBuilder: jest.fn(() => mockQueryBuilder),
       findOne: jest.fn(),
       create: jest.fn((dto) => ({ ...dto }) as User),
-      save: jest.fn((entity) =>
-        Promise.resolve({ id: 'new-uuid', ...entity }),
-      ),
+      save: jest.fn((entity) => Promise.resolve({ id: 'new-uuid', ...entity })),
       count: jest.fn().mockResolvedValue(2),
     } as any;
 
@@ -337,7 +335,10 @@ describe('UsersService', () => {
     });
 
     it('should throw ConflictException when attempting to deactivate the last active admin', async () => {
-      const otherAdminUser = { ...mockAdminUser, id: '33333333-3333-3333-3333-333333333333' } as User;
+      const otherAdminUser = {
+        ...mockAdminUser,
+        id: '33333333-3333-3333-3333-333333333333',
+      } as User;
       repo.findOne.mockResolvedValue(otherAdminUser);
       repo.count.mockResolvedValue(1);
 
@@ -347,7 +348,9 @@ describe('UsersService', () => {
           { isActive: false },
           mockAdminActor,
         ),
-      ).rejects.toThrow('Cannot deactivate the last remaining active administrator');
+      ).rejects.toThrow(
+        'Cannot deactivate the last remaining active administrator',
+      );
     });
 
     it('should throw ConflictException when attempting to demote the last active admin', async () => {
@@ -360,7 +363,9 @@ describe('UsersService', () => {
           { role: UserRole.VENDEDOR },
           mockAdminActor,
         ),
-      ).rejects.toThrow('Cannot demote the last remaining active administrator');
+      ).rejects.toThrow(
+        'Cannot demote the last remaining active administrator',
+      );
     });
 
     it('should permit self-demotion if another active admin exists', async () => {
@@ -384,7 +389,10 @@ describe('UsersService', () => {
     });
 
     it('should assign correct action precedence (DEACTIVATE > ACTIVATE > ROLE_CHANGE > UPDATE)', async () => {
-      repo.findOne.mockResolvedValue({ ...mockTargetUser, isActive: true } as User);
+      repo.findOne.mockResolvedValue({
+        ...mockTargetUser,
+        isActive: true,
+      } as User);
       repo.save.mockImplementation((u) => Promise.resolve(u as User));
 
       await service.updateByAdmin(
@@ -404,9 +412,14 @@ describe('UsersService', () => {
 
   describe('deactivateByAdmin', () => {
     it('should call updateByAdmin with isActive: false', async () => {
-      jest.spyOn(service, 'updateByAdmin').mockResolvedValue(mockTargetUser as any);
+      jest
+        .spyOn(service, 'updateByAdmin')
+        .mockResolvedValue(mockTargetUser as any);
 
-      const result = await service.deactivateByAdmin(mockTargetUser.id, mockAdminActor);
+      const result = await service.deactivateByAdmin(
+        mockTargetUser.id,
+        mockAdminActor,
+      );
       expect(service.updateByAdmin).toHaveBeenCalledWith(
         mockTargetUser.id,
         { isActive: false },

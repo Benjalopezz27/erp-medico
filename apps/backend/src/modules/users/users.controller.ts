@@ -111,7 +111,9 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Update user attributes with immutable audit logging' })
+  @ApiOperation({
+    summary: 'Update user attributes with immutable audit logging',
+  })
   @ApiResponse({
     status: 200,
     description: 'User successfully updated',

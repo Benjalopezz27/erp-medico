@@ -18,7 +18,6 @@ export function sanitizeAuditSnapshot<T>(data: T): T {
     return data.map((item) => sanitizeAuditSnapshot(item)) as unknown as T;
   }
 
-
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
     if (SENSITIVE_KEY_PATTERN.test(key)) {

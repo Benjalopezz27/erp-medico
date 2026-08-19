@@ -74,9 +74,7 @@ export class AuditService {
       qb.andWhere('audit.action = :action', { action });
     }
 
-    qb.orderBy('audit.createdAt', 'DESC')
-      .skip(skip)
-      .take(limit);
+    qb.orderBy('audit.createdAt', 'DESC').skip(skip).take(limit);
 
     const [items, total] = await qb.getManyAndCount();
 

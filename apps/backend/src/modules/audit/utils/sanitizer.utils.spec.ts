@@ -34,7 +34,10 @@ describe('SanitizerUtils', () => {
       email: 'admin@erp.com',
       metadata: {
         role: 'ADMINISTRADOR',
-        nestedArray: [{ name: 'Item 1' }, { name: 'Item 2', safeProperty: true }],
+        nestedArray: [
+          { name: 'Item 1' },
+          { name: 'Item 2', safeProperty: true },
+        ],
       },
     });
   });
