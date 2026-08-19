@@ -1,5 +1,18 @@
 import { UserRole } from '../enums/roles.enum';
 
+export interface IAuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  isActive: boolean;
+}
+
+export interface IAuthSession {
+  accessToken: string;
+  user: IAuthUser;
+}
+
 export interface IUser {
   id: string;
   name: string;
@@ -19,9 +32,4 @@ export interface IAuditLog {
   previousValueJSON?: string | null;
   newValueJSON?: string | null;
   createdAt: Date | string;
-}
-
-export interface IAuthSession {
-  accessToken: string;
-  user: IUser;
 }
