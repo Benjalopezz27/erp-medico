@@ -1,4 +1,5 @@
 import { UserRole } from '../enums/roles.enum';
+import { AuditAction } from '../enums/audit.enum';
 
 export interface IAuthUser {
   id: string;
@@ -25,11 +26,15 @@ export interface IUser {
 
 export interface IAuditLog {
   id: string;
-  userId: string;
-  action: string;
+  actorId: string;
+  action: AuditAction;
   entityName: string;
   entityId: string;
-  previousValueJSON?: string | null;
-  newValueJSON?: string | null;
+  previousValues?: Record<string, unknown> | null;
+  newValues?: Record<string, unknown> | null;
   createdAt: Date | string;
+}
+
+export interface IAuditLogWithActor extends IAuditLog {
+  actor?: IAuthUser;
 }
