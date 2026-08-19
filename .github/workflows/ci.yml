@@ -123,11 +123,36 @@ jobs:
           SEED_VENDEDOR_PASSWORD: TestVendedorPassword123!
           ARCA_ENV: development
 
+  frontend-test:
+    name: Frontend Unit & Component Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - name: Setup Node.js (20.x)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Frontend Tests
+        run: pnpm --filter @erp/frontend run test:run
+        env:
+          VITE_API_URL: "http://localhost:3000/api/v1"
 
   build:
     name: Build All Workspace Packages
     runs-on: ubuntu-latest
-    needs: [lint-and-format, test]
+    needs: [lint-and-format, test, frontend-test]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
