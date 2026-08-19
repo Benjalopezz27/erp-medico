@@ -12,13 +12,14 @@ import {
   ArrowUpRight,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { UserRole } from '@erp/shared-types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
-  const isAdmin = user?.role === 'ADMINISTRADOR';
+  const isAdmin = user?.role === UserRole.ADMINISTRADOR;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
