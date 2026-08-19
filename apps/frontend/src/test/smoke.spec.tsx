@@ -185,12 +185,12 @@ describe('Frontend Testing Infrastructure Smoke Suite', () => {
 
   // 9. Environment variable stubbing & automatic unstubbing
   it('9a. should stub environment variable during test', () => {
-    vi.stubEnv('VITE_API_URL', 'https://custom-test-api.com/v1');
-    expect(import.meta.env.VITE_API_URL).toBe('https://custom-test-api.com/v1');
+    vi.stubEnv('VITE_CUSTOM_SMOKE_FLAG', 'active-smoke-test');
+    expect(import.meta.env.VITE_CUSTOM_SMOKE_FLAG).toBe('active-smoke-test');
   });
 
   it('9b. should restore environment variables after test teardown', () => {
-    expect(import.meta.env.VITE_API_URL).toBeUndefined();
+    expect(import.meta.env.VITE_CUSTOM_SMOKE_FLAG).toBeUndefined();
   });
 
   // 10. Mocks and handlers cleanup
