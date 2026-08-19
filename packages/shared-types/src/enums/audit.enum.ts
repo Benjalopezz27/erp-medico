@@ -1,0 +1,7 @@
+export enum AuditAction {
+  CREATE = 'CREATE',
+  UPDATE = 'UPDATE',
+  ROLE_CHANGE = 'ROLE_CHANGE',
+  ACTIVATE = 'ACTIVATE',
+  DEACTIVATE = 'DEACTIVATE',
+}
