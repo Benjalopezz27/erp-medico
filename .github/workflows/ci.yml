@@ -121,6 +121,8 @@ jobs:
           REDIS_PORT: 6379
           SEED_ADMIN_PASSWORD: TestAdminPassword123!
           SEED_VENDEDOR_PASSWORD: TestVendedorPassword123!
+          ARCA_ENV: development
+
   frontend-test:
     name: Frontend Unit & Component Tests
     runs-on: ubuntu-latest
