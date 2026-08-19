@@ -99,6 +99,7 @@ jobs:
           DB_PASSWORD: erp_pass
           DB_NAME: erp_test
           JWT_SECRET: "test_ci_jwt_secret_key_minimum_32_characters_long!"
+          JWT_EXPIRATION: "8h"
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           SEED_ADMIN_PASSWORD: TestAdminPassword123!
@@ -115,6 +116,7 @@ jobs:
           DB_PASSWORD: erp_pass
           DB_NAME: erp_test
           JWT_SECRET: "test_ci_jwt_secret_key_minimum_32_characters_long!"
+          JWT_EXPIRATION: "8h"
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           SEED_ADMIN_PASSWORD: TestAdminPassword123!

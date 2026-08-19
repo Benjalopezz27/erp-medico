@@ -20,6 +20,11 @@ describe('Auth & Role Authorization (E2E)', () => {
   let adminUser: User;
 
   beforeAll(async () => {
+    process.env.JWT_SECRET =
+      process.env.JWT_SECRET ||
+      'test_ci_jwt_secret_key_minimum_32_characters_long!';
+    process.env.JWT_EXPIRATION = process.env.JWT_EXPIRATION || '8h';
+
     ds = await dataSource.initialize();
     await ds.runMigrations();
 
