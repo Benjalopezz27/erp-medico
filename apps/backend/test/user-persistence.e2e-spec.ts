@@ -27,19 +27,30 @@ describe('User Persistence & Seed Engine (E2E)', () => {
   });
 
   it('verifies migration up/down/up cycle cleanly', async () => {
-    // Revert user table migration
+    // Revert audit_logs table migration
     await ds.undoLastMigration();
-    const afterDrop = await ds.query(
-      "SELECT to_regclass('public.users') as tablename",
+    const afterDropAudit = await ds.query(
+      "SELECT to_regclass('public.audit_logs') as tablename",
     );
-    expect(afterDrop[0].tablename).toBeNull();
+    expect(afterDropAudit[0].tablename).toBeNull();
 
-    // Re-run migration
-    await ds.runMigrations();
-    const afterRecreate = await ds.query(
+    // Revert users table migration
+    await ds.undoLastMigration();
+    const afterDropUsers = await ds.query(
       "SELECT to_regclass('public.users') as tablename",
     );
-    expect(afterRecreate[0].tablename).toBe('users');
+    expect(afterDropUsers[0].tablename).toBeNull();
+
+    // Re-run all migrations
+    await ds.runMigrations();
+    const afterRecreateUsers = await ds.query(
+      "SELECT to_regclass('public.users') as tablename",
+    );
+    expect(afterRecreateUsers[0].tablename).toBe('users');
+    const afterRecreateAudit = await ds.query(
+      "SELECT to_regclass('public.audit_logs') as tablename",
+    );
+    expect(afterRecreateAudit[0].tablename).toBe('audit_logs');
   });
 
   it('creates exactly 2 users on first seed run and hashes passwords with cost 12', async () => {
