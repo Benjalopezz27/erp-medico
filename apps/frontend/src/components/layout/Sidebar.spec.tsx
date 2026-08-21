@@ -31,6 +31,7 @@ describe('Sidebar permissions', () => {
 
     expect(await screen.findByRole('link', { name: /productos/i })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /compras/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /usuarios/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /configuración/i })).not.toBeInTheDocument();
   });
 
@@ -38,6 +39,7 @@ describe('Sidebar permissions', () => {
     renderSidebar(UserRole.ADMINISTRADOR);
 
     expect(await screen.findByRole('link', { name: /compras/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /usuarios/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /configuración/i })).toBeInTheDocument();
   });
 });

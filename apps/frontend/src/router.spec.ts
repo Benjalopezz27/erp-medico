@@ -41,5 +41,53 @@ describe('authentication route guards', () => {
 
     useAuthStore.getState().setSession(session(UserRole.ADMINISTRADOR));
     expect(redirectDestination(() => requireRoutePermission('/settings'))).toBeUndefined();
+
+    // /admin/users route permission
+    useAuthStore.getState().setSession(session(UserRole.VENDEDOR));
+    expect(redirectDestination(() => requireRoutePermission('/admin/users'))).toBe('/');
+
+    useAuthStore.getState().setSession(session(UserRole.ADMINISTRADOR));
+    expect(redirectDestination(() => requireRoutePermission('/admin/users'))).toBeUndefined();
+  });
+});
+
+describe('validateUserSearchParams', () => {
+  it('defaults invalid or empty search params to clean page 1 and limit 10', async () => {
+    const { validateUserSearchParams } = await import('./router');
+    const result = validateUserSearchParams({
+      page: -5,
+      limit: 999,
+      role: 'INVALID_ROLE',
+      isActive: 'maybe',
+      search: '   ',
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(10);
+    expect(result.role).toBeUndefined();
+    expect(result.isActive).toBeUndefined();
+    expect(result.search).toBeUndefined();
+  });
+
+  it('correctly parses valid search params and tri-state isActive', async () => {
+    const { validateUserSearchParams } = await import('./router');
+    const resultTrue = validateUserSearchParams({
+      page: 2,
+      limit: 25,
+      role: UserRole.VENDEDOR,
+      isActive: 'true',
+      search: '  carlos  ',
+    });
+
+    expect(resultTrue.page).toBe(2);
+    expect(resultTrue.limit).toBe(25);
+    expect(resultTrue.role).toBe(UserRole.VENDEDOR);
+    expect(resultTrue.isActive).toBe(true);
+    expect(resultTrue.search).toBe('carlos');
+
+    const resultFalse = validateUserSearchParams({
+      isActive: 'false',
+    });
+    expect(resultFalse.isActive).toBe(false);
   });
 });

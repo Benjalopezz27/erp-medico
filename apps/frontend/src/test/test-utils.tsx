@@ -99,18 +99,49 @@ export function renderWithRouter(options: RenderWithRouterOptions): CustomRender
  * Factory helper to construct an isolated TanStack Memory Router for testing route navigation.
  */
 export function createTestRouter(
-  routes: Array<{ path: string; component: React.FC }>,
+  routes: Array<{
+    path: string;
+    component: React.FC;
+    validateSearch?: (search: Record<string, unknown>) => any;
+  }>,
   initialPath = '/',
+  pathlessParentId?: string,
 ) {
   const rootRoute = createRootRoute({
     component: () => <Outlet />,
   });
+
+  if (pathlessParentId) {
+    const pathlessParentRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      id: pathlessParentId,
+      component: () => <Outlet />,
+    });
+
+    const nestedRouteChildren = routes.map((r) =>
+      createRoute({
+        getParentRoute: () => pathlessParentRoute,
+        path: r.path,
+        component: r.component,
+        validateSearch: r.validateSearch,
+      }),
+    );
+
+    const routeTree = rootRoute.addChildren([pathlessParentRoute.addChildren(nestedRouteChildren)]);
+    const memoryHistory = createMemoryHistory({ initialEntries: [initialPath] });
+
+    return createRouter({
+      routeTree,
+      history: memoryHistory,
+    });
+  }
 
   const routeChildren = routes.map((r) =>
     createRoute({
       getParentRoute: () => rootRoute,
       path: r.path,
       component: r.component,
+      validateSearch: r.validateSearch,
     }),
   );
 
