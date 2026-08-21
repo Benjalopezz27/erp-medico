@@ -145,7 +145,7 @@ const receivablesRoute = createRoute({
     <PlaceholderPage
       title="Cuentas Corrientes y Cobranzas"
       description="Ledger de cuentas corrientes, aplicación de recibos y cheques"
-      sprint="Sprint 8 — US-29"
+      sprint="Sprint 9 — US-29"
     />
   ),
 });
@@ -158,7 +158,7 @@ const treasuryRoute = createRoute({
     <PlaceholderPage
       title="Tesorería y Caja"
       description="Control de caja chica, transferencias bancarias y cheques en cartera"
-      sprint="Sprint 9 — US-33"
+      sprint="Sprint 10 — US-33"
     />
   ),
 });
@@ -171,7 +171,7 @@ const reportsRoute = createRoute({
     <PlaceholderPage
       title="Reportes Operativos y Financieros"
       description="Métricas de rentabilidad, rotación de stock y exportaciones Excel/PDF"
-      sprint="Sprint 9 — US-37"
+      sprint="Sprint 10 — US-37"
     />
   ),
 });
