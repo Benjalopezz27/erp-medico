@@ -5,6 +5,8 @@ import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { UsersModule } from './modules/users/users.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { UnitsModule } from './modules/units/units.module';
 import { ProductsModule } from './modules/products/products.module';
 import { StockModule } from './modules/stock/stock.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
@@ -33,6 +35,8 @@ import { HealthModule } from './modules/health/health.module';
     AuditModule,
     AuthModule,
     UsersModule,
+    CategoriesModule,
+    UnitsModule,
     ProductsModule,
     StockModule,
     SuppliersModule,

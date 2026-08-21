@@ -26,13 +26,14 @@ function renderSidebar(role: UserRole) {
 describe('Sidebar permissions', () => {
   beforeEach(() => useAuthStore.setState(useAuthStore.getInitialState(), true));
 
-  it('hides administrative navigation from sellers', async () => {
+  it('hides administrative navigation from sellers but shows common and settings', async () => {
     renderSidebar(UserRole.VENDEDOR);
 
     expect(await screen.findByRole('link', { name: /productos/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /configuración/i })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /compras/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /usuarios/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /configuración/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /reportes/i })).not.toBeInTheDocument();
   });
 
   it('shows administrative navigation to administrators', async () => {

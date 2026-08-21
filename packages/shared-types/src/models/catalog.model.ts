@@ -12,6 +12,8 @@ export interface IUnit {
   name: string;
   symbol: string;
   isBaseUnit?: boolean;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
 export interface IProductUnitConversion {
