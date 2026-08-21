@@ -1,6 +1,6 @@
 # Backlog Definitivo, Estimación y Plan de Sprints — ERP Distribuidora Médica
 
-**Versión:** 1.0 — Alcance Consolidado para Desarrollo Individual  
+**Versión:** 1.1 — Alcance Consolidado para Desarrollo Individual<br>
 **Modelo de Desarrollo:** Single Developer (Full-Stack Engine + UI)  
 **Metodología:** Sprints Iterativos Transaccionales  
 **Base de Diseño:** [Especificación Funcional v1.0](file:///c:/Desarrollo/Erp/docs/functional_specification.md) y [Modelo de Dominio v1.0](file:///c:/Desarrollo/Erp/docs/domain_model.md)
@@ -11,8 +11,10 @@
 
 - **Total de Épicas Consolidadas:** 12
 - **Total de Historias de Usuario Unificadas:** 46 (Consolidadas y filtradas sin redundancias)
-- **Esfuerzo Total Estimado:** ~52 Días / Hombre (Desarrollo, Pruebas Unitarias/Integración y Despliegue)
-- **Duración Sugerida del Proyecto:** 10 Sprints de 1 Semana (o 5 Sprints de 2 Semanas) $\approx$ 2.5 Meses.
+- **Esfuerzo Funcional Base:** ~57.5 Días / Hombre.
+- **Track DevOps Transversal:** 6.5–10 Días / Hombre adicionales ([#65](https://github.com/Benjalopezz27/erp-medico/issues/65)).
+- **Esfuerzo Total Revisado:** ~64–67.5 Días / Hombre.
+- **Duración Sugerida del Proyecto:** 13–15 semanas para una persona.
 
 ---
 
@@ -511,16 +513,21 @@
 
 ## 5. Estructura de Presupuesto y Esfuerzo
 
-| Módulo / Fase                    | Días Estimados          | Peso %   |
-| -------------------------------- | ----------------------- | -------- |
-| 0. Infraestructura & Scaffolding | 3.0 Días                | 5.1%     |
-| 1. Fundación & Auth              | 4.5 Días                | 7.7%     |
-| 2. Motor de Stock & Inventario   | 7.5 Días                | 12.8%    |
-| 3. Proveedores & Importador      | 8.0 Días                | 13.7%    |
-| 4. Compras & Recepción           | 6.0 Días                | 10.3%    |
-| 5. Costos, Tolerancias & Ajustes | 7.0 Días                | 12.0%    |
-| 6. Precios & Clientes            | 5.5 Días                | 9.4%     |
-| 7. Ventas & ARCA Engine          | 11.0 Días               | 18.8%    |
-| 8. Cta Cte, Cheques & Tesorería  | 8.5 Días                | 14.5%    |
-| 9. Caja, Reportes & QA           | 6.5 Días                | 11.1%    |
-| **TOTAL PROYECTO**               | **~57.5 Días / Hombre** | **100%** |
+El esfuerzo de infraestructura productiva se distribuye de forma transversal: imágenes y staging en Sprints 2–3, homologación antes de Sprint 8, restore/rehearsal en Sprint 9 y Go-Live en Sprint 10. Los costos de VPS, dominio, monitoreo, backups y servicios externos requieren aprobación separada y no están incluidos en los días de desarrollo.
+
+| Módulo / Fase                    | Días Estimados           | Peso base % |
+| -------------------------------- | ------------------------ | ----------- |
+| 0. Infraestructura & Scaffolding | 3.0 Días                 | 5.1%        |
+| 1. Fundación & Auth              | 4.5 Días                 | 7.7%        |
+| 2. Motor de Stock & Inventario   | 7.5 Días                 | 12.8%       |
+| 3. Proveedores & Importador      | 8.0 Días                 | 13.7%       |
+| 4. Compras & Recepción           | 6.0 Días                 | 10.3%       |
+| 5. Costos, Tolerancias & Ajustes | 7.0 Días                 | 12.0%       |
+| 6. Precios & Clientes            | 5.5 Días                 | 9.4%        |
+| 7. Ventas & ARCA Engine          | 11.0 Días                | 18.8%       |
+| 8. Cta Cte, Cheques & Tesorería  | 8.5 Días                 | 14.5%       |
+| 9. Caja, Reportes & QA           | 6.5 Días                 | 11.1%       |
+| 10. DevOps transversal           | 6.5–10 Días              | —           |
+| **TOTAL PROYECTO REVISADO**      | **~64–67.5 Días/Hombre** | —           |
+
+Los porcentajes conservan la distribución del alcance funcional base y no pretenden redistribuir el rango variable del track DevOps.

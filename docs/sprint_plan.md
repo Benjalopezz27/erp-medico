@@ -1,9 +1,9 @@
 # Plan de Sprints Detallado — ERP Distribuidora Médica
 
-**Versión:** 1.0  
+**Versión:** 1.1<br>
 **Total de Sprints:** 11 (Sprint 0 + Sprints 1–10)  
-**Esfuerzo Total Estimado:** ~57.5 Días / Hombre  
-**Duración aproximada:** 12–13 semanas (~3 meses)  
+**Esfuerzo Total Estimado:** ~64–67.5 Días / Hombre<br>
+**Duración aproximada:** 13–15 semanas para una persona<br>
 **Modelo:** Single Developer · Sprints de 1 semana (5 días hábiles)  
 **Stack:** NestJS · TypeORM · PostgreSQL · Vite + React 19 · BullMQ · pnpm Workspaces
 
@@ -65,6 +65,26 @@ Toda historia de usuario se considera **Done** cuando:
 ### 🎬 Demo al Final del Sprint 0
 
 Mostrar el monorepo corriendo localmente: health endpoint en Postman, layout skeleton del frontend en el browser, CI verde en GitHub.
+
+---
+
+## 🔧 Track transversal DevOps — Ambientes, CD y Go-Live
+
+**Épica:** [#65](https://github.com/Benjalopezz27/erp-medico/issues/65)<br>
+**Estimación adicional:** 6.5–10 días distribuidos entre los Sprints 2 y 10.
+
+Este track evita concentrar el primer despliegue real, TLS, observabilidad y backups en el QA final. GitHub Actions construye imágenes inmutables una sola vez; staging valida esos mismos digests y producción los promueve sin recompilar en el VPS.
+
+| Etapa                      | Issue                                                        | Momento objetivo            | Gate principal                                                  |
+| -------------------------- | ------------------------------------------------------------ | --------------------------- | --------------------------------------------------------------- |
+| Artefactos productivos     | [#66](https://github.com/Benjalopezz27/erp-medico/issues/66) | Antes/durante Sprint 2      | Decisiones de registry y topología; sin gasto externo           |
+| Staging y CD               | [#67](https://github.com/Benjalopezz27/erp-medico/issues/67) | Sprint 2                    | VPS, presupuesto, DNS, SSH y política de datos aprobados        |
+| Seguridad y observabilidad | [#68](https://github.com/Benjalopezz27/erp-medico/issues/68) | Sprint 3                    | Herramienta, costo, responsables y retención aprobados          |
+| Homologación ARCA          | [#69](https://github.com/Benjalopezz27/erp-medico/issues/69) | Sprint 7, antes de Sprint 8 | Certificado, CUIT, punto de venta y custodio confirmados        |
+| Backup y rehearsal         | [#70](https://github.com/Benjalopezz27/erp-medico/issues/70) | Sprint 9                    | Storage, cifrado, retención y RPO/RTO aprobados                 |
+| Producción y Go-Live       | [#71](https://github.com/Benjalopezz27/erp-medico/issues/71) | Sprint 10                   | Infraestructura, ventana, responsables y aceptación del cliente |
+
+No se contrata infraestructura, modifica DNS, carga información real ni instala certificados externos sin aprobación explícita del gate correspondiente. Los secretos nunca se documentan en GitHub ni se versionan.
 
 ---
 
@@ -165,6 +185,8 @@ Login como VENDEDOR y ADMINISTRADOR, navegación al catálogo, crear un producto
 
 El sistema tiene un ledger de stock inmutable, el backend rechaza cualquier operación que genere stock negativo con un lock a nivel DB, y el Administrador puede gestionar ajustes manuales y la cuarentena.
 
+**DevOps paralelo:** completar [#66](https://github.com/Benjalopezz27/erp-medico/issues/66) y [#67](https://github.com/Benjalopezz27/erp-medico/issues/67). El cierre operativo requiere que un SHA de `dev` con CI verde pueda desplegarse en staging sin recompilar en el VPS. #67 no puede provisionarse sin aprobar costo, dominio/DNS, accesos SSH y política de datos de prueba.
+
 ---
 
 ### US-06 — Ledger Transaccional Inmutable de Stock _(2 días)_
@@ -250,6 +272,8 @@ Crear movimientos manuales de ENTRADA y SALIDA en un producto, intentar hacer un
 ### 🎯 Sprint Goal
 
 El Administrador puede gestionar proveedores, asociar sus SKUs externos a productos internos, subir un archivo Excel, configurar su mapeo de columnas y guardarlo como plantilla reutilizable.
+
+**DevOps paralelo:** completar [#68](https://github.com/Benjalopezz27/erp-medico/issues/68). Staging debe contar con logs sanitizados, request ID, health/readiness, alertas y runbook. No se conecta telemetría externa sin aprobar proveedor, costo, receptores, retención y datos permitidos.
 
 ---
 
@@ -540,6 +564,8 @@ Mostrar cómo un ajuste de costo genera automáticamente una revisión pendiente
 
 El Vendedor puede cargar y confirmar una venta completa (contado o crédito) con descuento de stock automático. El ARCA queda como stub (se integra en el Sprint 8). Las devoluciones con control de calidad están operativas.
 
+**Preparación obligatoria:** ejecutar [#69](https://github.com/Benjalopezz27/erp-medico/issues/69) durante este sprint. El certificado de homologación, CUIT, punto de venta, custodia segura, conectividad WSAA/WSFE y worker BullMQ deben estar validados antes de Sprint 8.
+
 ---
 
 ### US-25 — Punto de Venta y Validación Transaccional de Venta _(3 días)_
@@ -601,6 +627,8 @@ Cargar una venta de 3 productos a un cliente con precio especial (crédito, con 
 **Estimación Total:** ~6 días
 
 > ⚠️ **Sprint más crítico del proyecto.** Requiere certificado .p12 de homologación AFIP activo antes de comenzar.
+
+**Entry gate:** [#69](https://github.com/Benjalopezz27/erp-medico/issues/69) cerrada. No iniciar la integración real sin certificado válido, CUIT/punto de venta confirmados, endpoints oficiales verificados y responsable de renovación. Los valores sensibles se verifican por canal seguro y no se copian a issues o documentación.
 
 ### 🎯 Sprint Goal
 
@@ -667,6 +695,8 @@ Hacer una venta, ver el estado "PENDIENTE_FACTURACION", ver cómo el worker proc
 ### 🎯 Sprint Goal
 
 El sistema tiene un ledger completo de cuentas corrientes, permite registrar cobros con aplicación a facturas específicas o por antigüedad, emite recibos, y gestiona el ciclo de vida completo de cheques incluyendo la reversión transaccional por rechazo.
+
+**Production readiness:** completar [#70](https://github.com/Benjalopezz27/erp-medico/issues/70). Deben existir backup externo cifrado, alerta ante fallos, restore probado, RPO/RTO aceptados y rehearsal de deploy/rollback. El destino, costo, región, retención y custodios requieren aprobación previa.
 
 ---
 
@@ -829,7 +859,7 @@ Cada reporte sigue el mismo patrón:
 
 ---
 
-### QA Final _(~1 día)_
+### QA Final y Go-Live
 
 **Tareas:**
 
@@ -837,9 +867,12 @@ Cada reporte sigue el mismo patrón:
 2. **[QA]** Smoke test del flujo de compras (OC → Recepción → Factura Proveedor → Ajuste de Costos → Bandeja de Precios)
 3. **[QA]** Verificar todos los reportes generan Excel/PDF sin errores
 4. **[QA]** Test de regresión: ejecutar toda la suite de tests (`pnpm -r run test`)
-5. **[Infra]** Deploy a producción (Hetzner CX21), Nginx + Certbot, variables de entorno de producción, certificado ARCA real
-6. **[Infra]** Configurar backup automático de PostgreSQL (`pg_dump` diario via cron)
-7. **[Docs]** Actualizar README con instrucciones de deploy y operación
+5. **[Infra]** Confirmar [#69](https://github.com/Benjalopezz27/erp-medico/issues/69) y [#70](https://github.com/Benjalopezz27/erp-medico/issues/70) cerradas
+6. **[Infra]** Ejecutar [#71](https://github.com/Benjalopezz27/erp-medico/issues/71): promover a producción el mismo digest validado en staging, aplicar migraciones, smoke tests y criterio de rollback
+7. **[Release]** Publicar `v1.0.0` únicamente después de la aceptación del Go-Live
+8. **[Docs]** Entregar runbooks de deploy, incidentes, backup, restore y operación
+
+El Go-Live requiere aprobación de VPS/costo, dominio/DNS, accesos, ventana y responsables, certificado ARCA productivo, backups, datos iniciales, criterios de éxito/rollback y aceptación del cliente. Sin todos los gates no se despliega ni se cargan datos reales.
 
 ---
 
@@ -850,7 +883,9 @@ Cada reporte sigue el mismo patrón:
 - [ ] Configuración del sistema guardando en DB
 - [ ] Suite de tests completa pasando en CI
 - [ ] Deploy en producción operativo
-- [ ] Backup automático configurado
+- [ ] Producción usa el mismo digest validado en staging
+- [ ] Backup externo restaurado y rollback ensayado
+- [ ] Gates externos y aceptación del cliente registrados
 - [ ] Smoke test manual del flujo completo pasado
 
 ### 🎬 Demo Final (Go-Live)
