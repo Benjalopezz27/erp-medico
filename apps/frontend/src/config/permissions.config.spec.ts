@@ -12,5 +12,9 @@ describe('route permissions', () => {
     expect(isRouteAllowed('/settings', UserRole.ADMINISTRADOR)).toBe(true);
     expect(isRouteAllowed('/settings', UserRole.VENDEDOR)).toBe(false);
     expect(isRouteAllowed('/settings/users', UserRole.VENDEDOR)).toBe(false);
+    expect(isRouteAllowed('/admin', UserRole.ADMINISTRADOR)).toBe(true);
+    expect(isRouteAllowed('/admin', UserRole.VENDEDOR)).toBe(false);
+    expect(isRouteAllowed('/admin/users', UserRole.ADMINISTRADOR)).toBe(true);
+    expect(isRouteAllowed('/admin/users', UserRole.VENDEDOR)).toBe(false);
   });
 });

@@ -11,8 +11,37 @@ import { LoginPage } from '@/pages/LoginPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { UsersPage } from '@/pages/admin/UsersPage';
 import { useAuthStore } from '@/stores/authStore';
 import { isRouteAllowed } from '@/config/permissions.config';
+import { UserRole, type UserSearchParams } from '@/features/users/types/users.types';
+
+export function validateUserSearchParams(search: Record<string, unknown>): UserSearchParams {
+  const page = Number(search.page);
+  const limit = Number(search.limit);
+  const validLimits = [10, 25, 50];
+
+  const rawRole = search.role as string | undefined;
+  const role =
+    rawRole && (rawRole === UserRole.ADMINISTRADOR || rawRole === UserRole.VENDEDOR)
+      ? (rawRole as UserRole)
+      : undefined;
+
+  let isActive: boolean | undefined = undefined;
+  if (search.isActive === 'true' || search.isActive === true) isActive = true;
+  else if (search.isActive === 'false' || search.isActive === false) isActive = false;
+
+  const rawSearch = typeof search.search === 'string' ? search.search.trim() : undefined;
+  const searchParam = rawSearch && rawSearch.length > 0 ? rawSearch : undefined;
+
+  return {
+    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    limit: validLimits.includes(limit) ? limit : 10,
+    search: searchParam,
+    role,
+    isActive,
+  };
+}
 
 export function requireAuthentication(): void {
   if (!useAuthStore.getState().isAuthenticated) throw redirect({ to: '/login' });
@@ -189,6 +218,14 @@ const settingsRoute = createRoute({
   ),
 });
 
+const adminUsersRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/admin/users',
+  validateSearch: validateUserSearchParams,
+  beforeLoad: () => requireRoutePermission('/admin/users'),
+  component: () => <UsersPage />,
+});
+
 // 4. Build Route Tree
 const routeTree = rootRoute.addChildren([
   authLayoutRoute.addChildren([loginRoute]),
@@ -204,6 +241,7 @@ const routeTree = rootRoute.addChildren([
     treasuryRoute,
     reportsRoute,
     settingsRoute,
+    adminUsersRoute,
   ]),
 ]);
 
