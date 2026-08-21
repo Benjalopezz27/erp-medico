@@ -1,6 +1,7 @@
 import { UserRole } from '@erp/shared-types';
 
 export const ADMIN_ROUTES = [
+  '/admin',
   '/purchases',
   '/suppliers',
   '/receivables',

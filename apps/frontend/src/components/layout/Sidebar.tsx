@@ -12,6 +12,7 @@ import {
   Landmark,
   FileBarChart2,
   Settings,
+  UserCog,
   X,
   HeartPulse,
 } from 'lucide-react';
@@ -36,6 +37,7 @@ const navItems: NavItem[] = [
   { name: 'Cta Cte', href: '/receivables', icon: Receipt },
   { name: 'Tesorería', href: '/treasury', icon: Landmark },
   { name: 'Reportes', href: '/reports', icon: FileBarChart2 },
+  { name: 'Usuarios', href: '/admin/users', icon: UserCog },
   { name: 'Configuración', href: '/settings', icon: Settings },
 ];
 
