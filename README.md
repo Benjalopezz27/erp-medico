@@ -6,6 +6,8 @@ Sistema ERP Liviano para Distribuidora Médica en Argentina. Diseñado para oper
 
 > **Estado del Proyecto:** En desarrollo activo. Hito de **Sprint 0 (Infraestructura & Scaffolding)** completado. Rama principal de integración: `dev`.
 
+> **Entrega y ambientes:** CI está operativo. Staging, CD, observabilidad, backups y producción se implementarán progresivamente mediante la épica [#65](https://github.com/Benjalopezz27/erp-medico/issues/65); actualmente no existe un deployment productivo soportado.
+
 ---
 
 ## 🚀 Stack Tecnológico

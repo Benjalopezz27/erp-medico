@@ -302,15 +302,19 @@ ARCA_PUNTO_VENTA=1
 
 ---
 
-## 9. Production Hosting
+## 9. Staging & Production Hosting
 
-**Hetzner CX21** (~$6.50 USD/month):
+**Proveedor objetivo:** VPS único por ambiente; Hetzner es la opción inicial, su plan y precio deben confirmarse antes de contratar.
 
-- 2 vCPU · 4 GB RAM · 40 GB SSD · Ubuntu 24.04
-- Direct Docker Compose deploy (no Kubernetes)
-- Nginx as reverse proxy + Certbot for SSL
-- Hetzner automatic backups: +$1.30 USD/month
-- **Total: ~$8 USD/month** — well within client budget
+- Ubuntu LTS endurecido
+- Docker Compose directo (sin Kubernetes)
+- Imágenes multi-stage publicadas en GHCR por commit SHA
+- Staging y producción promueven el mismo digest; no se compila en el servidor
+- Nginx como reverse proxy y terminación TLS
+- PostgreSQL y Redis en redes privadas, sin puertos públicos
+- GitHub Environments con secrets independientes
+- Backup PostgreSQL cifrado y externo al VPS, con restore probado
+- Health/readiness, logs estructurados, alertas y rollback documentado
 
 ```
 Nginx (reverse proxy + SSL)
@@ -318,6 +322,8 @@ Nginx (reverse proxy + SSL)
     +-- :443/api/* -> NestJS :3000
     +-- :443/* -> React SPA static files
 ```
+
+El track se gestiona en [#65](https://github.com/Benjalopezz27/erp-medico/issues/65). Proveedor, tamaño, presupuesto, dominio/DNS, accesos, monitoreo, almacenamiento de backups, certificados ARCA y ventana de Go-Live son gates externos: no se asumen ni ejecutan sin aprobación explícita.
 
 ---
 

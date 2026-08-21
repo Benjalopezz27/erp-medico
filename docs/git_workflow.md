@@ -361,41 +361,30 @@ jobs:
       - run: pnpm --filter frontend run build
 ```
 
-### CD — `.github/workflows/deploy.yml`
+### CD — plan progresivo [#65](https://github.com/Benjalopezz27/erp-medico/issues/65)
 
-**Trigger:** Push a `main` (solo en releases/merges a main)
+CD todavía no está implementado. Se entregará mediante [#66](https://github.com/Benjalopezz27/erp-medico/issues/66), [#67](https://github.com/Benjalopezz27/erp-medico/issues/67) y [#71](https://github.com/Benjalopezz27/erp-medico/issues/71).
 
-```yaml
-name: Deploy to Production
+Flujo objetivo:
 
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy via SSH to Hetzner
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.HETZNER_HOST }}
-          username: ${{ secrets.HETZNER_USER }}
-          key: ${{ secrets.HETZNER_SSH_KEY }}
-          script: |
-            cd /opt/erp-medico
-            git pull origin main
-            pnpm install --frozen-lockfile
-            pnpm --filter backend run migration:run
-            pnpm --filter backend run build
-            pnpm --filter frontend run build
-            docker compose restart backend
-            echo "Deploy completed at $(date)"
+```text
+CI verde
+  → build multi-stage una sola vez
+  → push backend/frontend a GHCR con commit SHA y digest
+  → deploy del digest en staging
+  → migraciones one-shot + smoke tests
+  → aprobación manual de producción
+  → promoción del mismo digest, sin rebuild
+  → migraciones + smoke tests + monitoreo o rollback
 ```
 
-> **Secrets requeridos en GitHub:** `HETZNER_HOST`, `HETZNER_USER`, `HETZNER_SSH_KEY`
+Reglas:
+
+- El VPS no ejecuta `git pull`, `pnpm install` ni builds.
+- `staging` y `production` usan GitHub Environments y secrets independientes.
+- Los deployments tienen concurrency control y registran SHA/digest.
+- Producción requiere aprobación manual, backup previo y criterio de rollback.
+- Ningún workflow contrata infraestructura, modifica DNS o carga certificados sin resolver los gates externos de su issue.
 
 ### Opcional — Lint de Markdown
 
