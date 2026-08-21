@@ -27,14 +27,25 @@ describe('User Persistence & Seed Engine (E2E)', () => {
   });
 
   it('verifies migration up/down/up cycle cleanly', async () => {
-    // Revert audit_logs table migration
+    // Revert categories & units table migration (1700000000003)
+    await ds.undoLastMigration();
+    const afterDropCategories = await ds.query(
+      "SELECT to_regclass('public.categories') as tablename",
+    );
+    expect(afterDropCategories[0].tablename).toBeNull();
+    const afterDropUnits = await ds.query(
+      "SELECT to_regclass('public.units') as tablename",
+    );
+    expect(afterDropUnits[0].tablename).toBeNull();
+
+    // Revert audit_logs table migration (1700000000002)
     await ds.undoLastMigration();
     const afterDropAudit = await ds.query(
       "SELECT to_regclass('public.audit_logs') as tablename",
     );
     expect(afterDropAudit[0].tablename).toBeNull();
 
-    // Revert users table migration
+    // Revert users table migration (1700000000001)
     await ds.undoLastMigration();
     const afterDropUsers = await ds.query(
       "SELECT to_regclass('public.users') as tablename",
@@ -51,6 +62,14 @@ describe('User Persistence & Seed Engine (E2E)', () => {
       "SELECT to_regclass('public.audit_logs') as tablename",
     );
     expect(afterRecreateAudit[0].tablename).toBe('audit_logs');
+    const afterRecreateCategories = await ds.query(
+      "SELECT to_regclass('public.categories') as tablename",
+    );
+    expect(afterRecreateCategories[0].tablename).toBe('categories');
+    const afterRecreateUnits = await ds.query(
+      "SELECT to_regclass('public.units') as tablename",
+    );
+    expect(afterRecreateUnits[0].tablename).toBe('units');
   });
 
   it('creates exactly 2 users on first seed run and hashes passwords with cost 12', async () => {

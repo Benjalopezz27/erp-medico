@@ -12,6 +12,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { UsersPage } from '@/pages/admin/UsersPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 import { useAuthStore } from '@/stores/authStore';
 import { isRouteAllowed } from '@/config/permissions.config';
 import { UserRole, type UserSearchParams } from '@/features/users/types/users.types';
@@ -208,14 +209,7 @@ const reportsRoute = createRoute({
 const settingsRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/settings',
-  beforeLoad: () => requireRoutePermission('/settings'),
-  component: () => (
-    <PlaceholderPage
-      title="Configuración del Sistema"
-      description="Gestión de usuarios, auditoría, parámetros de ARCA y tolerancias"
-      sprint="Sprint 10 — US-46"
-    />
-  ),
+  component: () => <SettingsPage />,
 });
 
 const adminUsersRoute = createRoute({

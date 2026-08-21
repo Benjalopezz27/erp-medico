@@ -37,10 +37,10 @@ describe('authentication route guards', () => {
 
   it('redirects sellers from administrative routes but allows administrators', () => {
     useAuthStore.getState().setSession(session(UserRole.VENDEDOR));
-    expect(redirectDestination(() => requireRoutePermission('/settings'))).toBe('/');
+    expect(redirectDestination(() => requireRoutePermission('/purchases'))).toBe('/');
 
     useAuthStore.getState().setSession(session(UserRole.ADMINISTRADOR));
-    expect(redirectDestination(() => requireRoutePermission('/settings'))).toBeUndefined();
+    expect(redirectDestination(() => requireRoutePermission('/purchases'))).toBeUndefined();
 
     // /admin/users route permission
     useAuthStore.getState().setSession(session(UserRole.VENDEDOR));
