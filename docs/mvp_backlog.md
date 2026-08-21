@@ -3,7 +3,7 @@
 **Versión:** 1.1 — Alcance Consolidado para Desarrollo Individual<br>
 **Modelo de Desarrollo:** Single Developer (Full-Stack Engine + UI)  
 **Metodología:** Sprints Iterativos Transaccionales  
-**Base de Diseño:** [Especificación Funcional v1.0](file:///c:/Desarrollo/Erp/docs/functional_specification.md) y [Modelo de Dominio v1.0](file:///c:/Desarrollo/Erp/docs/domain_model.md)
+**Base de Diseño:** [Especificación Funcional v1.0](functional_specification.md) y [Modelo de Dominio v1.0](domain_model.md)
 
 ---
 
@@ -491,7 +491,7 @@
 ## 4. Plan de Sprints
 
 > El plan de sprints detallado (Sprint 0 a Sprint 10) con goals, desglose de tareas por historia y Definition of Done por sprint se encuentra en:
-> **[Plan de Sprints Detallado (v1.0)](file:///c:/Desarrollo/Erp/ERP/docs/sprint_plan.md)**
+> **[Plan de Sprints Detallado (v1.1)](sprint_plan.md)**
 
 ### Resumen de Sprints
 

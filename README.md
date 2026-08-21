@@ -4,7 +4,7 @@
 
 Sistema ERP Liviano para Distribuidora Médica en Argentina. Diseñado para operación en puesto de trabajo único (acceso secuencial) con arquitectura transaccional robusta, facturación electrónica ARCA/AFIP (WSAA/WSFE) y control de stock estricto en tiempo real.
 
-> **Estado del Proyecto:** En desarrollo activo. Hito de **Sprint 0 (Infraestructura & Scaffolding)** completado. Rama principal de integración: `dev`.
+> **Estado del Proyecto:** En desarrollo activo sobre **Sprint 1 (Auth & Catálogo Base)**. Sprint 0 y US-01 están completados; US-02 tiene backend, persistencia y auditoría integrados, con la interfaz administrativa aún pendiente. US-03 a US-05 (categorías, unidades y catálogo de productos) todavía no están implementadas. Rama principal de integración: `dev`.
 
 > **Entrega y ambientes:** CI está operativo. Staging, CD, observabilidad, backups y producción se implementarán progresivamente mediante la épica [#65](https://github.com/Benjalopezz27/erp-medico/issues/65); actualmente no existe un deployment productivo soportado.
 
