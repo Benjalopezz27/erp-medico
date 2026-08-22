@@ -1,5 +1,6 @@
-import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
 import { HealthCheckResponse, HealthService } from './health.service';
 
 @ApiTags('health')
@@ -8,15 +9,14 @@ export class HealthController {
   constructor(private readonly healthService: HealthService) {}
 
   @Get()
-  @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Check API and system health status',
     description:
-      'Returns the current operational status, uptime, environment, and database connectivity.',
+      'Returns the current operational status, uptime, environment, commit SHA, and database connectivity. Returns HTTP 200 when operational, or HTTP 503 when degraded.',
   })
   @ApiResponse({
     status: 200,
-    description: 'System health report',
+    description: 'System is fully operational and healthy',
     schema: {
       type: 'object',
       properties: {
@@ -25,6 +25,7 @@ export class HealthController {
         uptime: { type: 'number', example: 120 },
         environment: { type: 'string', example: 'development' },
         version: { type: 'string', example: '0.1.0' },
+        commitSha: { type: 'string', example: '3575c1a' },
         services: {
           type: 'object',
           properties: {
@@ -34,7 +35,17 @@ export class HealthController {
       },
     },
   })
-  async check(): Promise<HealthCheckResponse> {
-    return this.healthService.check();
+  @ApiResponse({
+    status: 503,
+    description: 'System health is degraded (e.g. database down)',
+  })
+  async check(
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<HealthCheckResponse> {
+    const result = await this.healthService.check();
+    if (result.status !== 'ok') {
+      res.status(HttpStatus.SERVICE_UNAVAILABLE);
+    }
+    return result;
   }
 }

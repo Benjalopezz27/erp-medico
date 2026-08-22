@@ -19,6 +19,9 @@ async function bootstrap() {
     }),
   );
 
+  // Graceful shutdown hooks for SIGTERM / SIGINT
+  app.enableShutdownHooks();
+
   // CORS configuration
   app.enableCors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
