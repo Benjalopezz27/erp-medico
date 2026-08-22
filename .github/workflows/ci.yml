@@ -225,7 +225,7 @@ jobs:
     needs: [build-containers]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@v7.0.1
 
       - name: Download Container Artifacts
         uses: actions/download-artifact@v8.0.1
