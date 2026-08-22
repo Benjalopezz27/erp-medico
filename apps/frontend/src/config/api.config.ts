@@ -7,6 +7,13 @@ export function getApiUrl(): string {
     return DEFAULT_API_URL;
   }
 
+  // Support relative same-origin path (e.g. /api/v1) for production reverse proxy
+  if (raw.startsWith('/')) {
+    // Strip trailing slashes, ensure valid path
+    const normalized = raw.replace(/\/+$/, '');
+    return normalized === '' ? '/' : normalized;
+  }
+
   let parsed: URL;
   try {
     parsed = new URL(raw);
