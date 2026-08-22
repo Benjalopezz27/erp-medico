@@ -27,6 +27,17 @@ describe('User Persistence & Seed Engine (E2E)', () => {
   });
 
   it('verifies migration up/down/up cycle cleanly', async () => {
+    // Revert products & unit conversions table migration (1700000000004)
+    await ds.undoLastMigration();
+    const afterDropConversions = await ds.query(
+      "SELECT to_regclass('public.product_unit_conversions') as tablename",
+    );
+    expect(afterDropConversions[0].tablename).toBeNull();
+    const afterDropProducts = await ds.query(
+      "SELECT to_regclass('public.products') as tablename",
+    );
+    expect(afterDropProducts[0].tablename).toBeNull();
+
     // Revert categories & units table migration (1700000000003)
     await ds.undoLastMigration();
     const afterDropCategories = await ds.query(
@@ -70,6 +81,16 @@ describe('User Persistence & Seed Engine (E2E)', () => {
       "SELECT to_regclass('public.units') as tablename",
     );
     expect(afterRecreateUnits[0].tablename).toBe('units');
+    const afterRecreateProducts = await ds.query(
+      "SELECT to_regclass('public.products') as tablename",
+    );
+    expect(afterRecreateProducts[0].tablename).toBe('products');
+    const afterRecreateConversions = await ds.query(
+      "SELECT to_regclass('public.product_unit_conversions') as tablename",
+    );
+    expect(afterRecreateConversions[0].tablename).toBe(
+      'product_unit_conversions',
+    );
   });
 
   it('creates exactly 2 users on first seed run and hashes passwords with cost 12', async () => {
