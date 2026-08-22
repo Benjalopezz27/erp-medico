@@ -157,7 +157,7 @@ export const DashboardPage: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2.5">
-            <Link to="/products" className="block">
+            <Link to="/products" search={{ page: 1, limit: 10 }} className="block">
               <Button variant="outline" className="w-full justify-start text-xs text-slate-700">
                 <PlusCircle className="w-4 h-4 mr-2 text-blue-600" />
                 Catálogo de Productos

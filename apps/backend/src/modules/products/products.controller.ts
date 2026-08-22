@@ -131,7 +131,7 @@ export class ProductsController {
   })
   @ApiResponse({
     status: 409,
-    description: 'Conflict: duplicate internalCode or conversion unit',
+    description: 'Conflict while assigning the automatic internal code',
   })
   async create(
     @Body() dto: CreateProductDto,

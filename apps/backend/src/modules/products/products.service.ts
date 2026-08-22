@@ -112,21 +112,7 @@ export class ProductsService {
   }
 
   async create(dto: CreateProductDto): Promise<ProductAdminResponseDto> {
-    const normalizedCode = dto.internalCode.trim().toUpperCase();
-
-    // 1. Verify internalCode uniqueness
-    const existingCode = await this.productRepository
-      .createQueryBuilder('p')
-      .where('UPPER(TRIM(p.internalCode)) = :code', { code: normalizedCode })
-      .getOne();
-
-    if (existingCode) {
-      throw new ConflictException(
-        'Ya existe un producto con el código interno especificado.',
-      );
-    }
-
-    // 2. Verify Category exists
+    // 1. Verify Category exists
     const category = await this.categoryRepository.findOneBy({
       id: dto.categoryId,
     });
@@ -134,7 +120,7 @@ export class ProductsService {
       throw new NotFoundException('La categoría especificada no existe.');
     }
 
-    // 3. Verify Base Unit exists
+    // 2. Verify Base Unit exists
     const baseUnit = await this.unitRepository.findOneBy({
       id: dto.baseUnitId,
     });
@@ -142,7 +128,7 @@ export class ProductsService {
       throw new NotFoundException('La unidad base especificada no existe.');
     }
 
-    // 4. Validate Nested Conversions if present
+    // 3. Validate Nested Conversions if present
     if (dto.conversions && dto.conversions.length > 0) {
       const seenUnits = new Set<string>();
 
@@ -170,13 +156,13 @@ export class ProductsService {
       }
     }
 
-    // 5. Calculate suggestedPriceNet authoritatively
+    // 4. Calculate suggestedPriceNet authoritatively
     const suggestedPriceNet = this.unitConversionEngine.calculateSuggestedPrice(
       dto.costNet,
       dto.markupPercentage,
     );
 
-    // 6. Execute Transaction
+    // 5. Execute Transaction. PostgreSQL assigns internalCode from its sequence.
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -184,7 +170,6 @@ export class ProductsService {
     let createdProduct: Product;
     try {
       const productEntity = queryRunner.manager.create(Product, {
-        internalCode: normalizedCode,
         name: dto.name.trim(),
         description: dto.description || null,
         categoryId: dto.categoryId,
@@ -217,9 +202,15 @@ export class ProductsService {
       await queryRunner.commitTransaction();
     } catch (error: any) {
       await queryRunner.rollbackTransaction();
-      if (error?.driverError?.code === '23505' || error?.code === '23505') {
+      const databaseErrorCode = error?.driverError?.code ?? error?.code;
+      if (databaseErrorCode === '2200H') {
         throw new ConflictException(
-          'Ya existe un producto con el código interno especificado.',
+          'Se alcanzó el límite de códigos automáticos disponibles (P9999).',
+        );
+      }
+      if (databaseErrorCode === '23505') {
+        throw new ConflictException(
+          'No se pudo asignar un código interno único al producto.',
         );
       }
       throw error;

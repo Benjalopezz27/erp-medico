@@ -106,7 +106,7 @@ export class UpdateProductDto {
     maximum: 1000,
     nullable: true,
   })
-  @ValidateIf((_object, value) => value !== undefined)
+  @ValidateIf((_object, value) => value !== undefined && value !== null)
   @Type(() => Number)
   @IsNumber(
     { maxDecimalPlaces: 4 },
