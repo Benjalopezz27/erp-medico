@@ -59,6 +59,16 @@ describe('ProductsController', () => {
       create: jest.fn().mockResolvedValue(mockProductResponse),
       update: jest.fn().mockResolvedValue(mockProductResponse),
       deactivate: jest.fn().mockResolvedValue(undefined),
+      searchTypeahead: jest.fn().mockResolvedValue([
+        {
+          id: 'p-1',
+          internalCode: 'P0001',
+          name: 'Ibuprofeno 400mg',
+          baseUnit: { id: 'u-1', name: 'Unidad', symbol: 'u' },
+          currentStock: null,
+          activePriceNet: 130,
+        },
+      ]),
       findConversions: jest.fn().mockResolvedValue([mockConversionResponse]),
       addConversion: jest.fn().mockResolvedValue(mockConversionResponse),
       updateConversion: jest.fn().mockResolvedValue(mockConversionResponse),
@@ -88,6 +98,16 @@ describe('ProductsController', () => {
         UserRole.ADMINISTRADOR,
       );
       expect(result.items).toHaveLength(1);
+    });
+  });
+
+  describe('search', () => {
+    it('calls service.searchTypeahead with query', async () => {
+      const query = { q: 'P0001', limit: 10 };
+      const result = await controller.search(query);
+      expect(service.searchTypeahead).toHaveBeenCalledWith(query);
+      expect(result).toHaveLength(1);
+      expect(result[0].internalCode).toBe('P0001');
     });
   });
 

@@ -35,7 +35,9 @@ import { CreateProductUnitConversionDto } from './dto/create-product-unit-conver
 import { UpdateProductUnitConversionDto } from './dto/update-product-unit-conversion.dto';
 import { ProductAdminResponseDto } from './dto/product-admin-response.dto';
 import { ProductSellerResponseDto } from './dto/product-seller-response.dto';
+import { ProductSummaryResponseDto } from './dto/product-summary-response.dto';
 import { ProductUnitConversionResponseDto } from './dto/product-unit-conversion-response.dto';
+import { SearchProductsDto } from './dto/search-products.dto';
 import {
   PaginatedProductsAdminResponseDto,
   PaginatedProductsSellerResponseDto,
@@ -46,6 +48,7 @@ import {
 @ApiExtraModels(
   ProductAdminResponseDto,
   ProductSellerResponseDto,
+  ProductSummaryResponseDto,
   PaginatedProductsAdminResponseDto,
   PaginatedProductsSellerResponseDto,
 )
@@ -74,6 +77,26 @@ export class ProductsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(@Query() query: QueryProductsDto, @CurrentUser() user: User) {
     return this.productsService.findAll(query, user?.role);
+  }
+
+  @Get('search')
+  @ApiOperation({
+    summary: 'Search active products by code or name for typeahead',
+    description:
+      'Accessible to all authenticated users. Returns lightweight summarized active products with zero pricing secrets.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of matching active product summaries',
+    type: [ProductSummaryResponseDto],
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid search query (minimum 2 characters required)',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async search(@Query() query: SearchProductsDto) {
+    return this.productsService.searchTypeahead(query);
   }
 
   @Get(':id')

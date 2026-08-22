@@ -94,10 +94,14 @@ describe('ProductsService', () => {
 
     const mockQueryBuilder = {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
+      innerJoin: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       addOrderBy: jest.fn().mockReturnThis(),
+      setParameters: jest.fn().mockReturnThis(),
       skip: jest.fn().mockReturnThis(),
       take: jest.fn().mockReturnThis(),
       setLock: jest.fn().mockReturnThis(),
@@ -392,6 +396,63 @@ describe('ProductsService', () => {
       });
       await service.deleteConversion('prod-1', 'conv-1');
       expect(conversionRepo.remove).toHaveBeenCalled();
+    });
+  });
+
+  describe('findAll extended filters', () => {
+    it('applies search and category filters when provided', async () => {
+      const qb = productRepo.createQueryBuilder();
+      await service.findAll({
+        search: 'Ibuprofeno',
+        category: 'cat-1',
+        status: ProductStatus.ACTIVE,
+      });
+
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        'product.status = :status',
+        expect.objectContaining({ status: ProductStatus.ACTIVE }),
+      );
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        'product.categoryId = :category',
+        expect.objectContaining({ category: 'cat-1' }),
+      );
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        '(UPPER(product.internalCode) LIKE UPPER(:searchPattern) OR product.name ILIKE :searchPattern)',
+        expect.objectContaining({ searchPattern: '%Ibuprofeno%' }),
+      );
+    });
+
+    it('escapes % and _ wildcards in search query', async () => {
+      const qb = productRepo.createQueryBuilder();
+      await service.findAll({
+        search: '100%_pure',
+      });
+
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        '(UPPER(product.internalCode) LIKE UPPER(:searchPattern) OR product.name ILIKE :searchPattern)',
+        expect.objectContaining({ searchPattern: '%100\\%\\_pure%' }),
+      );
+    });
+  });
+
+  describe('searchTypeahead', () => {
+    it('returns empty array when q is empty or shorter than 2 characters', async () => {
+      expect(await service.searchTypeahead({ q: '' })).toEqual([]);
+      expect(await service.searchTypeahead({ q: 'a' })).toEqual([]);
+      expect(await service.searchTypeahead({ q: '   ' })).toEqual([]);
+    });
+
+    it('executes typeahead query with ranking and projects currentStock as null', async () => {
+      const results = await service.searchTypeahead({ q: 'MED', limit: 5 });
+      expect(results).toHaveLength(1);
+      expect(results[0].internalCode).toBe('MED-001');
+      expect(results[0].currentStock).toBeNull();
+      expect(results[0].activePriceNet).toBe(2025.68);
+      expect(results[0].baseUnit).toEqual({
+        id: 'unit-base',
+        name: 'Unidad',
+        symbol: 'u',
+      });
     });
   });
 });
