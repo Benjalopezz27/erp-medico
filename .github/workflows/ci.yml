@@ -23,17 +23,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4.1.0
         with:
           version: 10.32.1
 
-      - name: Setup Node.js (20.x)
-        uses: actions/setup-node@v4
+      - name: Setup Node.js (24.x)
+        uses: actions/setup-node@v4.2.0
         with:
-          node-version: 20.x
+          node-version: 24.x
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:16.15-alpine3.24@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
         env:
           POSTGRES_DB: erp_test
           POSTGRES_USER: erp_user
@@ -63,7 +63,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       redis:
-        image: redis:7-alpine
+        image: redis:7.4.11-alpine3.21@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
         ports:
           - 6379:6379
         options: >-
@@ -73,17 +73,17 @@ jobs:
           --health-retries 5
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4.1.0
         with:
           version: 10.32.1
 
-      - name: Setup Node.js (20.x)
-        uses: actions/setup-node@v4
+      - name: Setup Node.js (24.x)
+        uses: actions/setup-node@v4.2.0
         with:
-          node-version: 20.x
+          node-version: 24.x
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -98,8 +98,8 @@ jobs:
           DB_USER: erp_user
           DB_PASSWORD: erp_pass
           DB_NAME: erp_test
-          JWT_SECRET: "test_ci_jwt_secret_key_minimum_32_characters_long!"
-          JWT_EXPIRATION: "8h"
+          JWT_SECRET: 'test_ci_jwt_secret_key_minimum_32_characters_long!'
+          JWT_EXPIRATION: '8h'
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           SEED_ADMIN_PASSWORD: TestAdminPassword123!
@@ -115,8 +115,8 @@ jobs:
           DB_USER: erp_user
           DB_PASSWORD: erp_pass
           DB_NAME: erp_test
-          JWT_SECRET: "test_ci_jwt_secret_key_minimum_32_characters_long!"
-          JWT_EXPIRATION: "8h"
+          JWT_SECRET: 'test_ci_jwt_secret_key_minimum_32_characters_long!'
+          JWT_EXPIRATION: '8h'
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           SEED_ADMIN_PASSWORD: TestAdminPassword123!
@@ -128,17 +128,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4.1.0
         with:
           version: 10.32.1
 
-      - name: Setup Node.js (20.x)
-        uses: actions/setup-node@v4
+      - name: Setup Node.js (24.x)
+        uses: actions/setup-node@v4.2.0
         with:
-          node-version: 20.x
+          node-version: 24.x
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -147,7 +147,7 @@ jobs:
       - name: Run Frontend Tests
         run: pnpm --filter @erp/frontend run test:run
         env:
-          VITE_API_URL: "http://localhost:3000/api/v1"
+          VITE_API_URL: 'http://localhost:3000/api/v1'
 
   build:
     name: Build All Workspace Packages
@@ -155,17 +155,17 @@ jobs:
     needs: [lint-and-format, test, frontend-test]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v4.1.0
         with:
           version: 10.32.1
 
-      - name: Setup Node.js (20.x)
-        uses: actions/setup-node@v4
+      - name: Setup Node.js (24.x)
+        uses: actions/setup-node@v4.2.0
         with:
-          node-version: 20.x
+          node-version: 24.x
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -173,3 +173,205 @@ jobs:
 
       - name: Build monorepo packages
         run: pnpm -r run build
+
+  build-containers:
+    name: Build Container Images
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.10.0
+
+      - name: Build Backend Container Image
+        uses: docker/build-push-action@v6.15.0
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          outputs: type=docker,dest=/tmp/backend-image.tar
+          tags: erp-medico-backend:${{ github.sha }}
+          build-args: |
+            APP_VERSION=${{ github.ref_name }}
+            APP_COMMIT_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Build Frontend Container Image
+        uses: docker/build-push-action@v6.15.0
+        with:
+          context: .
+          file: apps/frontend/Dockerfile
+          outputs: type=docker,dest=/tmp/frontend-image.tar
+          tags: erp-medico-frontend:${{ github.sha }}
+          build-args: |
+            VITE_API_URL=/api/v1
+            APP_VERSION=${{ github.ref_name }}
+            APP_COMMIT_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      - name: Upload Container Artifacts
+        uses: actions/upload-artifact@v4.6.1
+        with:
+          name: container-images
+          path: /tmp/*-image.tar
+          retention-days: 1
+
+  scan-and-smoke:
+    name: Trivy Security Scan & Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [build-containers]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+
+      - name: Download Container Artifacts
+        uses: actions/download-artifact@v4.1.9
+        with:
+          name: container-images
+          path: /tmp
+
+      - name: Load Images into Docker Daemon
+        run: |
+          docker load -i /tmp/backend-image.tar
+          docker load -i /tmp/frontend-image.tar
+
+      - name: Scan Repository for Secrets and Misconfigurations
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'secret,misconfig'
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Run Trivy Vulnerability Scanner on Backend Image
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: erp-medico-backend:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Run Trivy Vulnerability Scanner on Frontend Image
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: erp-medico-frontend:${{ github.sha }}
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Execute Automated Compose Smoke Test
+        env:
+          BACKEND_IMAGE: erp-medico-backend:${{ github.sha }}
+          FRONTEND_IMAGE: erp-medico-frontend:${{ github.sha }}
+          DB_PASSWORD: test_ci_database_password
+          JWT_SECRET: test_ci_jwt_secret_key_minimum_32_characters_long!
+        run: |
+          set -euo pipefail
+
+          cleanup() {
+            docker compose -p erp_ci_smoke -f docker-compose.prod.yml down -v --remove-orphans
+          }
+          trap cleanup EXIT
+
+          # 1. Validate compose configuration
+          docker compose -p erp_ci_smoke -f docker-compose.prod.yml config --quiet
+
+          # 2. Boot smoke stack with isolated project name
+          docker compose -p erp_ci_smoke -f docker-compose.prod.yml up -d
+
+          # 3. Wait for frontend and backend health
+          timeout 60 bash -c 'until curl -sf http://127.0.0.1:8080/api/v1/health | grep -q "ok"; do sleep 2; done'
+
+          # 4. Verify non-root execution
+          backend_user=$(docker inspect --format '{{.Config.User}}' $(docker compose -p erp_ci_smoke -f docker-compose.prod.yml ps -q backend))
+          frontend_user=$(docker inspect --format '{{.Config.User}}' $(docker compose -p erp_ci_smoke -f docker-compose.prod.yml ps -q frontend))
+          echo "Backend User: $backend_user"
+          echo "Frontend User: $frontend_user"
+          [ "$backend_user" = "appuser:appgroup" ] || [ "$backend_user" = "appuser" ] || [ "$backend_user" = "10001" ]
+          [ "$frontend_user" = "nginx" ] || [ "$frontend_user" = "101" ]
+
+          # 5. Verify databases have NO host ports exposed
+          [ -z "$(docker compose -p erp_ci_smoke port postgres 5432 2>/dev/null || true)" ]
+          [ -z "$(docker compose -p erp_ci_smoke port redis 6379 2>/dev/null || true)" ]
+
+          # 6. Verify SHA and version endpoint
+          health_res=$(curl -sf http://127.0.0.1:8080/api/v1/health)
+          echo "$health_res" | grep -q "${{ github.sha }}"
+
+          # 7. Verify SPA fallback and deterministic frontend metadata
+          curl -sf http://127.0.0.1:8080/products | grep -q '<div id="root">'
+          curl -sf http://127.0.0.1:8080/version.json | grep -q "${{ github.sha }}"
+
+          # 8. Verify graceful backend shutdown
+          docker compose -p erp_ci_smoke -f docker-compose.prod.yml stop -t 15 backend
+          backend_exit_code=$(docker inspect --format '{{.State.ExitCode}}' "$(docker compose -p erp_ci_smoke -f docker-compose.prod.yml ps -aq backend)")
+          [ "$backend_exit_code" = "0" ] || [ "$backend_exit_code" = "143" ]
+
+  publish-images:
+    name: Publish to GHCR
+    runs-on: ubuntu-latest
+    needs: [scan-and-smoke]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Download Container Artifacts
+        uses: actions/download-artifact@v4.1.9
+        with:
+          name: container-images
+          path: /tmp
+
+      - name: Load Images into Docker Daemon
+        run: |
+          docker load -i /tmp/backend-image.tar
+          docker load -i /tmp/frontend-image.tar
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3.3.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tag and Push Identical Images to GHCR
+        run: |
+          REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          BACKEND_TARGET="ghcr.io/${REPO_OWNER}/erp-medico-backend"
+          FRONTEND_TARGET="ghcr.io/${REPO_OWNER}/erp-medico-frontend"
+
+          # Tag with immutable full SHA
+          docker tag erp-medico-backend:${{ github.sha }} ${BACKEND_TARGET}:sha-${{ github.sha }}
+          docker tag erp-medico-frontend:${{ github.sha }} ${FRONTEND_TARGET}:sha-${{ github.sha }}
+
+          # Tag with branch floating alias
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            docker tag erp-medico-backend:${{ github.sha }} ${BACKEND_TARGET}:latest
+            docker tag erp-medico-frontend:${{ github.sha }} ${FRONTEND_TARGET}:latest
+          elif [ "${{ github.ref }}" = "refs/heads/dev" ]; then
+            docker tag erp-medico-backend:${{ github.sha }} ${BACKEND_TARGET}:dev
+            docker tag erp-medico-frontend:${{ github.sha }} ${FRONTEND_TARGET}:dev
+          fi
+
+          # Push images
+          docker push --all-tags ${BACKEND_TARGET}
+          docker push --all-tags ${FRONTEND_TARGET}
+
+          # Capture digests
+          BACKEND_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${BACKEND_TARGET}:sha-${{ github.sha }})
+          FRONTEND_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' ${FRONTEND_TARGET}:sha-${{ github.sha }})
+
+          # Summary report
+          echo "### 🚀 GHCR Container Publication" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit SHA**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend**: \`${BACKEND_DIGEST}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend**: \`${FRONTEND_DIGEST}\`" >> $GITHUB_STEP_SUMMARY
