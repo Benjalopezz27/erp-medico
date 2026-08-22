@@ -47,6 +47,8 @@ LABEL org.opencontainers.image.title="ERP Distribuidora Médica - Frontend SPA" 
 COPY apps/frontend/nginx.conf /etc/nginx/nginx.conf
 COPY --from=builder /workspace/apps/frontend/dist /usr/share/nginx/html
 
+USER 101
+
 EXPOSE 8080
 
 HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \
