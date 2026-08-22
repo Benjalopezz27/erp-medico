@@ -2,13 +2,23 @@ import {
   ProductStatus,
   type IProduct,
   type IProductSellerView,
+  type IProductSummary,
+  type IUnitSummary,
   type IProductUnitConversion,
   type ICategory,
   type IUnit,
 } from '@erp/shared-types';
 
 export { ProductStatus };
-export type { IProduct, IProductSellerView, IProductUnitConversion, ICategory, IUnit };
+export type {
+  IProduct,
+  IProductSellerView,
+  IProductSummary,
+  IUnitSummary,
+  IProductUnitConversion,
+  ICategory,
+  IUnit,
+};
 
 export type ProductListItem = IProduct | IProductSellerView;
 
@@ -21,6 +31,8 @@ export type ProductNoticeType = 'created' | 'updated' | 'deactivated' | 'reactiv
 export interface ProductSearchParams {
   page: number;
   limit: number;
+  search?: string;
+  category?: string;
   status?: ProductStatus;
   notice?: ProductNoticeType;
 }
@@ -84,4 +96,9 @@ export interface UpdateProductPayload {
   markupPercentage?: number | null;
   activePriceNet?: number;
   status?: ProductStatus;
+}
+
+export interface ProductSearchFilterParams {
+  q: string;
+  limit?: number;
 }

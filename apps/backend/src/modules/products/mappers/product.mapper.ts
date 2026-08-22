@@ -4,6 +4,7 @@ import { Product } from '../entities/product.entity';
 import { ProductUnitConversion } from '../entities/product-unit-conversion.entity';
 import { ProductAdminResponseDto } from '../dto/product-admin-response.dto';
 import { ProductSellerResponseDto } from '../dto/product-seller-response.dto';
+import { ProductSummaryResponseDto } from '../dto/product-summary-response.dto';
 import { ProductUnitConversionResponseDto } from '../dto/product-unit-conversion-response.dto';
 import { toCategoryResponseDto } from '../../categories/mappers/category.mapper';
 import { toUnitResponseDto } from '../../units/mappers/unit.mapper';
@@ -99,6 +100,21 @@ export class ProductMapper {
         : [],
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
+    };
+  }
+
+  public static toSummaryResponse(product: Product): ProductSummaryResponseDto {
+    return {
+      id: product.id,
+      internalCode: product.internalCode,
+      name: product.name,
+      baseUnit: {
+        id: product.baseUnit?.id || product.baseUnitId,
+        name: product.baseUnit?.name || '',
+        symbol: product.baseUnit?.symbol || '',
+      },
+      currentStock: null,
+      activePriceNet: this.parseDecimal(product.activePriceNet, 2),
     };
   }
 

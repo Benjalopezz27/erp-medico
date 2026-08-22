@@ -3,9 +3,11 @@ import { ProductStatus } from '@erp/shared-types';
 import type {
   CreateProductPayload,
   IProduct,
+  IProductSummary,
   IProductUnitConversion,
   PaginatedProductsResponse,
   ProductListItem,
+  ProductSearchFilterParams,
   ProductSearchParams,
   UpdateProductPayload,
 } from '../types/products.types';
@@ -26,8 +28,30 @@ export async function getProductsApi(
     queryParams.status = params.status;
   }
 
+  if (params.category) {
+    queryParams.category = params.category;
+  }
+
+  if (params.search && params.search.trim().length > 0) {
+    queryParams.search = params.search.trim();
+  }
+
   const { data } = await apiClient.get<PaginatedProductsResponse<ProductListItem>>('/products', {
     params: queryParams,
+  });
+  return data;
+}
+
+export async function searchProductsTypeaheadApi(
+  params: ProductSearchFilterParams,
+  signal?: AbortSignal,
+): Promise<IProductSummary[]> {
+  const { data } = await apiClient.get<IProductSummary[]>('/products/search', {
+    params: {
+      q: params.q.trim(),
+      ...(params.limit ? { limit: params.limit } : {}),
+    },
+    signal,
   });
   return data;
 }

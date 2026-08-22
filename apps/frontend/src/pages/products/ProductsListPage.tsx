@@ -9,6 +9,7 @@ import { ProductsTable } from '@/features/products/components/ProductsTable';
 import { ProductPagination } from '@/features/products/components/ProductPagination';
 import { ProductDeactivateModal } from '@/features/products/components/ProductDeactivateModal';
 import { useProductsQuery } from '@/features/products/hooks/use-products-query';
+import { useCategoriesQuery } from '@/features/categories/hooks/use-categories-query';
 import {
   useDeactivateProductMutation,
   useReactivateProductMutation,
@@ -39,6 +40,8 @@ export const ProductsListPage: React.FC = () => {
   const { data, isPending, isFetching, isError, error, isPlaceholderData, refetch } =
     useProductsQuery(searchParams);
 
+  const { data: categories = [] } = useCategoriesQuery();
+
   const deactivateMutation = useDeactivateProductMutation();
   const reactivateMutation = useReactivateProductMutation();
 
@@ -51,6 +54,8 @@ export const ProductsListPage: React.FC = () => {
           search: () => ({
             page: data.meta.totalPages,
             limit: searchParams.limit,
+            search: searchParams.search,
+            category: searchParams.category,
             status: searchParams.status,
           }),
           replace: true,
@@ -62,6 +67,8 @@ export const ProductsListPage: React.FC = () => {
     isPlaceholderData,
     searchParams.page,
     searchParams.limit,
+    searchParams.search,
+    searchParams.category,
     searchParams.status,
     navigate,
   ]);
@@ -85,27 +92,56 @@ export const ProductsListPage: React.FC = () => {
         search: () => ({
           page: searchParams.page,
           limit: searchParams.limit,
+          search: searchParams.search,
+          category: searchParams.category,
           status: searchParams.status,
         }),
         replace: true,
       });
     }
-  }, [searchParams.notice, searchParams.page, searchParams.limit, searchParams.status, navigate]);
+  }, [
+    searchParams.notice,
+    searchParams.page,
+    searchParams.limit,
+    searchParams.search,
+    searchParams.category,
+    searchParams.status,
+    navigate,
+  ]);
 
   // URL Search Updater Helper
-  const updateSearch = (updater: (prev: ProductSearchParams) => Partial<ProductSearchParams>) => {
+  const updateSearch = (
+    updater: (prev: ProductSearchParams) => Partial<ProductSearchParams>,
+    options?: { replace?: boolean },
+  ) => {
     navigate({
       to: '/products',
       search: (prev) => {
         const current = prev as ProductSearchParams;
-        return {
+        const next = {
           page: current.page,
           limit: current.limit,
+          search: current.search,
+          category: current.category,
           status: current.status,
           ...updater(current),
         };
+        // Clean undefined properties
+        if (!next.search) delete next.search;
+        if (!next.category) delete next.category;
+        if (!next.status) delete next.status;
+        return next;
       },
+      replace: options?.replace ?? false,
     });
+  };
+
+  const handleSearchTextChange = (search?: string) => {
+    updateSearch(() => ({ search, page: 1 }), { replace: true });
+  };
+
+  const handleCategoryChange = (category?: string) => {
+    updateSearch(() => ({ category, page: 1 }));
   };
 
   const handleStatusChange = (status?: ProductSearchParams['status']) => {
@@ -250,8 +286,13 @@ export const ProductsListPage: React.FC = () => {
 
       {/* Filters Bar */}
       <ProductFilters
+        search={searchParams.search}
+        onSearchChange={handleSearchTextChange}
+        category={searchParams.category}
+        onCategoryChange={handleCategoryChange}
         status={searchParams.status}
         onStatusChange={handleStatusChange}
+        categories={categories}
         onResetFilters={handleResetFilters}
       />
 

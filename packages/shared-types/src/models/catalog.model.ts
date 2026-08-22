@@ -18,6 +18,12 @@ export interface IUnit {
   updatedAt: Date | string;
 }
 
+export interface IUnitSummary {
+  id: string;
+  name: string;
+  symbol: string;
+}
+
 export interface IProductUnitConversion {
   id: string;
   productId: string;
@@ -63,6 +69,15 @@ export interface IProductSellerView {
   conversions?: IProductUnitConversion[];
   createdAt: Date | string;
   updatedAt: Date | string;
+}
+
+export interface IProductSummary {
+  id: string;
+  internalCode: string;
+  name: string;
+  baseUnit: IUnitSummary;
+  currentStock: number | null;
+  activePriceNet: number;
 }
 
 export interface PaginatedProductsResponse<T = IProduct> {

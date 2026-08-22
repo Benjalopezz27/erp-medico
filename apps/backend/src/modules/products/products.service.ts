@@ -19,7 +19,9 @@ import { CreateProductUnitConversionDto } from './dto/create-product-unit-conver
 import { UpdateProductUnitConversionDto } from './dto/update-product-unit-conversion.dto';
 import { ProductAdminResponseDto } from './dto/product-admin-response.dto';
 import { ProductSellerResponseDto } from './dto/product-seller-response.dto';
+import { ProductSummaryResponseDto } from './dto/product-summary-response.dto';
 import { ProductUnitConversionResponseDto } from './dto/product-unit-conversion-response.dto';
+import { SearchProductsDto } from './dto/search-products.dto';
 import {
   PaginatedProductsAdminResponseDto,
   PaginatedProductsSellerResponseDto,
@@ -67,6 +69,20 @@ export class ProductsService {
       qb.andWhere('product.status = :status', { status: query.status });
     }
 
+    if (query.category) {
+      qb.andWhere('product.categoryId = :category', {
+        category: query.category,
+      });
+    }
+
+    if (query.search && query.search.trim().length > 0) {
+      const escaped = ProductsService.escapeLikePattern(query.search.trim());
+      qb.andWhere(
+        '(UPPER(product.internalCode) LIKE UPPER(:searchPattern) OR product.name ILIKE :searchPattern)',
+        { searchPattern: `%${escaped}%` },
+      );
+    }
+
     qb.orderBy('product.name', 'ASC')
       .addOrderBy('product.id', 'ASC')
       .skip(offset)
@@ -89,6 +105,61 @@ export class ProductsService {
       offset,
       limit,
     };
+  }
+
+  public static escapeLikePattern(term: string): string {
+    return term.replace(/[%_\\]/g, '\\$&');
+  }
+
+  async searchTypeahead(
+    dto: SearchProductsDto,
+  ): Promise<ProductSummaryResponseDto[]> {
+    const trimmed = dto.q ? dto.q.trim() : '';
+    if (trimmed.length < 2) {
+      return [];
+    }
+
+    const limit = dto.limit && dto.limit > 0 ? Math.min(dto.limit, 50) : 10;
+    const escaped = ProductsService.escapeLikePattern(trimmed);
+    const upperTerm = trimmed.toUpperCase();
+    const upperEscapedTerm = escaped.toUpperCase();
+
+    const products = await this.productRepository
+      .createQueryBuilder('product')
+      .innerJoin('product.baseUnit', 'baseUnit')
+      .select([
+        'product.id',
+        'product.internalCode',
+        'product.name',
+        'product.activePriceNet',
+        'baseUnit.id',
+        'baseUnit.name',
+        'baseUnit.symbol',
+      ])
+      .where('product.status = :status', { status: ProductStatus.ACTIVE })
+      .andWhere(
+        '(UPPER(product.internalCode) LIKE UPPER(:searchLike) OR product.name ILIKE :searchLike)',
+        { searchLike: `%${escaped}%` },
+      )
+      .addSelect(
+        `CASE
+          WHEN UPPER(TRIM(product.internalCode)) = :exact THEN 1
+          WHEN UPPER(TRIM(product.internalCode)) LIKE :prefixUpper THEN 2
+          ELSE 3
+        END`,
+        'search_rank',
+      )
+      .orderBy('search_rank', 'ASC')
+      .addOrderBy('product.name', 'ASC')
+      .addOrderBy('product.id', 'ASC')
+      .setParameters({
+        exact: upperTerm,
+        prefixUpper: `${upperEscapedTerm}%`,
+      })
+      .take(limit)
+      .getMany();
+
+    return products.map((p) => ProductMapper.toSummaryResponse(p));
   }
 
   async findById(
