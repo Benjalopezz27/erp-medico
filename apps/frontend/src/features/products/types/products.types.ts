@@ -48,7 +48,6 @@ export interface ProductConversionRow {
 }
 
 export interface ProductFormValues {
-  internalCode: string;
   name: string;
   description?: string | null;
   categoryId: string;
@@ -61,7 +60,6 @@ export interface ProductFormValues {
 }
 
 export interface CreateProductPayload {
-  internalCode: string;
   name: string;
   description?: string | null;
   categoryId: string;

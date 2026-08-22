@@ -70,7 +70,7 @@ describe('ProductEditPage', () => {
     ]);
   });
 
-  it('renders prefilled edit form with locked internalCode', async () => {
+  it('renders prefilled edit form with immutable internalCode', async () => {
     render(
       <QueryClientProvider client={queryClient}>
         <ProductEditPage />
@@ -79,10 +79,10 @@ describe('ProductEditPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Editar Producto/i)).toBeInTheDocument();
-      expect(screen.getByDisplayValue('MED-001')).toBeInTheDocument();
+      expect(screen.getAllByText('MED-001').length).toBeGreaterThanOrEqual(1);
     });
 
-    expect(screen.getByDisplayValue('MED-001')).toBeDisabled();
+    expect(screen.queryByRole('textbox', { name: /Código Interno/i })).not.toBeInTheDocument();
     expect(screen.getByDisplayValue('Ibuprofeno 400mg')).toBeInTheDocument();
   });
 

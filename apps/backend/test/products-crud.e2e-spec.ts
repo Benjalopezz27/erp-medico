@@ -127,7 +127,6 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${sellerToken}`)
         .send({
-          internalCode: 'MED-FORBIDDEN',
           name: 'Forbidden Product',
           categoryId: testCategoryId,
           baseUnitId: testBaseUnitId,
@@ -144,7 +143,6 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          internalCode: '  med-ibu400  ',
           name: 'Ibuprofeno 400mg x 10 comp',
           description: 'Analgésico y antiinflamatorio',
           categoryId: testCategoryId,
@@ -163,7 +161,7 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         .expect(201);
 
       expect(res.body.id).toBeDefined();
-      expect(res.body.internalCode).toBe('MED-IBU400');
+      expect(res.body.internalCode).toMatch(/^P\d{4}$/);
       expect(res.body.name).toBe('Ibuprofeno 400mg x 10 comp');
       expect(res.body.costNet).toBe(1000);
       expect(res.body.markupPercentage).toBe(35.5);
@@ -175,21 +173,48 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
       expect(res.body.conversions[0].conversionFactor).toBe(100);
     });
 
-    it('rejects duplicate internalCode with 409 Conflict', async () => {
+    it('rejects a client-supplied internalCode because it is generated automatically', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          internalCode: 'MED-IBU400', // same code
-          name: 'Ibuprofeno Duplicado',
+          internalCode: 'MANUAL-001',
+          name: 'Producto con código manual',
           categoryId: testCategoryId,
           baseUnitId: testBaseUnitId,
           costNet: 500,
           activePriceNet: 700,
         })
-        .expect(409);
+        .expect(400);
 
-      expect(res.body.message).toContain('código interno');
+      expect(res.body.message).toContain(
+        'property internalCode should not exist',
+      );
+    });
+
+    it('assigns different sequential codes to concurrent product creations', async () => {
+      const createProduct = (name: string) =>
+        request(app.getHttpServer())
+          .post('/api/v1/products')
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            name,
+            categoryId: testCategoryId,
+            baseUnitId: testBaseUnitId,
+            costNet: 500,
+            activePriceNet: 700,
+          });
+
+      const [first, second] = await Promise.all([
+        createProduct('Producto concurrente A'),
+        createProduct('Producto concurrente B'),
+      ]);
+
+      expect(first.status).toBe(201);
+      expect(second.status).toBe(201);
+      expect(first.body.internalCode).toMatch(/^P\d{4}$/);
+      expect(second.body.internalCode).toMatch(/^P\d{4}$/);
+      expect(first.body.internalCode).not.toBe(second.body.internalCode);
     });
 
     it('rejects creation when presentation unit equals base unit with 400', async () => {
@@ -197,7 +222,6 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          internalCode: 'MED-INVALID-CONV',
           name: 'Invalid Conv Product',
           categoryId: testCategoryId,
           baseUnitId: testBaseUnitId,
@@ -220,7 +244,6 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          internalCode: 'MED-NO-CAT',
           name: 'No Cat Product',
           categoryId: '00000000-0000-4000-8000-000000000001',
           baseUnitId: testBaseUnitId,
@@ -239,7 +262,6 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          internalCode: 'MED-UPDATE-TEST',
           name: 'Original Product Name',
           description: 'Original Description',
           categoryId: testCategoryId,
@@ -338,7 +360,6 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          internalCode: 'MED-SECURITY-TEST',
           name: 'Security Test Product',
           categoryId: testCategoryId,
           baseUnitId: testBaseUnitId,
@@ -396,7 +417,6 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          internalCode: 'MED-DEACTIVATE-TEST',
           name: 'Deactivation Target Product',
           categoryId: testCategoryId,
           baseUnitId: testBaseUnitId,
@@ -442,7 +462,6 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          internalCode: 'MED-CONV-RESOURCE',
           name: 'Conversion Resource Product',
           categoryId: testCategoryId,
           baseUnitId: testBaseUnitId,
@@ -520,7 +539,6 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          internalCode: 'MED-CONCURRENT-UNIT',
           name: 'Concurrent Unit Product',
           categoryId: testCategoryId,
           baseUnitId: testBaseUnitId,
@@ -585,7 +603,6 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
-          internalCode: 'MED-FK-RESTRICT',
           name: 'FK Product',
           categoryId: categoryWithProduct,
           baseUnitId: unitWithProduct,

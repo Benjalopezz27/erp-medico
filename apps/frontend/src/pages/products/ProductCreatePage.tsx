@@ -41,7 +41,6 @@ export const ProductCreatePage: React.FC = () => {
     setErrorMessage(null);
     try {
       const payload: CreateProductPayload = {
-        internalCode: values.internalCode.trim().toUpperCase(),
         name: values.name.trim(),
         description: values.description || null,
         categoryId: values.categoryId,

@@ -17,7 +17,7 @@ describe('ProductForm', () => {
 
   const mockInitialProduct: IProduct = {
     id: 'prod-1',
-    internalCode: 'MED-001',
+    internalCode: 'P0001',
     name: 'Ibuprofeno 400mg',
     description: 'Analgésico',
     categoryId: 'c-1',
@@ -42,7 +42,7 @@ describe('ProductForm', () => {
     updatedAt: '',
   };
 
-  it('renders create mode with internalCode enabled and reactive suggested price', async () => {
+  it('explains automatic code assignment in create mode and calculates suggested price', async () => {
     const user = userEvent.setup();
     render(
       <ProductForm
@@ -55,8 +55,8 @@ describe('ProductForm', () => {
       />,
     );
 
-    const internalCodeInput = screen.getByLabelText(/Código Interno/i);
-    expect(internalCodeInput).toBeEnabled();
+    expect(screen.queryByRole('textbox', { name: /Código Interno/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/Se asignará automáticamente al guardar/i)).toBeInTheDocument();
 
     const costInput = screen.getByLabelText(/Costo Neto/i);
     const markupInput = screen.getByLabelText(/Markup/i);
@@ -72,7 +72,7 @@ describe('ProductForm', () => {
     });
   });
 
-  it('locks internalCode and baseUnitId in edit mode when product has conversions', () => {
+  it('shows immutable internalCode and locks baseUnitId when product has conversions', () => {
     render(
       <ProductForm
         mode="edit"
@@ -85,8 +85,8 @@ describe('ProductForm', () => {
       />,
     );
 
-    const internalCodeInput = screen.getByLabelText(/Código Interno/i);
-    expect(internalCodeInput).toBeDisabled();
+    expect(screen.getByText('P0001')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: /Código Interno/i })).not.toBeInTheDocument();
 
     const baseUnitSelect = screen.getByLabelText(/Unidad Base/i);
     expect(baseUnitSelect).toBeDisabled();

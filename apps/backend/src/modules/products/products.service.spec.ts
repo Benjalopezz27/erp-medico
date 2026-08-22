@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import {
   NotFoundException,
-  ConflictException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { UserRole, ProductStatus } from '@erp/shared-types';
@@ -212,7 +212,6 @@ describe('ProductsService', () => {
 
   describe('create', () => {
     const validDto = {
-      internalCode: 'MED-002',
       name: 'Paracetamol 500mg',
       description: 'Analgésico',
       categoryId: 'cat-1',
@@ -230,35 +229,39 @@ describe('ProductsService', () => {
     };
 
     it('creates product and nested conversions in a single transaction', async () => {
-      productRepo.createQueryBuilder().getOne.mockResolvedValueOnce(null); // uniqueness check
       const result = await service.create(validDto);
 
       expect(queryRunner.startTransaction).toHaveBeenCalled();
       expect(queryRunner.commitTransaction).toHaveBeenCalled();
+      expect(queryRunner.manager.create).toHaveBeenCalledWith(
+        Product,
+        expect.not.objectContaining({ internalCode: expect.anything() }),
+      );
       expect(result).toBeDefined();
     });
 
-    it('throws ConflictException on duplicate internalCode', async () => {
-      productRepo
-        .createQueryBuilder()
-        .getOne.mockResolvedValueOnce(mockProduct);
-      await expect(service.create(validDto)).rejects.toThrow(ConflictException);
+    it('returns a clear conflict when the automatic code range is exhausted', async () => {
+      queryRunner.manager.save.mockRejectedValueOnce({ code: '2200H' });
+
+      await expect(service.create(validDto)).rejects.toThrow(
+        new ConflictException(
+          'Se alcanzó el límite de códigos automáticos disponibles (P9999).',
+        ),
+      );
+      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
     });
 
     it('throws NotFoundException on invalid categoryId', async () => {
-      productRepo.createQueryBuilder().getOne.mockResolvedValueOnce(null);
       categoryRepo.findOneBy.mockResolvedValueOnce(null);
       await expect(service.create(validDto)).rejects.toThrow(NotFoundException);
     });
 
     it('throws NotFoundException on invalid baseUnitId', async () => {
-      productRepo.createQueryBuilder().getOne.mockResolvedValueOnce(null);
       unitRepo.findOneBy.mockResolvedValueOnce(null);
       await expect(service.create(validDto)).rejects.toThrow(NotFoundException);
     });
 
     it('throws BadRequestException when presentation unit equals base unit', async () => {
-      productRepo.createQueryBuilder().getOne.mockResolvedValueOnce(null);
       const invalidDto = {
         ...validDto,
         conversions: [
@@ -274,7 +277,6 @@ describe('ProductsService', () => {
     });
 
     it('throws BadRequestException on duplicate conversion units in payload', async () => {
-      productRepo.createQueryBuilder().getOne.mockResolvedValueOnce(null);
       const invalidDto = {
         ...validDto,
         conversions: [

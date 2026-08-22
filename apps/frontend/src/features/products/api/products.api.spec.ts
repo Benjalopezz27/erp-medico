@@ -48,7 +48,6 @@ describe('products.api', () => {
 
   it('createProductApi calls POST /products', async () => {
     const payload = {
-      internalCode: 'MED-1',
       name: 'Product',
       categoryId: 'c1',
       baseUnitId: 'u1',

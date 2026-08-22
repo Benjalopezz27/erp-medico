@@ -12,8 +12,8 @@ export class ProductAdminResponseDto {
   id: string;
 
   @ApiProperty({
-    description: 'Unique internal code of the product',
-    example: 'MED-001',
+    description: 'Automatic and immutable internal code of the product',
+    example: 'P0001',
   })
   internalCode: string;
 

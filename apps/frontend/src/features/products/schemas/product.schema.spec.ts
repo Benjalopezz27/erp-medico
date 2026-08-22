@@ -3,7 +3,6 @@ import { productFormSchema } from './product.schema';
 
 describe('product.schema', () => {
   const validData = {
-    internalCode: 'MED-001',
     name: 'Ibuprofeno 400mg',
     description: 'Analgésico',
     categoryId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',

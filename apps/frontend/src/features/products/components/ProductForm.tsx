@@ -49,7 +49,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   } = useForm<ProductFormSchemaValues>({
     resolver: zodResolver(productFormSchema),
     defaultValues: {
-      internalCode: '',
       name: '',
       description: null,
       categoryId: '',
@@ -74,7 +73,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       setLocalConversions(convs);
 
       reset({
-        internalCode: initialProduct.internalCode,
         name: initialProduct.name,
         description: initialProduct.description || null,
         categoryId: initialProduct.categoryId,
@@ -170,37 +168,21 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Internal Code */}
+          {/* Automatic Internal Code */}
           <div>
-            <label
-              htmlFor="internalCode"
-              className="block text-xs font-semibold text-slate-700 mb-1"
-            >
-              Código Interno *
-            </label>
-            <div className="relative">
-              <Input
-                id="internalCode"
-                {...register('internalCode')}
-                disabled={isEdit || isSubmitting}
-                placeholder="Ej: MED-001"
-                aria-invalid={Boolean(errors.internalCode)}
-                className={`text-xs font-mono uppercase ${
-                  isEdit ? 'bg-slate-50 text-slate-500 pr-8 cursor-not-allowed' : ''
-                }`}
-              />
-              {isEdit && (
-                <div
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-                  title="El código interno no puede modificarse una vez creado."
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                </div>
+            <span className="block text-xs font-semibold text-slate-700 mb-1">Código Interno</span>
+            <div className="h-9 px-3 rounded-lg border border-slate-200 bg-slate-50 flex items-center gap-2 text-xs">
+              <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              {isEdit ? (
+                <span className="font-mono font-semibold text-slate-700">
+                  {initialProduct?.internalCode}
+                </span>
+              ) : (
+                <span className="text-slate-500">
+                  Se asignará automáticamente al guardar (P0001–P9999)
+                </span>
               )}
             </div>
-            {errors.internalCode && (
-              <p className="text-[11px] text-red-600 mt-1">{errors.internalCode.message}</p>
-            )}
           </div>
 
           {/* Name */}

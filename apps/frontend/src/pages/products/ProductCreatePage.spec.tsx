@@ -70,10 +70,9 @@ describe('ProductCreatePage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/Código Interno/i)).toBeInTheDocument();
+      expect(screen.getByText(/Se asignará automáticamente al guardar/i)).toBeInTheDocument();
     });
 
-    await user.type(screen.getByLabelText(/Código Interno/i), 'MED-100');
     await user.type(screen.getByLabelText(/Nombre Comercial/i), 'Amoxicilina 500mg');
     await user.selectOptions(screen.getByLabelText(/Categoría/i), validCategoryId);
     await user.selectOptions(screen.getByLabelText(/Unidad Base/i), validBaseUnitId);
@@ -85,6 +84,9 @@ describe('ProductCreatePage', () => {
 
     await waitFor(() => {
       expect(productsApi.createProductApi).toHaveBeenCalled();
+      expect(productsApi.createProductApi).toHaveBeenCalledWith(
+        expect.not.objectContaining({ internalCode: expect.anything() }),
+      );
       expect(mockNavigate).toHaveBeenCalledWith(expect.objectContaining({ to: '/products' }));
     });
   });

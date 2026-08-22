@@ -23,15 +23,6 @@ export const productConversionSchema = z.object({
 
 export const productFormSchema = z
   .object({
-    internalCode: z
-      .string()
-      .trim()
-      .min(1, 'El código interno es obligatorio.')
-      .max(50, 'El código interno no puede exceder 50 caracteres.')
-      .regex(
-        /^[A-Za-z0-9_-]+$/,
-        'El código interno solo permite letras, números, guiones y guiones bajos.',
-      ),
     name: z
       .string()
       .trim()
