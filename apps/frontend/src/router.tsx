@@ -63,6 +63,12 @@ export function validateProductSearchParams(search: Record<string, unknown>): Pr
       ? (rawStatus as ProductStatus)
       : undefined;
 
+  const rawCategory = typeof search.category === 'string' ? search.category.trim() : undefined;
+  const category = rawCategory && rawCategory.length > 0 ? rawCategory : undefined;
+
+  const rawSearch = typeof search.search === 'string' ? search.search.trim() : undefined;
+  const searchParam = rawSearch && rawSearch.length > 0 ? rawSearch : undefined;
+
   const rawNotice = search.notice as string | undefined;
   const validNotices: ProductNoticeType[] = ['created', 'updated', 'deactivated', 'reactivated'];
   const notice =
@@ -73,6 +79,8 @@ export function validateProductSearchParams(search: Record<string, unknown>): Pr
   return {
     page: Number.isInteger(page) && page >= 1 ? page : 1,
     limit: validLimits.includes(limit) ? limit : 10,
+    search: searchParam,
+    category,
     status,
     notice,
   };

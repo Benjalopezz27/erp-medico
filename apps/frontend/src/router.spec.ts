@@ -120,16 +120,20 @@ describe('validateProductSearchParams', () => {
     expect(result.notice).toBeUndefined();
   });
 
-  it('correctly parses valid product search params and notices', () => {
+  it('correctly parses valid product search params, category, search text, and notices', () => {
     const result = validateProductSearchParams({
       page: 3,
       limit: 50,
+      search: '  Amoxicilina  ',
+      category: 'cat-uuid-1',
       status: ProductStatus.ACTIVE,
       notice: 'created',
     });
 
     expect(result.page).toBe(3);
     expect(result.limit).toBe(50);
+    expect(result.search).toBe('Amoxicilina');
+    expect(result.category).toBe('cat-uuid-1');
     expect(result.status).toBe(ProductStatus.ACTIVE);
     expect(result.notice).toBe('created');
   });
