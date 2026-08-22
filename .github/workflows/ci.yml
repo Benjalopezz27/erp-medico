@@ -278,14 +278,13 @@ jobs:
           set -euo pipefail
 
           cleanup() {
-            local exit_code=$?
-            if [ $exit_code -ne 0 ]; then
-              echo "=== COMPOSE LOGS ON FAILURE ==="
-              docker compose -p erp_ci_smoke -f docker-compose.prod.yml logs || true
-            fi
             docker compose -p erp_ci_smoke -f docker-compose.prod.yml down -v --remove-orphans || true
-            exit $exit_code
           }
+          dump_logs() {
+            echo "=== COMPOSE LOGS ON FAILURE ==="
+            docker compose -p erp_ci_smoke -f docker-compose.prod.yml logs || true
+          }
+          trap dump_logs ERR
           trap cleanup EXIT
 
           # 1. Validate compose configuration
