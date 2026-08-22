@@ -282,6 +282,17 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
       expect(res.body.suggestedPriceNet).toBe(4200);
     });
 
+    it('clears nullable markupPercentage and recalculates suggested price', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/api/v1/products/${testProductId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ markupPercentage: null })
+        .expect(200);
+
+      expect(res.body.markupPercentage).toBeNull();
+      expect(res.body.suggestedPriceNet).toBe(3000);
+    });
+
     it('clears description when passing null or empty string', async () => {
       const res = await request(app.getHttpServer())
         .patch(`/api/v1/products/${testProductId}`)
