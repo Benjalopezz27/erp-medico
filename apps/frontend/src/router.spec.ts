@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { UserRole, type IAuthSession } from '@erp/shared-types';
+import { UserRole, ProductStatus, type IAuthSession } from '@erp/shared-types';
 import { useAuthStore } from '@/stores/authStore';
-import { redirectAuthenticatedUser, requireAuthentication, requireRoutePermission } from './router';
+import {
+  redirectAuthenticatedUser,
+  requireAuthentication,
+  requireRoutePermission,
+  requireRole,
+  validateUserSearchParams,
+  validateProductSearchParams,
+} from './router';
 
 const session = (role: UserRole): IAuthSession => ({
   accessToken: 'token',
@@ -49,11 +56,18 @@ describe('authentication route guards', () => {
     useAuthStore.getState().setSession(session(UserRole.ADMINISTRADOR));
     expect(redirectDestination(() => requireRoutePermission('/admin/users'))).toBeUndefined();
   });
+
+  it('requireRole redirects non-admin users to /products', () => {
+    useAuthStore.getState().setSession(session(UserRole.VENDEDOR));
+    expect(redirectDestination(() => requireRole(UserRole.ADMINISTRADOR))).toBe('/products');
+
+    useAuthStore.getState().setSession(session(UserRole.ADMINISTRADOR));
+    expect(redirectDestination(() => requireRole(UserRole.ADMINISTRADOR))).toBeUndefined();
+  });
 });
 
 describe('validateUserSearchParams', () => {
-  it('defaults invalid or empty search params to clean page 1 and limit 10', async () => {
-    const { validateUserSearchParams } = await import('./router');
+  it('defaults invalid or empty search params to clean page 1 and limit 10', () => {
     const result = validateUserSearchParams({
       page: -5,
       limit: 999,
@@ -69,8 +83,7 @@ describe('validateUserSearchParams', () => {
     expect(result.search).toBeUndefined();
   });
 
-  it('correctly parses valid search params and tri-state isActive', async () => {
-    const { validateUserSearchParams } = await import('./router');
+  it('correctly parses valid search params and tri-state isActive', () => {
     const resultTrue = validateUserSearchParams({
       page: 2,
       limit: 25,
@@ -89,5 +102,35 @@ describe('validateUserSearchParams', () => {
       isActive: 'false',
     });
     expect(resultFalse.isActive).toBe(false);
+  });
+});
+
+describe('validateProductSearchParams', () => {
+  it('defaults invalid search params to page 1 and limit 10', () => {
+    const result = validateProductSearchParams({
+      page: -2,
+      limit: 80,
+      status: 'INVALID_STATUS',
+      notice: 'unknown_notice',
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(10);
+    expect(result.status).toBeUndefined();
+    expect(result.notice).toBeUndefined();
+  });
+
+  it('correctly parses valid product search params and notices', () => {
+    const result = validateProductSearchParams({
+      page: 3,
+      limit: 50,
+      status: ProductStatus.ACTIVE,
+      notice: 'created',
+    });
+
+    expect(result.page).toBe(3);
+    expect(result.limit).toBe(50);
+    expect(result.status).toBe(ProductStatus.ACTIVE);
+    expect(result.notice).toBe('created');
   });
 });

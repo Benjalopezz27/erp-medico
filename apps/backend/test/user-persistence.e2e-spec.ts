@@ -27,6 +27,13 @@ describe('User Persistence & Seed Engine (E2E)', () => {
   });
 
   it('verifies migration up/down/up cycle cleanly', async () => {
+    // Revert automatic product code migration (1700000000005)
+    await ds.undoLastMigration();
+    const afterDropProductCodeSequence = await ds.query(
+      "SELECT to_regclass('public.product_internal_code_seq') as sequence_name",
+    );
+    expect(afterDropProductCodeSequence[0].sequence_name).toBeNull();
+
     // Revert products & unit conversions table migration (1700000000004)
     await ds.undoLastMigration();
     const afterDropConversions = await ds.query(
@@ -90,6 +97,12 @@ describe('User Persistence & Seed Engine (E2E)', () => {
     );
     expect(afterRecreateConversions[0].tablename).toBe(
       'product_unit_conversions',
+    );
+    const afterRecreateProductCodeSequence = await ds.query(
+      "SELECT to_regclass('public.product_internal_code_seq') as sequence_name",
+    );
+    expect(afterRecreateProductCodeSequence[0].sequence_name).toBe(
+      'product_internal_code_seq',
     );
   });
 

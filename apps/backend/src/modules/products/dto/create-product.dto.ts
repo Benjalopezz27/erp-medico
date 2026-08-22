@@ -8,7 +8,6 @@ import {
   IsNumber,
   Min,
   Max,
-  Matches,
   ValidateNested,
   IsArray,
 } from 'class-validator';
@@ -16,25 +15,6 @@ import { Type, Transform } from 'class-transformer';
 import { CreateProductConversionNestedDto } from './create-product-conversion-nested.dto';
 
 export class CreateProductDto {
-  @ApiProperty({
-    description: 'Unique internal code for the product',
-    example: 'MED-001',
-    maxLength: 50,
-  })
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim().toUpperCase() : value,
-  )
-  @IsString({ message: 'El código interno debe ser una cadena de texto.' })
-  @IsNotEmpty({ message: 'El código interno es obligatorio.' })
-  @MaxLength(50, {
-    message: 'El código interno no puede exceder los 50 caracteres.',
-  })
-  @Matches(/^[A-Za-z0-9_-]+$/, {
-    message:
-      'El código interno solo puede contener caracteres alfanuméricos, guiones y guiones bajos.',
-  })
-  internalCode: string;
-
   @ApiProperty({
     description: 'Commercial name of the product',
     example: 'Ibuprofeno 400mg x 10 comprimidos',

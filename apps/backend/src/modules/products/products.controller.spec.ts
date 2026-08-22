@@ -102,7 +102,6 @@ describe('ProductsController', () => {
   describe('create', () => {
     it('calls service.create with dto', async () => {
       const dto = {
-        internalCode: 'MED-001',
         name: 'Ibuprofeno',
         categoryId: 'c-1',
         baseUnitId: 'u-1',

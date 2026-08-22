@@ -13,9 +13,17 @@ import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { UsersPage } from '@/pages/admin/UsersPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { ProductsListPage } from '@/pages/products/ProductsListPage';
+import { ProductCreatePage } from '@/pages/products/ProductCreatePage';
+import { ProductEditPage } from '@/pages/products/ProductEditPage';
 import { useAuthStore } from '@/stores/authStore';
 import { isRouteAllowed } from '@/config/permissions.config';
 import { UserRole, type UserSearchParams } from '@/features/users/types/users.types';
+import {
+  ProductStatus,
+  type ProductSearchParams,
+  type ProductNoticeType,
+} from '@/features/products/types/products.types';
 
 export function validateUserSearchParams(search: Record<string, unknown>): UserSearchParams {
   const page = Number(search.page);
@@ -44,6 +52,32 @@ export function validateUserSearchParams(search: Record<string, unknown>): UserS
   };
 }
 
+export function validateProductSearchParams(search: Record<string, unknown>): ProductSearchParams {
+  const page = Number(search.page);
+  const limit = Number(search.limit);
+  const validLimits = [10, 25, 50];
+
+  const rawStatus = search.status as string | undefined;
+  const status =
+    rawStatus === ProductStatus.ACTIVE || rawStatus === ProductStatus.INACTIVE
+      ? (rawStatus as ProductStatus)
+      : undefined;
+
+  const rawNotice = search.notice as string | undefined;
+  const validNotices: ProductNoticeType[] = ['created', 'updated', 'deactivated', 'reactivated'];
+  const notice =
+    rawNotice && validNotices.includes(rawNotice as ProductNoticeType)
+      ? (rawNotice as ProductNoticeType)
+      : undefined;
+
+  return {
+    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    limit: validLimits.includes(limit) ? limit : 10,
+    status,
+    notice,
+  };
+}
+
 export function requireAuthentication(): void {
   if (!useAuthStore.getState().isAuthenticated) throw redirect({ to: '/login' });
 }
@@ -56,6 +90,13 @@ export function requireRoutePermission(pathname: string): void {
   requireAuthentication();
   if (!isRouteAllowed(pathname, useAuthStore.getState().user?.role)) {
     throw redirect({ to: '/' });
+  }
+}
+
+export function requireRole(allowedRole: UserRole): void {
+  requireAuthentication();
+  if (useAuthStore.getState().user?.role !== allowedRole) {
+    throw redirect({ to: '/products', search: { page: 1, limit: 10 } });
   }
 }
 
@@ -96,13 +137,22 @@ const indexRoute = createRoute({
 const productsRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/products',
-  component: () => (
-    <PlaceholderPage
-      title="Catálogo de Productos"
-      description="Gestión de catálogo, unidades base y factores de conversión"
-      sprint="Sprint 1 — US-04"
-    />
-  ),
+  validateSearch: validateProductSearchParams,
+  component: () => <ProductsListPage />,
+});
+
+const productCreateRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/products/new',
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
+  component: () => <ProductCreatePage />,
+});
+
+const productEditRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/products/$id/edit',
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
+  component: () => <ProductEditPage />,
 });
 
 const stockRoute = createRoute({
@@ -226,6 +276,8 @@ const routeTree = rootRoute.addChildren([
   appShellRoute.addChildren([
     indexRoute,
     productsRoute,
+    productCreateRoute,
+    productEditRoute,
     stockRoute,
     purchasesRoute,
     salesRoute,

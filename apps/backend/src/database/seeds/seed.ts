@@ -1,5 +1,6 @@
 import dataSource from '../data-source';
 import { runInitialSeed } from './initial.seed';
+import { runCatalogSeed } from './catalog.seed';
 
 async function bootstrap() {
   console.log('[SEED] Initializing database connection...');
@@ -7,9 +8,22 @@ async function bootstrap() {
 
   try {
     console.log('[SEED] Running initial user seed...');
-    const result = await runInitialSeed(dataSource);
+    const userResult = await runInitialSeed(dataSource);
     console.log(
-      `[SEED] Seed completed successfully: ${result.created} created, ${result.skipped} skipped.`,
+      `[SEED] User seed completed: ${userResult.created} created, ${userResult.skipped} skipped.`,
+    );
+    console.log('[SEED] Running demonstration catalog seed...');
+    const catalogResult = await runCatalogSeed(dataSource);
+    const catalogCreated = Object.values(catalogResult).reduce(
+      (total, count) => total + count.created,
+      0,
+    );
+    const catalogSkipped = Object.values(catalogResult).reduce(
+      (total, count) => total + count.skipped,
+      0,
+    );
+    console.log(
+      `[SEED] Catalog seed completed: ${catalogCreated} created, ${catalogSkipped} skipped.`,
     );
   } catch (error) {
     console.error('[SEED] Seed execution error:', (error as Error).message);

@@ -20,7 +20,13 @@ export class Product {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'internal_code', type: 'varchar', length: 50 })
+  @Column({
+    name: 'internal_code',
+    type: 'varchar',
+    length: 50,
+    default: () =>
+      "'P' || LPAD(nextval('product_internal_code_seq')::text, 4, '0')",
+  })
   internalCode: string;
 
   @Column({ type: 'varchar', length: 150 })
