@@ -3,6 +3,7 @@ import { apiClient } from '@/services/api.client';
 import { ProductStatus } from '@erp/shared-types';
 import {
   getProductsApi,
+  searchProductsTypeaheadApi,
   getProductByIdApi,
   createProductApi,
   updateProductApi,
@@ -27,16 +28,51 @@ describe('products.api', () => {
     vi.clearAllMocks();
   });
 
-  it('getProductsApi translates page/limit to offset/limit', async () => {
+  it('getProductsApi translates page/limit to offset/limit and includes search and category', async () => {
     (apiClient.get as any).mockResolvedValueOnce({
       data: { items: [], total: 0, offset: 20, limit: 10 },
     });
 
-    const res = await getProductsApi({ page: 3, limit: 10, status: ProductStatus.ACTIVE });
+    const res = await getProductsApi({
+      page: 3,
+      limit: 10,
+      status: ProductStatus.ACTIVE,
+      search: 'Ibuprofeno',
+      category: 'cat-uuid',
+    });
     expect(apiClient.get).toHaveBeenCalledWith('/products', {
-      params: { offset: 20, limit: 10, status: ProductStatus.ACTIVE },
+      params: {
+        offset: 20,
+        limit: 10,
+        status: ProductStatus.ACTIVE,
+        search: 'Ibuprofeno',
+        category: 'cat-uuid',
+      },
     });
     expect(res.offset).toBe(20);
+  });
+
+  it('searchProductsTypeaheadApi calls GET /products/search with AbortSignal', async () => {
+    const mockSummary = [
+      {
+        id: 'p-1',
+        internalCode: 'P0001',
+        name: 'Ibuprofeno 400mg',
+        baseUnit: { id: 'u-1', name: 'Unidad', symbol: 'u' },
+        currentStock: null,
+        activePriceNet: 130,
+      },
+    ];
+    (apiClient.get as any).mockResolvedValueOnce({ data: mockSummary });
+    const controller = new AbortController();
+
+    const res = await searchProductsTypeaheadApi({ q: 'Ibu', limit: 5 }, controller.signal);
+
+    expect(apiClient.get).toHaveBeenCalledWith('/products/search', {
+      params: { q: 'Ibu', limit: 5 },
+      signal: controller.signal,
+    });
+    expect(res).toEqual(mockSummary);
   });
 
   it('getProductByIdApi calls GET /products/:id', async () => {

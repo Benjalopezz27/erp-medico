@@ -1,9 +1,38 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsEnum, IsInt, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
+import {
+  IsOptional,
+  IsEnum,
+  IsInt,
+  IsString,
+  IsUUID,
+  Min,
+  Max,
+  MaxLength,
+} from 'class-validator';
+import { Type, Transform } from 'class-transformer';
 import { ProductStatus } from '@erp/shared-types';
 
 export class QueryProductsDto {
+  @ApiPropertyOptional({
+    description: 'Filter by text matching internalCode or name',
+    example: 'Ibuprofeno',
+  })
+  @IsOptional()
+  @IsString({ message: 'El parámetro search debe ser texto.' })
+  @MaxLength(100, {
+    message: 'El parámetro search no puede exceder 100 caracteres.',
+  })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
+  search?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by category UUID',
+    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+  })
+  @IsOptional()
+  @IsUUID('4', { message: 'La categoría debe ser un UUID válido.' })
+  category?: string;
+
   @ApiPropertyOptional({
     description: 'Filter by product status',
     enum: ProductStatus,

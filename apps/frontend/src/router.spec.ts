@@ -120,17 +120,28 @@ describe('validateProductSearchParams', () => {
     expect(result.notice).toBeUndefined();
   });
 
-  it('correctly parses valid product search params and notices', () => {
+  it('correctly parses valid product search params, category, search text, and notices', () => {
+    const categoryId = '51b94ef4-4bac-44d0-8cd6-9b5124928c65';
     const result = validateProductSearchParams({
       page: 3,
       limit: 50,
+      search: '  Amoxicilina  ',
+      category: categoryId,
       status: ProductStatus.ACTIVE,
       notice: 'created',
     });
 
     expect(result.page).toBe(3);
     expect(result.limit).toBe(50);
+    expect(result.search).toBe('Amoxicilina');
+    expect(result.category).toBe(categoryId);
     expect(result.status).toBe(ProductStatus.ACTIVE);
     expect(result.notice).toBe('created');
+  });
+
+  it('discards malformed category identifiers before calling the API', () => {
+    const result = validateProductSearchParams({ category: 'not-a-uuid' });
+
+    expect(result.category).toBeUndefined();
   });
 });

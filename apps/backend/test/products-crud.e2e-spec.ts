@@ -670,6 +670,210 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         document.paths['/api/v1/products/{id}/conversions/{conversionId}']
           .delete,
       ).toBeDefined();
+
+      expect(document.paths['/api/v1/products/search']).toBeDefined();
+      expect(document.paths['/api/v1/products/search'].get).toBeDefined();
+    });
+  });
+
+  describe('Typeahead Search & Extended Filters (Issue #47)', () => {
+    let searchCategoryId: string;
+    let otherCategoryId: string;
+    let searchBaseUnitId: string;
+    let inactiveProductId: string;
+    let otherCategoryProduct: string;
+    let exactSearchCode: string;
+
+    beforeAll(async () => {
+      // Create dedicated categories
+      const cat1Res = await request(app.getHttpServer())
+        .post('/api/v1/categories')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Farmacia General' });
+      searchCategoryId = cat1Res.body.id;
+
+      const cat2Res = await request(app.getHttpServer())
+        .post('/api/v1/categories')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Descartables Hospitalarios' });
+      otherCategoryId = cat2Res.body.id;
+
+      // Create dedicated base unit
+      const unitRes = await request(app.getHttpServer())
+        .post('/api/v1/units')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ name: 'Unidad Farmacia', symbol: 'ufarm' });
+      searchBaseUnitId = unitRes.body.id;
+
+      // Product 1: Search Exact Target
+      const exactProduct = await request(app.getHttpServer())
+        .post('/api/v1/products')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Amoxicilina 500mg x 16 cápsulas',
+          categoryId: searchCategoryId,
+          baseUnitId: searchBaseUnitId,
+          costNet: 800,
+          activePriceNet: 1200,
+        });
+
+      // Product 2: Prefix/Name target
+      await request(app.getHttpServer())
+        .post('/api/v1/products')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Amoxicilina + Ácido Clavulánico 500/125mg',
+          categoryId: searchCategoryId,
+          baseUnitId: searchBaseUnitId,
+          costNet: 1500,
+          activePriceNet: 2200,
+        });
+      exactSearchCode = exactProduct.body.internalCode;
+
+      // Inactive Product
+      const p3 = await request(app.getHttpServer())
+        .post('/api/v1/products')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Amoxicilina Suspensión 250mg (Discontinuado)',
+          categoryId: searchCategoryId,
+          baseUnitId: searchBaseUnitId,
+          costNet: 600,
+          activePriceNet: 900,
+        });
+      inactiveProductId = p3.body.id;
+      await request(app.getHttpServer())
+        .delete(`/api/v1/products/${inactiveProductId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      // Product in second category
+      const p4 = await request(app.getHttpServer())
+        .post('/api/v1/products')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Guantes de Látex Descartables Talle M',
+          categoryId: otherCategoryId,
+          baseUnitId: searchBaseUnitId,
+          costNet: 100,
+          activePriceNet: 150,
+        });
+      otherCategoryProduct = p4.body.id;
+    });
+
+    it('prevents route collision: GET /api/v1/products/search is not intercepted by :id (200 OK)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/products/search')
+        .query({ q: 'Amoxi' })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.length).toBeGreaterThan(0);
+    });
+
+    it('rejects search queries with less than 2 characters (400 Bad Request)', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/products/search')
+        .query({ q: 'A' })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(400);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/products/search')
+        .query({ q: '   ' })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(400);
+    });
+
+    it('ranks an exact internal code match first', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/products/search')
+        .query({ q: exactSearchCode.toLowerCase() })
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .expect(200);
+
+      expect(res.body[0].internalCode).toBe(exactSearchCode);
+    });
+
+    it('ensures role parity with zero pricing leaks: Administrator and Seller receive exact same summary schema', async () => {
+      const adminRes = await request(app.getHttpServer())
+        .get('/api/v1/products/search')
+        .query({ q: 'Amoxi' })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      const sellerRes = await request(app.getHttpServer())
+        .get('/api/v1/products/search')
+        .query({ q: 'Amoxi' })
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .expect(200);
+
+      expect(adminRes.body).toEqual(sellerRes.body);
+
+      const item = sellerRes.body[0];
+      expect(item.id).toBeDefined();
+      expect(item.internalCode).toBeDefined();
+      expect(item.name).toBeDefined();
+      expect(item.baseUnit).toEqual({
+        id: searchBaseUnitId,
+        name: 'Unidad Farmacia',
+        symbol: 'ufarm',
+      });
+      expect(item.currentStock).toBeNull();
+      expect(item.activePriceNet).toBeGreaterThan(0);
+
+      // Verify no sensitive fields leaked
+      expect(item.costNet).toBeUndefined();
+      expect(item.markupPercentage).toBeUndefined();
+      expect(item.suggestedPriceNet).toBeUndefined();
+    });
+
+    it('excludes inactive products from typeahead search results', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/products/search')
+        .query({ q: 'Discontinuado' })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(res.body).toEqual([]);
+    });
+
+    it('filters catalog list with combined search, category, and status', async () => {
+      // 1. Search text only
+      const searchRes = await request(app.getHttpServer())
+        .get('/api/v1/products')
+        .query({ search: 'Guantes' })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(searchRes.body.total).toBe(1);
+      expect(searchRes.body.items[0].name).toContain('Guantes');
+
+      // 2. Category filter only
+      const catRes = await request(app.getHttpServer())
+        .get('/api/v1/products')
+        .query({ category: otherCategoryId })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(catRes.body.total).toBe(1);
+      expect(catRes.body.items[0].id).toBe(otherCategoryProduct);
+
+      // 3. Combined search + category mismatch -> 0 results
+      const emptyRes = await request(app.getHttpServer())
+        .get('/api/v1/products')
+        .query({ search: 'Guantes', category: searchCategoryId })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(emptyRes.body.total).toBe(0);
+      expect(emptyRes.body.items).toHaveLength(0);
+
+      // 4. Combined search + status INACTIVE
+      const inactiveRes = await request(app.getHttpServer())
+        .get('/api/v1/products')
+        .query({ search: 'Discontinuado', status: ProductStatus.INACTIVE })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(inactiveRes.body.total).toBe(1);
+      expect(inactiveRes.body.items[0].id).toBe(inactiveProductId);
     });
   });
 });

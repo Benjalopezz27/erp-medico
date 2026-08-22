@@ -6,6 +6,7 @@ import { UserRole, ProductStatus } from '@erp/shared-types';
 import { useAuthStore } from '@/stores/authStore';
 import { ProductsListPage } from './ProductsListPage';
 import * as productsApi from '@/features/products/api/products.api';
+import * as categoriesApi from '@/features/categories/api/categories.api';
 
 const mockNavigate = vi.fn();
 vi.mock('@tanstack/react-router', () => ({
@@ -14,13 +15,14 @@ vi.mock('@tanstack/react-router', () => ({
 }));
 
 vi.mock('@/features/products/api/products.api');
+vi.mock('@/features/categories/api/categories.api');
 
 describe('ProductsListPage', () => {
   let queryClient: QueryClient;
 
   const mockProduct = {
     id: 'prod-1',
-    internalCode: 'MED-001',
+    internalCode: 'P0001',
     name: 'Ibuprofeno 400mg',
     categoryId: 'c-1',
     baseUnitId: 'u-1',
@@ -60,6 +62,10 @@ describe('ProductsListPage', () => {
       offset: 0,
       limit: 10,
     });
+
+    vi.mocked(categoriesApi.getCategoriesApi).mockResolvedValue([
+      { id: 'c-1', name: 'Medicamentos', createdAt: '', updatedAt: '' },
+    ]);
   });
 
   it('renders products list and handles create navigation for Admin', async () => {
@@ -130,5 +136,27 @@ describe('ProductsListPage', () => {
     expect(screen.queryByText('Costo Neto')).not.toBeInTheDocument();
     expect(screen.queryByText('Markup')).not.toBeInTheDocument();
     expect(screen.queryByText('Acciones')).not.toBeInTheDocument();
+  });
+
+  it('handles search input change with replace: true navigation and resets page to 1', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ProductsListPage />
+      </QueryClientProvider>,
+    );
+
+    const searchInput = screen.getByLabelText('Buscar en el catálogo');
+    await user.type(searchInput, 'Amoxi');
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: '/products',
+          replace: true,
+        }),
+      );
+    });
   });
 });
