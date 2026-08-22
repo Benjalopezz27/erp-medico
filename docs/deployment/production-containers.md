@@ -158,13 +158,13 @@ The `.github/workflows/ci.yml` pipeline executes the following stages on pull re
 
 ## 5. Recorded Delivery Decisions
 
-| Concern | Decision |
-| --- | --- |
-| Registry | GitHub Container Registry (GHCR), using `ghcr.io/benjalopezz27/erp-medico-backend` and `ghcr.io/benjalopezz27/erp-medico-frontend`. |
-| Visibility | Packages remain private initially. Public visibility requires an explicit repository-owner decision; no deployment depends on it yet. |
-| Web server | Nginx runs inside the frontend image so the artifact includes the exact SPA and proxy configuration that was tested. |
-| Target architecture | The first server target is Linux `amd64`. The Dockerfiles are architecture-neutral; multi-platform publication can be added when an `arm64` target exists. |
-| Image retention | Keep deployed digests and the most recent 30 immutable SHA tags per environment. Floating `dev` and `latest` tags are convenience aliases and are never deployment identities. Cleanup automation belongs to the later CD issue. |
+| Concern             | Decision                                                                                                                                                                                                                         |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Registry            | GitHub Container Registry (GHCR), using `ghcr.io/benjalopezz27/erp-medico-backend` and `ghcr.io/benjalopezz27/erp-medico-frontend`.                                                                                              |
+| Visibility          | Packages remain private initially. Public visibility requires an explicit repository-owner decision; no deployment depends on it yet.                                                                                            |
+| Web server          | Nginx runs inside the frontend image so the artifact includes the exact SPA and proxy configuration that was tested.                                                                                                             |
+| Target architecture | The first server target is Linux `amd64`. The Dockerfiles are architecture-neutral; multi-platform publication can be added when an `arm64` target exists.                                                                       |
+| Image retention     | Keep deployed digests and the most recent 30 immutable SHA tags per environment. Floating `dev` and `latest` tags are convenience aliases and are never deployment identities. Cleanup automation belongs to the later CD issue. |
 
 Production image references should use `image@sha256:<digest>`, not a floating tag. The CI summary records the digest produced for each commit.
 
