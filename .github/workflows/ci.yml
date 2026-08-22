@@ -278,7 +278,13 @@ jobs:
           set -euo pipefail
 
           cleanup() {
-            docker compose -p erp_ci_smoke -f docker-compose.prod.yml down -v --remove-orphans
+            local exit_code=$?
+            if [ $exit_code -ne 0 ]; then
+              echo "=== COMPOSE LOGS ON FAILURE ==="
+              docker compose -p erp_ci_smoke -f docker-compose.prod.yml logs || true
+            fi
+            docker compose -p erp_ci_smoke -f docker-compose.prod.yml down -v --remove-orphans || true
+            exit $exit_code
           }
           trap cleanup EXIT
 
@@ -286,7 +292,7 @@ jobs:
           docker compose -p erp_ci_smoke -f docker-compose.prod.yml config --quiet
 
           # 2. Boot smoke stack with isolated project name
-          docker compose -p erp_ci_smoke -f docker-compose.prod.yml up -d
+          docker compose -p erp_ci_smoke -f docker-compose.prod.yml up -d --pull never
 
           # 3. Wait for frontend and backend health
           timeout 60 bash -c 'until curl -sf http://127.0.0.1:8080/api/v1/health | grep -q "ok"; do sleep 2; done'
