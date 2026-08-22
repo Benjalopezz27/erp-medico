@@ -682,6 +682,7 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
     let searchBaseUnitId: string;
     let inactiveProductId: string;
     let otherCategoryProduct: string;
+    let exactSearchCode: string;
 
     beforeAll(async () => {
       // Create dedicated categories
@@ -705,7 +706,7 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
       searchBaseUnitId = unitRes.body.id;
 
       // Product 1: Search Exact Target
-      await request(app.getHttpServer())
+      const exactProduct = await request(app.getHttpServer())
         .post('/api/v1/products')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
@@ -727,7 +728,7 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
           costNet: 1500,
           activePriceNet: 2200,
         });
-      activeProduct2Id = p2.body.id;
+      exactSearchCode = exactProduct.body.internalCode;
 
       // Inactive Product
       const p3 = await request(app.getHttpServer())
@@ -782,6 +783,16 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         .query({ q: '   ' })
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(400);
+    });
+
+    it('ranks an exact internal code match first', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/products/search')
+        .query({ q: exactSearchCode.toLowerCase() })
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .expect(200);
+
+      expect(res.body[0].internalCode).toBe(exactSearchCode);
     });
 
     it('ensures role parity with zero pricing leaks: Administrator and Seller receive exact same summary schema', async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
@@ -67,28 +67,28 @@ describe('ProductSearchInput', () => {
     vi.useFakeTimers();
     vi.mocked(productsApi.searchProductsTypeaheadApi).mockResolvedValue([mockProduct1]);
 
-    renderComponent();
-    const input = screen.getByRole('combobox');
+    try {
+      renderComponent();
+      const input = screen.getByRole('combobox');
 
-    // Simulate typing
-    act(() => {
-      input.focus();
-    });
-    await act(async () => {
-      (input as HTMLInputElement).value = 'Ibu';
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      input.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+      fireEvent.change(input, { target: { value: 'Ibu' } });
+      expect(productsApi.searchProductsTypeaheadApi).not.toHaveBeenCalled();
 
-    // Before 300ms, no API call
-    expect(productsApi.searchProductsTypeaheadApi).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(299);
+      });
+      expect(productsApi.searchProductsTypeaheadApi).not.toHaveBeenCalled();
 
-    // Fast-forward 300ms
-    await act(async () => {
-      vi.advanceTimersByTime(300);
-    });
-
-    vi.useRealTimers();
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(productsApi.searchProductsTypeaheadApi).toHaveBeenCalledWith(
+        { q: 'Ibu', limit: 10 },
+        expect.any(AbortSignal),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('displays distinct stock badges for null, zero, and positive numbers', async () => {
@@ -141,6 +141,15 @@ describe('ProductSearchInput', () => {
 
     expect(handleSelect).toHaveBeenCalledWith(null);
     expect(input).toHaveValue('');
+  });
+
+  it('clears the selected value when the user edits its label', async () => {
+    const user = userEvent.setup();
+    const { handleSelect } = renderComponent({ value: mockProduct1 });
+
+    await user.type(screen.getByRole('combobox'), ' extra');
+
+    expect(handleSelect).toHaveBeenCalledWith(null);
   });
 
   it('supports keyboard navigation with ArrowDown, ArrowUp, and Enter', async () => {

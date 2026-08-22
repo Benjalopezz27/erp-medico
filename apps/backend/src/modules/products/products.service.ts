@@ -70,7 +70,7 @@ export class ProductsService {
     }
 
     if (query.category) {
-      qb.andWhere('product.category_id = :category', {
+      qb.andWhere('product.categoryId = :category', {
         category: query.category,
       });
     }
@@ -78,7 +78,7 @@ export class ProductsService {
     if (query.search && query.search.trim().length > 0) {
       const escaped = ProductsService.escapeLikePattern(query.search.trim());
       qb.andWhere(
-        '(UPPER(product.internal_code) LIKE UPPER(:searchPattern) OR product.name ILIKE :searchPattern)',
+        '(UPPER(product.internalCode) LIKE UPPER(:searchPattern) OR product.name ILIKE :searchPattern)',
         { searchPattern: `%${escaped}%` },
       );
     }
@@ -122,6 +122,7 @@ export class ProductsService {
     const limit = dto.limit && dto.limit > 0 ? Math.min(dto.limit, 50) : 10;
     const escaped = ProductsService.escapeLikePattern(trimmed);
     const upperTerm = trimmed.toUpperCase();
+    const upperEscapedTerm = escaped.toUpperCase();
 
     const products = await this.productRepository
       .createQueryBuilder('product')
@@ -137,13 +138,13 @@ export class ProductsService {
       ])
       .where('product.status = :status', { status: ProductStatus.ACTIVE })
       .andWhere(
-        '(UPPER(product.internal_code) LIKE UPPER(:searchLike) OR product.name ILIKE :searchLike)',
+        '(UPPER(product.internalCode) LIKE UPPER(:searchLike) OR product.name ILIKE :searchLike)',
         { searchLike: `%${escaped}%` },
       )
       .addSelect(
         `CASE
-          WHEN UPPER(TRIM(product.internal_code)) = :exact THEN 1
-          WHEN UPPER(TRIM(product.internal_code)) LIKE :prefixUpper THEN 2
+          WHEN UPPER(TRIM(product.internalCode)) = :exact THEN 1
+          WHEN UPPER(TRIM(product.internalCode)) LIKE :prefixUpper THEN 2
           ELSE 3
         END`,
         'search_rank',
@@ -153,7 +154,7 @@ export class ProductsService {
       .addOrderBy('product.id', 'ASC')
       .setParameters({
         exact: upperTerm,
-        prefixUpper: `${upperTerm}%`,
+        prefixUpper: `${upperEscapedTerm}%`,
       })
       .take(limit)
       .getMany();

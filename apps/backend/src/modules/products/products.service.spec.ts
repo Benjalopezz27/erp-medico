@@ -417,7 +417,7 @@ describe('ProductsService', () => {
         expect.objectContaining({ category: 'cat-1' }),
       );
       expect(qb.andWhere).toHaveBeenCalledWith(
-        '(UPPER(product.internal_code) LIKE UPPER(:searchPattern) OR product.name ILIKE :searchPattern)',
+        '(UPPER(product.internalCode) LIKE UPPER(:searchPattern) OR product.name ILIKE :searchPattern)',
         expect.objectContaining({ searchPattern: '%Ibuprofeno%' }),
       );
     });
@@ -429,7 +429,7 @@ describe('ProductsService', () => {
       });
 
       expect(qb.andWhere).toHaveBeenCalledWith(
-        '(UPPER(product.internal_code) LIKE UPPER(:searchPattern) OR product.name ILIKE :searchPattern)',
+        '(UPPER(product.internalCode) LIKE UPPER(:searchPattern) OR product.name ILIKE :searchPattern)',
         expect.objectContaining({ searchPattern: '%100\\%\\_pure%' }),
       );
     });

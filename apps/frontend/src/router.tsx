@@ -64,7 +64,11 @@ export function validateProductSearchParams(search: Record<string, unknown>): Pr
       : undefined;
 
   const rawCategory = typeof search.category === 'string' ? search.category.trim() : undefined;
-  const category = rawCategory && rawCategory.length > 0 ? rawCategory : undefined;
+  const category =
+    rawCategory &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawCategory)
+      ? rawCategory
+      : undefined;
 
   const rawSearch = typeof search.search === 'string' ? search.search.trim() : undefined;
   const searchParam = rawSearch && rawSearch.length > 0 ? rawSearch : undefined;

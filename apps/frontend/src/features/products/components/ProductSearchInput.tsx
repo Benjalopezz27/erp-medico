@@ -5,7 +5,9 @@ import { formatCurrency } from '../utils/products.math';
 import type { IProductSummary } from '../types/products.types';
 
 export interface ProductSearchInputProps {
+  /** Emits the selected product, or null when the selection is cleared or edited. */
   onSelect: (product: IProductSummary | null) => void;
+  /** Optional controlled selection. Omit it to let the component manage its selection. */
   value?: IProductSummary | null;
   placeholder?: string;
   disabled?: boolean;
@@ -68,6 +70,10 @@ export const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
     isError,
   } = useProductSearchQuery(debouncedTerm, { enabled: isOpen && debouncedTerm.trim().length >= 2 });
 
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [debouncedTerm]);
+
   // Close dropdown on outside click
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -82,12 +88,13 @@ export const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const nextVal = e.target.value;
+    const hadSelection = selectedItem !== null;
     setSearchTerm(nextVal);
     setSelectedItem(null);
     setIsOpen(true);
     setActiveIndex(-1);
 
-    if (nextVal.trim() === '') {
+    if (hadSelection || nextVal.trim() === '') {
       onSelect(null);
     }
   };

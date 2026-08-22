@@ -53,4 +53,26 @@ describe('useProductSearchQuery', () => {
     );
     expect(result.current.data).toEqual(mockResults);
   });
+
+  it('aborts the previous request when the search term changes', async () => {
+    const signals: AbortSignal[] = [];
+    const resolvers: Array<(value: []) => void> = [];
+    vi.mocked(productsApi.searchProductsTypeaheadApi).mockImplementation((_params, signal) => {
+      if (signal) signals.push(signal);
+      return new Promise((resolve) => resolvers.push(resolve));
+    });
+
+    const { rerender } = renderHook(({ term }) => useProductSearchQuery(term), {
+      wrapper,
+      initialProps: { term: 'Ibu' },
+    });
+
+    await waitFor(() => expect(signals).toHaveLength(1));
+    rerender({ term: 'Para' });
+
+    await waitFor(() => expect(signals).toHaveLength(2));
+    expect(signals[0].aborted).toBe(true);
+
+    resolvers[1]([]);
+  });
 });
