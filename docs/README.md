@@ -57,6 +57,10 @@ Welcome to the central documentation hub for the ERP System.
    - **GitHub Actions**: CI (lint + test + build on PR) and CD (SSH deploy to Hetzner on merge to `main`).
    - **Versioning**: `v0.x` pre-release per milestone, `v1.0.0` at go-live.
 
+9. [Decimal and Rounding Policy](decimal_policy.md)
+   - **Storage precision**: Canonical PostgreSQL precision and scale for catalog values.
+   - **Calculation rules**: Decimal arithmetic, bounds, and `ROUND_HALF_UP` behavior.
+
 ---
 
 ## Technical Workflow & Progress Roadmap
