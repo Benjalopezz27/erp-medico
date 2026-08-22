@@ -23,7 +23,7 @@
     "migration:generate": "pnpm run typeorm migration:generate",
     "migration:create": "pnpm run typeorm migration:create",
     "migration:run": "pnpm run typeorm migration:run",
-    "migration:run:prod": "typeorm migration:run -d dist/database/data-source.js",
+    "migration:run:prod": "node dist/database/run-migrations.js",
     "migration:revert": "pnpm run typeorm migration:revert",
     "migration:show": "pnpm run typeorm migration:show",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts"

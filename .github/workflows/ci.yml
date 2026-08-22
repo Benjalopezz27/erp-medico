@@ -300,8 +300,8 @@ jobs:
           [ "$frontend_user" = "nginx" ] || [ "$frontend_user" = "101" ]
 
           # 5. Verify databases have NO host ports exposed
-          [ -z "$(docker compose -p erp_ci_smoke port postgres 5432 2>/dev/null || true)" ]
-          [ -z "$(docker compose -p erp_ci_smoke port redis 6379 2>/dev/null || true)" ]
+          [ -z "$(docker compose -p erp_ci_smoke -f docker-compose.prod.yml port postgres 5432 2>/dev/null || true)" ]
+          [ -z "$(docker compose -p erp_ci_smoke -f docker-compose.prod.yml port redis 6379 2>/dev/null || true)" ]
 
           # 6. Verify SHA and version endpoint
           health_res=$(curl -sf http://127.0.0.1:8080/api/v1/health)
