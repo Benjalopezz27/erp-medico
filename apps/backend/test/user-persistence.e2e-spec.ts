@@ -27,6 +27,17 @@ describe('User Persistence & Seed Engine (E2E)', () => {
   });
 
   it('verifies migration up/down/up cycle cleanly', async () => {
+    // Revert stock & stock movements table migration (1700000000006)
+    await ds.undoLastMigration();
+    const afterDropMovements = await ds.query(
+      "SELECT to_regclass('public.stock_movements') as tablename",
+    );
+    expect(afterDropMovements[0].tablename).toBeNull();
+    const afterDropStocks = await ds.query(
+      "SELECT to_regclass('public.stocks') as tablename",
+    );
+    expect(afterDropStocks[0].tablename).toBeNull();
+
     // Revert automatic product code migration (1700000000005)
     await ds.undoLastMigration();
     const afterDropProductCodeSequence = await ds.query(
@@ -104,6 +115,14 @@ describe('User Persistence & Seed Engine (E2E)', () => {
     expect(afterRecreateProductCodeSequence[0].sequence_name).toBe(
       'product_internal_code_seq',
     );
+    const afterRecreateStocks = await ds.query(
+      "SELECT to_regclass('public.stocks') as tablename",
+    );
+    expect(afterRecreateStocks[0].tablename).toBe('stocks');
+    const afterRecreateMovements = await ds.query(
+      "SELECT to_regclass('public.stock_movements') as tablename",
+    );
+    expect(afterRecreateMovements[0].tablename).toBe('stock_movements');
   });
 
   it('creates exactly 2 users on first seed run and hashes passwords with cost 12', async () => {
