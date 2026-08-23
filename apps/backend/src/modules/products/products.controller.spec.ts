@@ -65,7 +65,7 @@ describe('ProductsController', () => {
           internalCode: 'P0001',
           name: 'Ibuprofeno 400mg',
           baseUnit: { id: 'u-1', name: 'Unidad', symbol: 'u' },
-          currentStock: null,
+          currentStock: 0,
           activePriceNet: 130,
         },
       ]),

@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
+  OneToOne,
   JoinColumn,
   BeforeInsert,
   BeforeUpdate,
@@ -14,6 +15,7 @@ import { ProductStatus } from '@erp/shared-types';
 import { Category } from '../../categories/entities/category.entity';
 import { Unit } from '../../units/entities/unit.entity';
 import { ProductUnitConversion } from './product-unit-conversion.entity';
+import { Stock } from '../../stock/entities/stock.entity';
 
 @Entity('products')
 export class Product {
@@ -105,6 +107,9 @@ export class Product {
     cascade: ['insert'],
   })
   conversions?: ProductUnitConversion[];
+
+  @OneToOne(() => Stock, (stock) => stock.product)
+  stock?: Stock;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
