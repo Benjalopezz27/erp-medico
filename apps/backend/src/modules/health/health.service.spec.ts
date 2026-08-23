@@ -38,7 +38,24 @@ describe('HealthService', () => {
     expect(result).toHaveProperty('uptime');
     expect(result).toHaveProperty('environment');
     expect(result).toHaveProperty('version');
+    expect(result).toHaveProperty('commitSha');
     expect(dataSource.query).toHaveBeenCalledWith('SELECT 1');
+  });
+
+  it('should use APP_VERSION and APP_COMMIT_SHA environment variables when set', async () => {
+    const originalVersion = process.env.APP_VERSION;
+    const originalSha = process.env.APP_COMMIT_SHA;
+
+    process.env.APP_VERSION = '1.2.3';
+    process.env.APP_COMMIT_SHA = 'abcdef123456';
+
+    const result = await service.check();
+
+    expect(result.version).toBe('1.2.3');
+    expect(result.commitSha).toBe('abcdef123456');
+
+    process.env.APP_VERSION = originalVersion;
+    process.env.APP_COMMIT_SHA = originalSha;
   });
 
   it('should return status "degraded" and database "down" when database query fails', async () => {

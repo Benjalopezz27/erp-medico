@@ -14,8 +14,10 @@ out/
 .env.local
 .env.production
 .env.staging
+.env.prod
 *.env
 !.env.example
+!.env.prod.example
 
 # Certificates & Private Keys (NEVER COMMIT)
 certs/
