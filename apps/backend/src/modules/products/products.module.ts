@@ -4,13 +4,20 @@ import { Product } from './entities/product.entity';
 import { ProductUnitConversion } from './entities/product-unit-conversion.entity';
 import { Category } from '../categories/entities/category.entity';
 import { Unit } from '../units/entities/unit.entity';
+import { Stock } from '../stock/entities/stock.entity';
 import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
 import { UnitConversionEngine } from './services/unit-conversion-engine.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Product, ProductUnitConversion, Category, Unit]),
+    TypeOrmModule.forFeature([
+      Product,
+      ProductUnitConversion,
+      Category,
+      Unit,
+      Stock,
+    ]),
   ],
   controllers: [ProductsController],
   providers: [ProductsService, UnitConversionEngine],

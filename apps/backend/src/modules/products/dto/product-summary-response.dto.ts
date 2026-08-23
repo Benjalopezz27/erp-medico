@@ -47,11 +47,10 @@ export class ProductSummaryResponseDto implements IProductSummary {
   baseUnit: UnitSummaryResponseDto;
 
   @ApiProperty({
-    description: 'Current ledger stock balance (null until Sprint 2)',
-    example: null,
-    nullable: true,
+    description: 'Current consolidated ledger stock balance in base units',
+    example: 100,
   })
-  currentStock: number | null;
+  currentStock: number;
 
   @ApiProperty({
     description: 'Current active net selling price in ARS',

@@ -12,6 +12,7 @@ import { Product } from './entities/product.entity';
 import { ProductUnitConversion } from './entities/product-unit-conversion.entity';
 import { Category } from '../categories/entities/category.entity';
 import { Unit } from '../units/entities/unit.entity';
+import { Stock } from '../stock/entities/stock.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { QueryProductsDto } from './dto/query-products.dto';
@@ -127,6 +128,7 @@ export class ProductsService {
     const products = await this.productRepository
       .createQueryBuilder('product')
       .innerJoin('product.baseUnit', 'baseUnit')
+      .leftJoin('product.stock', 'stock')
       .select([
         'product.id',
         'product.internalCode',
@@ -135,6 +137,8 @@ export class ProductsService {
         'baseUnit.id',
         'baseUnit.name',
         'baseUnit.symbol',
+        'stock.id',
+        'stock.currentBaseStock',
       ])
       .where('product.status = :status', { status: ProductStatus.ACTIVE })
       .andWhere(
@@ -255,6 +259,12 @@ export class ProductsService {
       });
 
       createdProduct = await queryRunner.manager.save(Product, productEntity);
+
+      const stockEntity = queryRunner.manager.create(Stock, {
+        productId: createdProduct.id,
+        currentBaseStock: '0.00',
+      });
+      await queryRunner.manager.save(Stock, stockEntity);
 
       if (dto.conversions && dto.conversions.length > 0) {
         const conversionEntities = dto.conversions.map((c) =>

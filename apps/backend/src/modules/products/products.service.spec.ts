@@ -94,6 +94,7 @@ describe('ProductsService', () => {
 
     const mockQueryBuilder = {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
+      leftJoin: jest.fn().mockReturnThis(),
       innerJoin: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
       addSelect: jest.fn().mockReturnThis(),
@@ -442,17 +443,31 @@ describe('ProductsService', () => {
       expect(await service.searchTypeahead({ q: '   ' })).toEqual([]);
     });
 
-    it('executes typeahead query with ranking and projects currentStock as null', async () => {
+    it('executes typeahead query with ranking and projects currentStock as 0 when no stock relation', async () => {
       const results = await service.searchTypeahead({ q: 'MED', limit: 5 });
       expect(results).toHaveLength(1);
       expect(results[0].internalCode).toBe('MED-001');
-      expect(results[0].currentStock).toBeNull();
+      expect(results[0].currentStock).toBe(0);
       expect(results[0].activePriceNet).toBe(2025.68);
       expect(results[0].baseUnit).toEqual({
         id: 'unit-base',
         name: 'Unidad',
         symbol: 'u',
       });
+    });
+
+    it('projects loaded stock balance from product.stock', async () => {
+      const qb = productRepo.createQueryBuilder();
+      qb.getMany.mockResolvedValueOnce([
+        {
+          ...mockProduct,
+          stock: { currentBaseStock: '125.50' },
+        },
+      ]);
+
+      const results = await service.searchTypeahead({ q: 'MED', limit: 5 });
+      expect(results).toHaveLength(1);
+      expect(results[0].currentStock).toBe(125.5);
     });
   });
 });
