@@ -1,5 +1,13 @@
 import { StockMovementType, QuarantineStatus } from '../enums/stock.enum';
 
+export interface IStock {
+  id: string;
+  productId: string;
+  currentBaseStock: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
 export interface IStockMovement {
   id: string;
   productId: string;
