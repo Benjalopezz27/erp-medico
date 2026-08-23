@@ -13,6 +13,22 @@ describe('API Configuration (getApiUrl)', () => {
     expect(getApiUrl()).toBe('https://api.erp-medico.com/v1');
   });
 
+  it('should return relative path when valid relative path is provided', () => {
+    vi.stubEnv('VITE_API_URL', '/api/v1');
+    expect(getApiUrl()).toBe('/api/v1');
+    expect(apiConfig.baseUrl).toBe('/api/v1');
+  });
+
+  it('should normalize trailing slashes on relative paths', () => {
+    vi.stubEnv('VITE_API_URL', '/api/v1///');
+    expect(getApiUrl()).toBe('/api/v1');
+  });
+
+  it('should handle root relative path', () => {
+    vi.stubEnv('VITE_API_URL', '/');
+    expect(getApiUrl()).toBe('/');
+  });
+
   it('should trim whitespace around VITE_API_URL', () => {
     vi.stubEnv('VITE_API_URL', '   http://localhost:3000/api/v1   ');
     expect(getApiUrl()).toBe('http://localhost:3000/api/v1');

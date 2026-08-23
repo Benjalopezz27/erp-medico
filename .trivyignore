@@ -1,0 +1,7 @@
+# ==============================================================================
+# Trivy Vulnerability & Secret Scanner Ignore List
+# ==============================================================================
+# Add vetted CVE false positives or unfixable upstream library issues here.
+# Format:
+# <CVE-ID>  # Reason, vetted by, and expiration date
+# ==============================================================================

@@ -23,17 +23,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6.0.10
         with:
           version: 10.32.1
 
-      - name: Setup Node.js (20.x)
-        uses: actions/setup-node@v4
+      - name: Setup Node.js (24.x)
+        uses: actions/setup-node@v7.0.0
         with:
-          node-version: 20.x
+          node-version: 24.x
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:16.15-alpine3.24@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
         env:
           POSTGRES_DB: erp_test
           POSTGRES_USER: erp_user
@@ -63,7 +63,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       redis:
-        image: redis:7-alpine
+        image: redis:7.4.11-alpine3.21@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
         ports:
           - 6379:6379
         options: >-
@@ -73,17 +73,17 @@ jobs:
           --health-retries 5
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6.0.10
         with:
           version: 10.32.1
 
-      - name: Setup Node.js (20.x)
-        uses: actions/setup-node@v4
+      - name: Setup Node.js (24.x)
+        uses: actions/setup-node@v7.0.0
         with:
-          node-version: 20.x
+          node-version: 24.x
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -98,8 +98,8 @@ jobs:
           DB_USER: erp_user
           DB_PASSWORD: erp_pass
           DB_NAME: erp_test
-          JWT_SECRET: "test_ci_jwt_secret_key_minimum_32_characters_long!"
-          JWT_EXPIRATION: "8h"
+          JWT_SECRET: 'test_ci_jwt_secret_key_minimum_32_characters_long!'
+          JWT_EXPIRATION: '8h'
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           SEED_ADMIN_PASSWORD: TestAdminPassword123!
@@ -115,8 +115,8 @@ jobs:
           DB_USER: erp_user
           DB_PASSWORD: erp_pass
           DB_NAME: erp_test
-          JWT_SECRET: "test_ci_jwt_secret_key_minimum_32_characters_long!"
-          JWT_EXPIRATION: "8h"
+          JWT_SECRET: 'test_ci_jwt_secret_key_minimum_32_characters_long!'
+          JWT_EXPIRATION: '8h'
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           SEED_ADMIN_PASSWORD: TestAdminPassword123!
@@ -128,17 +128,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6.0.10
         with:
           version: 10.32.1
 
-      - name: Setup Node.js (20.x)
-        uses: actions/setup-node@v4
+      - name: Setup Node.js (24.x)
+        uses: actions/setup-node@v7.0.0
         with:
-          node-version: 20.x
+          node-version: 24.x
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -147,7 +147,7 @@ jobs:
       - name: Run Frontend Tests
         run: pnpm --filter @erp/frontend run test:run
         env:
-          VITE_API_URL: "http://localhost:3000/api/v1"
+          VITE_API_URL: 'http://localhost:3000/api/v1'
 
   build:
     name: Build All Workspace Packages
@@ -155,17 +155,17 @@ jobs:
     needs: [lint-and-format, test, frontend-test]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6.0.10
         with:
           version: 10.32.1
 
-      - name: Setup Node.js (20.x)
-        uses: actions/setup-node@v4
+      - name: Setup Node.js (24.x)
+        uses: actions/setup-node@v7.0.0
         with:
-          node-version: 20.x
+          node-version: 24.x
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -173,3 +173,4 @@ jobs:
 
       - name: Build monorepo packages
         run: pnpm -r run build
+

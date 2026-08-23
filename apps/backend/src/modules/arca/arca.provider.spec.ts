@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { arcaServiceProvider } from './arca.provider';
 import { ArcaMockService } from './arca-mock.service';
+import { ArcaDisabledService } from './arca-disabled.service';
 
 describe('arcaServiceProvider', () => {
   const originalEnv = process.env;
@@ -33,6 +34,26 @@ describe('arcaServiceProvider', () => {
     }
     return (arcaServiceProvider as any).useFactory(configService);
   };
+
+  it('should instantiate ArcaDisabledService when ARCA_ENV=disabled in production', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.ARCA_ENV = 'disabled';
+    const config = createMockConfigService('production', 'disabled');
+
+    const service = getProviderInstance(config);
+
+    expect(service).toBeInstanceOf(ArcaDisabledService);
+  });
+
+  it('should instantiate ArcaDisabledService when ARCA_ENV=disabled in development or test', () => {
+    process.env.NODE_ENV = 'development';
+    process.env.ARCA_ENV = 'disabled';
+    const config = createMockConfigService('development', 'disabled');
+
+    const service = getProviderInstance(config);
+
+    expect(service).toBeInstanceOf(ArcaDisabledService);
+  });
 
   it('should instantiate ArcaMockService in development environment (development + development)', () => {
     process.env.NODE_ENV = 'development';

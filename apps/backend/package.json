@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "NestJS Modular Monolith Backend API for Medical Distributor ERP",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -20,6 +23,7 @@
     "migration:generate": "pnpm run typeorm migration:generate",
     "migration:create": "pnpm run typeorm migration:create",
     "migration:run": "pnpm run typeorm migration:run",
+    "migration:run:prod": "node dist/database/run-migrations.js",
     "migration:revert": "pnpm run typeorm migration:revert",
     "migration:show": "pnpm run typeorm migration:show",
     "seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts"
@@ -54,7 +58,7 @@
     "@types/bcrypt": "^6.0.0",
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.12",
-    "@types/node": "^20.16.1",
+    "@types/node": "^24.0.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/pg": "^8.11.6",
     "@types/supertest": "^6.0.2",
