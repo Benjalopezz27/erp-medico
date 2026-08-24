@@ -1,4 +1,10 @@
-import { StockMovementType, QuarantineStatus, StockStatus } from '../enums/stock.enum';
+import {
+  StockMovementType,
+  QuarantineStatus,
+  StockStatus,
+  StockBulkRowErrorCode,
+  StockImportBatchResult,
+} from '../enums/stock.enum';
 import type { ProductStatus } from '../enums/catalog.enum';
 
 export interface IStock {
@@ -156,4 +162,80 @@ export interface IStockAlertsSearchParams {
   limit?: number;
   search?: string;
   categoryId?: string;
+}
+
+// Bulk Load Models
+export interface IStockImportBatch {
+  id: string;
+  contentChecksum: string;
+  fileChecksum: string;
+  actorId: string;
+  rowCount: number;
+  movementCount: number;
+  totalQuantityBase: number;
+  result: StockImportBatchResult;
+  createdAt: Date | string;
+}
+
+export interface IStockBulkLoadRawRow {
+  rowNumber: number;
+  rawInternalCode: string;
+  rawQuantity: string | number | null;
+  hasFormula?: boolean;
+}
+
+export interface IStockBulkLoadRowProduct {
+  id: string;
+  internalCode: string;
+  name: string;
+  currentBaseStock: number;
+  projectedStock: number;
+  baseUnit: {
+    id: string;
+    name: string;
+    symbol: string;
+  };
+}
+
+export interface IStockBulkLoadRowError {
+  code: StockBulkRowErrorCode;
+  message: string;
+}
+
+export interface IStockBulkLoadValidatedRow {
+  rowNumber: number;
+  internalCode: string;
+  quantityBase: number | null;
+  product: IStockBulkLoadRowProduct | null;
+  errors: IStockBulkLoadRowError[];
+  isValid: boolean;
+}
+
+export interface IStockBulkLoadSummary {
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  totalQuantityBase: number;
+}
+
+export interface IStockBulkLoadPreviewResponse {
+  fileChecksum: string;
+  contentChecksum: string | null;
+  valid: boolean;
+  summary: IStockBulkLoadSummary;
+  rows: IStockBulkLoadValidatedRow[];
+}
+
+export interface IStockBulkLoadConfirmResponse {
+  batchId: string;
+  fileChecksum: string;
+  contentChecksum: string;
+  rowCount: number;
+  movementCount: number;
+  totalQuantityBase: number;
+  confirmedAt: string;
+}
+
+export interface IStockBulkLoadTemplateQuery {
+  format?: 'xlsx' | 'csv';
 }
