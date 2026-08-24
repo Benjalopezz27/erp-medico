@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { StockDetailPage } from './StockDetailPage';
+import { renderWithProviders } from '@/test/test-utils';
 import * as routerModule from '@tanstack/react-router';
 import * as movementsHook from '@/features/stock/hooks/use-stock-movements-query';
 import * as evolutionHook from '@/features/stock/hooks/use-stock-evolution-query';
@@ -104,7 +105,7 @@ describe('StockDetailPage Component', () => {
       isLoading: false,
     } as any);
 
-    render(<StockDetailPage />);
+    renderWithProviders(<StockDetailPage />);
 
     expect(screen.getByText('Suero Fisiológico 1L')).toBeInTheDocument();
     expect(screen.getByText('Bajo')).toBeInTheDocument();

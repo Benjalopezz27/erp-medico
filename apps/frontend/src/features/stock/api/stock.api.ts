@@ -1,7 +1,10 @@
 import { apiClient } from '@/services/api.client';
 import type {
+  ICreateStockAdjustmentDto,
+  IStockAlertsSearchParams,
   IStockDetailResponse,
   IStockEvolutionResponse,
+  IStockMovement,
   IStockMovementsSearchParams,
   IStockOverviewItem,
   IStockSearchParams,
@@ -11,6 +14,7 @@ import type {
 
 /**
  * Fetches paginated stock overview of active products.
+ * If params.alertsOnly is true, routes to /stock/alerts.
  */
 export async function getStockOverviewApi(
   params: IStockSearchParams,
@@ -28,14 +32,55 @@ export async function getStockOverviewApi(
     queryParams.categoryId = params.category;
   }
 
-  if (params.stockStatus && params.stockStatus !== ('ALL' as any)) {
+  if (!params.alertsOnly && params.stockStatus && params.stockStatus !== ('ALL' as any)) {
     queryParams.stockStatus = params.stockStatus;
   }
 
-  const { data } = await apiClient.get<PaginatedStockResponse<IStockOverviewItem>>('/stock', {
+  const endpoint = params.alertsOnly ? '/stock/alerts' : '/stock';
+
+  const { data } = await apiClient.get<PaginatedStockResponse<IStockOverviewItem>>(endpoint, {
     params: queryParams,
   });
 
+  return data;
+}
+
+/**
+ * Fetches products with stock balance at or below minimum threshold (alerts).
+ */
+export async function getStockAlertsApi(
+  params: IStockAlertsSearchParams = {},
+): Promise<PaginatedStockResponse<IStockOverviewItem>> {
+  const queryParams: Record<string, string | number> = {
+    page: params.page || 1,
+    limit: params.limit || 10,
+  };
+
+  if (params.search && params.search.trim().length > 0) {
+    queryParams.search = params.search.trim();
+  }
+
+  if (params.categoryId && params.categoryId !== 'ALL') {
+    queryParams.categoryId = params.categoryId;
+  }
+
+  const { data } = await apiClient.get<PaginatedStockResponse<IStockOverviewItem>>(
+    '/stock/alerts',
+    {
+      params: queryParams,
+    },
+  );
+
+  return data;
+}
+
+/**
+ * Submits a manual inventory adjustment (AJUSTE_ENTRADA, AJUSTE_SALIDA, MERMA).
+ */
+export async function postStockAdjustmentApi(
+  dto: ICreateStockAdjustmentDto,
+): Promise<IStockMovement> {
+  const { data } = await apiClient.post<IStockMovement>('/stock/adjustments', dto);
   return data;
 }
 

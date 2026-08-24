@@ -1,16 +1,24 @@
 import React from 'react';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft, AlertCircle, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StockStatusBadge } from './StockStatusBadge';
-import { ProductStatus } from '@erp/shared-types';
+import { ProductStatus, UserRole } from '@erp/shared-types';
+import { useAuthStore } from '@/stores/authStore';
 import type { IStockDetailResponse } from '../types/stock.types';
 
 interface StockDetailHeaderProps {
   product: IStockDetailResponse['product'];
   onBack: () => void;
+  onOpenAdjustment?: () => void;
 }
 
-export const StockDetailHeader: React.FC<StockDetailHeaderProps> = ({ product, onBack }) => {
+export const StockDetailHeader: React.FC<StockDetailHeaderProps> = ({
+  product,
+  onBack,
+  onOpenAdjustment,
+}) => {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === UserRole.ADMINISTRADOR;
   const isInactive = product.status === ProductStatus.INACTIVE;
 
   return (
@@ -52,33 +60,46 @@ export const StockDetailHeader: React.FC<StockDetailHeaderProps> = ({ product, o
           </div>
         </div>
 
-        {/* Stock Balance Cards */}
-        <div className="flex items-center gap-4 bg-muted/40 p-3 rounded-lg border border-border">
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground">Stock Actual</div>
-            <div className="text-xl font-bold text-foreground">
-              {product.currentBaseStock.toLocaleString('es-AR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}{' '}
-              <span className="text-xs font-normal text-muted-foreground">
-                {product.baseUnit.symbol}
-              </span>
+        {/* Stock Balance Cards & Action */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-4 bg-muted/40 p-3 rounded-lg border border-border">
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground">Stock Actual</div>
+              <div className="text-xl font-bold text-foreground">
+                {product.currentBaseStock.toLocaleString('es-AR', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{' '}
+                <span className="text-xs font-normal text-muted-foreground">
+                  {product.baseUnit.symbol}
+                </span>
+              </div>
+            </div>
+
+            <div className="h-8 w-px bg-border" />
+
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground">Stock Mínimo</div>
+              <div className="text-base font-semibold text-muted-foreground">
+                {product.minStock.toLocaleString('es-AR', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{' '}
+                <span className="text-xs font-normal">{product.baseUnit.symbol}</span>
+              </div>
             </div>
           </div>
 
-          <div className="h-8 w-px bg-border" />
-
-          <div className="text-right">
-            <div className="text-xs text-muted-foreground">Stock Mínimo</div>
-            <div className="text-base font-semibold text-muted-foreground">
-              {product.minStock.toLocaleString('es-AR', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}{' '}
-              <span className="text-xs font-normal">{product.baseUnit.symbol}</span>
-            </div>
-          </div>
+          {isAdmin && !isInactive && onOpenAdjustment && (
+            <Button
+              onClick={onOpenAdjustment}
+              className="h-10 text-xs font-semibold"
+              aria-label="Registrar ajuste de stock"
+            >
+              <SlidersHorizontal className="w-4 h-4 mr-1.5" />
+              Registrar Ajuste
+            </Button>
+          )}
         </div>
       </div>
 

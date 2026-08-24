@@ -129,6 +129,7 @@ export interface IStockSearchParams {
   search?: string;
   category?: string;
   stockStatus?: StockStatus;
+  alertsOnly?: boolean;
 }
 
 export interface IStockMovementsSearchParams {
@@ -137,4 +138,22 @@ export interface IStockMovementsSearchParams {
   movementType?: StockMovementType;
   from?: string;
   to?: string;
+}
+
+export type StockAdjustmentMovementType =
+  StockMovementType.AJUSTE_ENTRADA | StockMovementType.AJUSTE_SALIDA | StockMovementType.MERMA;
+
+export interface ICreateStockAdjustmentDto {
+  productId: string;
+  movementType: StockAdjustmentMovementType;
+  quantityBase: number;
+  reason: string;
+  documentReference?: string | null;
+}
+
+export interface IStockAlertsSearchParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  categoryId?: string;
 }

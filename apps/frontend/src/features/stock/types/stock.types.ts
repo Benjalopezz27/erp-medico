@@ -11,6 +11,10 @@ import {
   IStockEvolutionResponse,
   IStockSearchParams,
   IStockMovementsSearchParams,
+  StockAdjustmentMovementType,
+  ICreateStockAdjustmentDto,
+  IStockAlertsSearchParams,
+  IStockMovement,
 } from '@erp/shared-types';
 
 export { StockStatus, StockMovementType, ProductStatus };
@@ -24,6 +28,10 @@ export type {
   IStockEvolutionResponse,
   IStockSearchParams,
   IStockMovementsSearchParams,
+  StockAdjustmentMovementType,
+  ICreateStockAdjustmentDto,
+  IStockAlertsSearchParams,
+  IStockMovement,
 };
 
 export interface StockEvolutionParams {

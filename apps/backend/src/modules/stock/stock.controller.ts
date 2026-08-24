@@ -1,6 +1,8 @@
 import {
   Controller,
   Get,
+  Post,
+  Body,
   Param,
   Query,
   UseGuards,
@@ -17,7 +19,10 @@ import { UserRole } from '@erp/shared-types';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { StockService } from './stock.service';
+import { StockAdjustmentsService } from './stock-adjustments.service';
 import {
   QueryStockDto,
   PaginatedStockResponseDto,
@@ -25,6 +30,9 @@ import {
   PaginatedStockMovementsResponseDto,
   QueryStockEvolutionDto,
   StockEvolutionResponseDto,
+  CreateStockAdjustmentDto,
+  StockMovementResponseDto,
+  QueryStockAlertsDto,
 } from './dto';
 
 @ApiTags('stock')
@@ -32,13 +40,34 @@ import {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('stock')
 export class StockController {
-  constructor(private readonly stockService: StockService) {}
+  constructor(
+    private readonly stockService: StockService,
+    private readonly stockAdjustmentsService: StockAdjustmentsService,
+  ) {}
 
   @Get('status')
   @ApiOperation({ summary: 'Check Stock module status' })
   @ApiResponse({ status: 200, description: 'Stock module operational' })
   getStatus() {
     return this.stockService.getStatus();
+  }
+
+  @Get('alerts')
+  @Roles(UserRole.ADMINISTRADOR, UserRole.VENDEDOR)
+  @ApiOperation({
+    summary:
+      'List products with stock balance at or below minimum threshold (low stock alerts)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated low stock alerts list',
+    type: PaginatedStockResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async findStockAlerts(
+    @Query() query: QueryStockAlertsDto,
+  ): Promise<PaginatedStockResponseDto> {
+    return this.stockService.findStockAlerts(query);
   }
 
   @Get()
@@ -57,6 +86,41 @@ export class StockController {
     @Query() query: QueryStockDto,
   ): Promise<PaginatedStockResponseDto> {
     return this.stockService.findAllStock(query);
+  }
+
+  @Post('adjustments')
+  @Roles(UserRole.ADMINISTRADOR)
+  @ApiOperation({
+    summary:
+      'Record a manual stock adjustment (AJUSTE_ENTRADA, AJUSTE_SALIDA, MERMA) with atomic audit log',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Stock adjustment successfully recorded',
+    type: StockMovementResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid adjustment payload, inactive product, or negative quantity',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Forbidden - Only ADMINISTRADOR can register stock adjustments',
+  })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  @ApiResponse({
+    status: 422,
+    description:
+      'Unprocessable Entity - Insufficient stock for outward adjustment',
+  })
+  async createAdjustment(
+    @Body() dto: CreateStockAdjustmentDto,
+    @CurrentUser() actor: AuthenticatedUser,
+  ): Promise<StockMovementResponseDto> {
+    return this.stockAdjustmentsService.createAdjustment(dto, actor);
   }
 
   @Get(':productId/movements')
