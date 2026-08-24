@@ -2,11 +2,13 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, EntityManager } from 'typeorm';
 import Decimal from 'decimal.js';
 import { ProductStatus, StockStatus } from '@erp/shared-types';
+import { InsufficientStockException } from './exceptions';
 import { Stock } from './entities/stock.entity';
 import { StockMovement } from './entities/stock-movement.entity';
 import { Product } from '../products/entities/product.entity';
@@ -436,7 +438,16 @@ export class StockService {
       );
     }
 
-    // 2. Transaction Execution
+    // 2. Transaction Active Validation for External EntityManager
+    if (manager) {
+      if (!manager.queryRunner || !manager.queryRunner.isTransactionActive) {
+        throw new InternalServerErrorException(
+          'StockService.recordMovement requires an active transaction when an external EntityManager is supplied.',
+        );
+      }
+    }
+
+    // 3. Transaction Execution
     const executeInTransaction = async (
       txManager: EntityManager,
     ): Promise<StockMovementResponseDto> => {
@@ -446,8 +457,8 @@ export class StockService {
         throw new NotFoundException('El usuario especificado no existe.');
       }
 
-      // Ensure stock record exists for product
-      const stock = await this.ensureStockExists(dto.productId, txManager);
+      // Acquire pessimistic write lock (FOR UPDATE) and fresh balance
+      const stock = await this.lockStockForUpdate(dto.productId, txManager);
 
       // Derive delta sign (+1 for inward, -1 for outward)
       const sign = getStockMovementSign(dto.movementType);
@@ -457,6 +468,15 @@ export class StockService {
       const subsequentStockDec = previousStockDec
         .plus(delta)
         .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+
+      // Guard: Non-negative stock balance (HTTP 422)
+      if (subsequentStockDec.isNegative()) {
+        throw new InsufficientStockException({
+          productId: dto.productId,
+          available: parseStockDecimal(previousStockDec.toString(), 2),
+          requested: parseStockDecimal(decQty.toString(), 2),
+        });
+      }
 
       // Update materialized balance
       stock.currentBaseStock = subsequentStockDec.toFixed(2);
@@ -520,8 +540,59 @@ export class StockService {
   }
 
   /**
+   * Acquires a pessimistic write lock (FOR UPDATE) on the product's Stock row.
+   * Optimized hot-path: attempts lock query first (1 single DB query for existing records);
+   * only executes verification and ON CONFLICT DO NOTHING insertion if the row does not yet exist.
+   */
+  async lockStockForUpdate(
+    productId: string,
+    manager: EntityManager,
+  ): Promise<Stock> {
+    // 1. Hot Path: Attempt direct row lock
+    let stock = await manager
+      .createQueryBuilder(Stock, 'stock')
+      .setLock('pessimistic_write')
+      .where('stock.productId = :productId', { productId })
+      .getOne();
+
+    if (stock) {
+      return stock;
+    }
+
+    // 2. Cold Path: Verify Product existence before creating stock row
+    const product = await manager.findOneBy(Product, { id: productId });
+    if (!product) {
+      throw new NotFoundException('El producto especificado no existe.');
+    }
+
+    // 3. Explicit parameterized ON CONFLICT DO NOTHING insert
+    await manager.query(
+      `INSERT INTO "stocks" ("id", "product_id", "current_base_stock", "created_at", "updated_at")
+       VALUES (gen_random_uuid(), $1, '0.00', now(), now())
+       ON CONFLICT ("product_id") DO NOTHING;`,
+      [productId],
+    );
+
+    // 4. Re-query with pessimistic write lock
+    stock = await manager
+      .createQueryBuilder(Stock, 'stock')
+      .setLock('pessimistic_write')
+      .where('stock.productId = :productId', { productId })
+      .getOne();
+
+    if (!stock) {
+      throw new InternalServerErrorException(
+        'No se pudo bloquear el saldo de stock para el producto.',
+      );
+    }
+
+    return stock;
+  }
+
+  /**
    * Ensures a Stock balance record exists for the given product.
-   * If not found, verifies product existence and creates a new row with 0.00 base stock.
+   * If not found, verifies product existence and creates a new row with 0.00 base stock
+   * using parameterized ON CONFLICT DO NOTHING.
    */
   async ensureStockExists(
     productId: string,
@@ -543,19 +614,20 @@ export class StockService {
       throw new NotFoundException('El producto especificado no existe.');
     }
 
-    try {
-      const newStock = activeManager.create(Stock, {
-        productId,
-        currentBaseStock: '0.00',
-      });
-      return await activeManager.save(Stock, newStock);
-    } catch (err: any) {
-      // In case of a race condition on UNIQUE(product_id), fetch the created row
-      const createdStock = await activeManager.findOneBy(Stock, { productId });
-      if (createdStock) {
-        return createdStock;
-      }
-      throw err;
+    // Insert idempotently without unique constraint violation error
+    await activeManager.query(
+      `INSERT INTO "stocks" ("id", "product_id", "current_base_stock", "created_at", "updated_at")
+       VALUES (gen_random_uuid(), $1, '0.00', now(), now())
+       ON CONFLICT ("product_id") DO NOTHING;`,
+      [productId],
+    );
+
+    const createdStock = await activeManager.findOneBy(Stock, { productId });
+    if (!createdStock) {
+      throw new InternalServerErrorException(
+        'No se pudo inicializar el registro de stock para el producto.',
+      );
     }
+    return createdStock;
   }
 }

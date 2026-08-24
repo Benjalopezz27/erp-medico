@@ -27,6 +27,9 @@ describe('User Persistence & Seed Engine (E2E)', () => {
   });
 
   it('verifies migration up/down/up cycle cleanly', async () => {
+    // Revert enforce non-negative stock check constraint migration (1700000000007)
+    await ds.undoLastMigration();
+
     // Revert stock & stock movements table migration (1700000000006)
     await ds.undoLastMigration();
     const afterDropMovements = await ds.query(
