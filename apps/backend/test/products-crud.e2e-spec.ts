@@ -23,6 +23,13 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
     ds = await dataSource.initialize();
     await ds.runMigrations();
 
+    const qr = ds.createQueryRunner();
+    await qr.connect();
+    await qr.query(
+      'TRUNCATE TABLE stock_movements, stocks, product_unit_conversions, products, categories, units, users CASCADE;',
+    );
+    await qr.release();
+
     await runInitialSeed(ds, {
       adminEmail: 'products-admin@erp.com',
       adminPassword: 'AdminPassword123!',
