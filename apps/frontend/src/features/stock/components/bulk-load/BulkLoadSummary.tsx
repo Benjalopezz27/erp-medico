@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers, CheckCircle2, AlertTriangle, Boxes, Info } from 'lucide-react';
+import { Layers, CheckCircle2, AlertTriangle, MinusCircle, Info } from 'lucide-react';
 import type { IStockBulkLoadSummary } from '../../types/stock.types';
 
 interface BulkLoadSummaryProps {
@@ -23,13 +23,23 @@ export const BulkLoadSummary: React.FC<BulkLoadSummaryProps> = ({ summary, isVal
         <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-              Filas Válidas
+              Productos a Cargar
             </span>
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
           <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">
-            {summary.validRows}
+            {summary.includedRows}
           </p>
+        </div>
+
+        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-muted-foreground">
+              Omitidos (Sin cantidad)
+            </span>
+            <MinusCircle className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <p className="text-2xl font-bold text-muted-foreground mt-2">{summary.skippedRows}</p>
         </div>
 
         <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
@@ -39,23 +49,24 @@ export const BulkLoadSummary: React.FC<BulkLoadSummaryProps> = ({ summary, isVal
           </div>
           <p className="text-2xl font-bold text-destructive mt-2">{summary.invalidRows}</p>
         </div>
-
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-primary">Total Unidades</span>
-            <Boxes className="w-4 h-4 text-primary" />
-          </div>
-          <p className="text-2xl font-bold text-primary mt-2">
-            {summary.totalQuantityBase.toLocaleString('es-AR', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </p>
-        </div>
       </div>
 
       {/* Validation Status Banner */}
-      {!isValid ? (
+      {summary.includedRows === 0 ? (
+        <div
+          role="alert"
+          className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-amber-800 dark:text-amber-300 rounded-xl text-xs leading-relaxed"
+        >
+          <Info className="w-5 h-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+          <div>
+            <p className="font-semibold text-sm">Sin productos para cargar</p>
+            <p className="mt-0.5">
+              Todas las filas tienen la cantidad vacía. Debes ingresar la cantidad de al menos un
+              producto para confirmar la carga inicial de inventario.
+            </p>
+          </div>
+        </div>
+      ) : !isValid ? (
         <div
           role="alert"
           className="flex items-start gap-3 p-4 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl text-xs leading-relaxed"
@@ -75,9 +86,9 @@ export const BulkLoadSummary: React.FC<BulkLoadSummaryProps> = ({ summary, isVal
           <div>
             <p className="font-semibold text-sm">Validación satisfactoria</p>
             <p className="mt-0.5">
-              Todas las filas son válidas y están listas para ser confirmadas. Los saldos
-              proyectados reflejan la suma del stock actual más la cantidad a cargar al momento del
-              preview.
+              {summary.includedRows} producto(s) listo(s) para ser cargado(s). Las{' '}
+              {summary.skippedRows} fila(s) sin cantidad serán omitidas y no generarán movimientos
+              de stock.
             </p>
           </div>
         </div>

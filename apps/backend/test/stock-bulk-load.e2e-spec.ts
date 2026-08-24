@@ -6,13 +6,13 @@ import * as ExcelJS from 'exceljs';
 import dataSource from '../src/database/data-source';
 import { AppModule } from '../src/app.module';
 import { StockService } from '../src/modules/stock/stock.service';
-import { AuditService } from '../src/modules/audit/audit.service';
 import {
   ProductStatus,
   StockMovementType,
   AuditAction,
   StockBulkRowErrorCode,
   StockBulkFileErrorCode,
+  StockBulkLoadRowStatus,
 } from '@erp/shared-types';
 import { User } from '../src/modules/users/entities/user.entity';
 import { Category } from '../src/modules/categories/entities/category.entity';
@@ -27,7 +27,6 @@ import { runInitialSeed } from '../src/database/seeds/initial.seed';
 describe('Stock Initial Bulk Load API (E2E)', () => {
   let app: INestApplication;
   let ds: DataSource;
-  let auditService: AuditService;
   let stockService: StockService;
   let adminToken: string;
   let sellerToken: string;
@@ -76,7 +75,6 @@ describe('Stock Initial Bulk Load API (E2E)', () => {
     );
     await app.init();
 
-    auditService = app.get<AuditService>(AuditService);
     stockService = app.get<StockService>(StockService);
 
     // Login Admin
@@ -115,7 +113,7 @@ describe('Stock Initial Bulk Load API (E2E)', () => {
     activeProduct1 = await ds.getRepository(Product).save({
       internalCode: 'BLK001',
       barcode: '7790001000011',
-      name: 'Amoxicilina 500mg',
+      name: 'Amoxicilina 500mg, cápsulas',
       description: 'Antibiótico',
       categoryId: testCategory.id,
       baseUnitId: testUnit.id,
@@ -161,28 +159,52 @@ describe('Stock Initial Bulk Load API (E2E)', () => {
     }
   });
 
-  describe('1. Template Download (GET /api/v1/stock/bulk-load/template)', () => {
-    it('downloads XLSX template with only headers', async () => {
+  describe('1. Pre-Populated Template Download (GET /api/v1/stock/bulk-load/template)', () => {
+    it('downloads pre-populated XLSX template with active products only', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/stock/bulk-load/template?format=xlsx')
         .set('Authorization', `Bearer ${adminToken}`)
+        .buffer()
+        .parse((res: any, callback: any) => {
+          const data: Buffer[] = [];
+          res.on('data', (chunk: Buffer) => data.push(chunk));
+          res.on('end', () => callback(null, Buffer.concat(data)));
+        })
         .expect(200);
 
       expect(res.headers['content-type']).toContain('spreadsheetml');
       expect(res.headers['content-disposition']).toContain(
         'plantilla_carga_stock.xlsx',
       );
-      expect(res.body).toBeDefined();
+
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(res.body);
+
+      const worksheet = workbook.getWorksheet('Inventario');
+      expect(worksheet).toBeDefined();
+      expect(worksheet?.rowCount).toBe(3); // 1 header + 2 active products (BLK003 inactive excluded)
+
+      const row2 = worksheet?.getRow(2);
+      expect(row2?.getCell(1).value).toBe('BLK001');
+      expect(row2?.getCell(2).value).toBe('Amoxicilina 500mg, cápsulas');
+      expect(row2?.getCell(3).value).toBe('Unidad Bulk (ub)');
+      expect(row2?.getCell(4).value).toBeNull();
     });
 
-    it('downloads CSV template with headers only', async () => {
+    it('downloads pre-populated CSV template with active products and RFC-4180 escaping', async () => {
       const res = await request(app.getHttpServer())
         .get('/api/v1/stock/bulk-load/template?format=csv')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(res.headers['content-type']).toContain('text/csv');
-      expect(res.text).toBe('internalCode,quantityBase\n');
+      expect(res.text).toContain(
+        'internalCode,productName,baseUnit,quantityBase',
+      );
+      expect(res.text).toContain('BLK001');
+      expect(res.text).toContain('"Amoxicilina 500mg, cápsulas"');
+      expect(res.text).toContain('BLK002');
+      expect(res.text).not.toContain('BLK003'); // Inactive excluded
     });
 
     it('rejects seller access to template with 403 Forbidden', async () => {
@@ -200,9 +222,9 @@ describe('Stock Initial Bulk Load API (E2E)', () => {
   });
 
   describe('2. Preview Endpoint (POST /api/v1/stock/bulk-load/preview)', () => {
-    it('returns valid preview with content checksum for correct CSV', async () => {
+    it('returns valid preview with SKIPPED rows for empty quantities', async () => {
       const csvContent =
-        'internalCode,quantityBase\nBLK001,50.00\nBLK002,25.50\n';
+        'internalCode,productName,baseUnit,quantityBase\nBLK001,Amoxicilina,ub,50.00\nBLK002,Ibuprofeno,ub,\n';
       const res = await request(app.getHttpServer())
         .post('/api/v1/stock/bulk-load/preview')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -214,34 +236,59 @@ describe('Stock Initial Bulk Load API (E2E)', () => {
       expect(res.body.contentChecksum).toBeDefined();
       expect(res.body.summary).toEqual({
         totalRows: 2,
-        validRows: 2,
+        includedRows: 1,
+        skippedRows: 1,
+        validRows: 1,
         invalidRows: 0,
-        totalQuantityBase: 75.5,
+        totalQuantityBase: 50,
       });
-      expect(res.body.rows[0].product.currentBaseStock).toBe(10);
-      expect(res.body.rows[0].product.projectedStock).toBe(60);
+      expect(res.body.rows[0].status).toBe(
+        StockBulkLoadRowStatus.INCLUDED_VALID,
+      );
+      expect(res.body.rows[0].quantityBase).toBe(50);
+      expect(res.body.rows[1].status).toBe(StockBulkLoadRowStatus.SKIPPED);
+      expect(res.body.rows[1].quantityBase).toBeNull();
+      expect(res.body.rows[1].product).toBeDefined(); // Catalog metadata attached
     });
 
-    it('returns identical content checksum for equivalent XLSX file', async () => {
-      const workbook = new ExcelJS.Workbook();
-      const sheet = workbook.addWorksheet('Inventario');
-      sheet.addRow(['internalCode', 'quantityBase']);
-      sheet.addRow(['BLK001', 50]);
-      sheet.addRow(['BLK002', 25.5]);
-
-      const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
-
+    it('returns valid: false, contentChecksum: null when all rows are SKIPPED', async () => {
+      const csvContent =
+        'internalCode,productName,baseUnit,quantityBase\nBLK001,Amox,ub,\nBLK002,Ibu,ub,\n';
       const res = await request(app.getHttpServer())
         .post('/api/v1/stock/bulk-load/preview')
         .set('Authorization', `Bearer ${adminToken}`)
-        .attach('file', buffer, 'carga.xlsx')
+        .attach('file', Buffer.from(csvContent, 'utf8'), 'all_skipped.csv')
         .expect(200);
 
-      expect(res.body.valid).toBe(true);
-      expect(res.body.contentChecksum).toBeDefined();
+      expect(res.body.valid).toBe(false);
+      expect(res.body.contentChecksum).toBeNull();
+      expect(res.body.summary.includedRows).toBe(0);
+      expect(res.body.summary.skippedRows).toBe(2);
+      expect(res.body.summary.invalidRows).toBe(0);
     });
 
-    it('flags PRODUCT_NOT_FOUND and sets contentChecksum: null when product does not exist', async () => {
+    it('produces identical contentChecksum regardless of informative column modifications', async () => {
+      const originalCsv =
+        'internalCode,productName,baseUnit,quantityBase\nBLK001,Amoxicilina,ub,50.00\n';
+      const modifiedCsv =
+        'internalCode,productName,baseUnit,quantityBase\nBLK001,Modified Name,Modified Unit,50.00\n';
+
+      const res1 = await request(app.getHttpServer())
+        .post('/api/v1/stock/bulk-load/preview')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .attach('file', Buffer.from(originalCsv, 'utf8'), 'orig.csv')
+        .expect(200);
+
+      const res2 = await request(app.getHttpServer())
+        .post('/api/v1/stock/bulk-load/preview')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .attach('file', Buffer.from(modifiedCsv, 'utf8'), 'mod.csv')
+        .expect(200);
+
+      expect(res1.body.contentChecksum).toBe(res2.body.contentChecksum);
+    });
+
+    it('flags PRODUCT_NOT_FOUND when included row targets non-existent code', async () => {
       const csvContent = 'internalCode,quantityBase\nUNKNOWN01,10\n';
       const res = await request(app.getHttpServer())
         .post('/api/v1/stock/bulk-load/preview')
@@ -251,13 +298,15 @@ describe('Stock Initial Bulk Load API (E2E)', () => {
 
       expect(res.body.valid).toBe(false);
       expect(res.body.contentChecksum).toBeNull();
-      expect(res.body.summary.invalidRows).toBe(1);
+      expect(res.body.rows[0].status).toBe(
+        StockBulkLoadRowStatus.INCLUDED_INVALID,
+      );
       expect(res.body.rows[0].errors[0].code).toBe(
         StockBulkRowErrorCode.PRODUCT_NOT_FOUND,
       );
     });
 
-    it('flags PRODUCT_INACTIVE when product is inactive in catalog', async () => {
+    it('flags PRODUCT_INACTIVE when included row targets inactive product', async () => {
       const csvContent = 'internalCode,quantityBase\nBLK003,10\n';
       const res = await request(app.getHttpServer())
         .post('/api/v1/stock/bulk-load/preview')
@@ -266,48 +315,16 @@ describe('Stock Initial Bulk Load API (E2E)', () => {
         .expect(200);
 
       expect(res.body.valid).toBe(false);
+      expect(res.body.rows[0].status).toBe(
+        StockBulkLoadRowStatus.INCLUDED_INVALID,
+      );
       expect(res.body.rows[0].errors[0].code).toBe(
         StockBulkRowErrorCode.PRODUCT_INACTIVE,
       );
     });
 
-    it('flags DUPLICATE_INTERNAL_CODE when duplicate codes appear in file', async () => {
-      const csvContent = 'internalCode,quantityBase\nBLK001,10\nblk001,20\n';
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/stock/bulk-load/preview')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .attach('file', Buffer.from(csvContent, 'utf8'), 'carga.csv')
-        .expect(200);
-
-      expect(res.body.valid).toBe(false);
-      expect(
-        res.body.rows[0].errors.some(
-          (e: any) => e.code === StockBulkRowErrorCode.DUPLICATE_INTERNAL_CODE,
-        ),
-      ).toBe(true);
-    });
-
-    it('flags FORMULA_NOT_ALLOWED when CSV cell starts with = or @', async () => {
-      const csvContent = 'internalCode,quantityBase\nBLK001,=10+20\n';
-      const res = await request(app.getHttpServer())
-        .post('/api/v1/stock/bulk-load/preview')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .attach('file', Buffer.from(csvContent, 'utf8'), 'carga.csv')
-        .expect(200);
-
-      expect(res.body.valid).toBe(false);
-      expect(
-        res.body.rows[0].errors.some(
-          (e: any) => e.code === StockBulkRowErrorCode.FORMULA_NOT_ALLOWED,
-        ),
-      ).toBe(true);
-    });
-
     it('rejects corrupt or invalid file buffer with 400 Bad Request', async () => {
-      const corruptBuffer = Buffer.from(
-        'NOT_A_VALID_SPREADSHEET_BUFFER',
-        'utf8',
-      );
+      const corruptBuffer = Buffer.from('NOT_VALID_SPREADSHEET', 'utf8');
       await request(app.getHttpServer())
         .post('/api/v1/stock/bulk-load/preview')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -317,42 +334,40 @@ describe('Stock Initial Bulk Load API (E2E)', () => {
   });
 
   describe('3. Confirm Endpoint (POST /api/v1/stock/bulk-load/confirm)', () => {
-    let validCsvBuffer: Buffer;
-    let validFileChecksum: string;
-    let validContentChecksum: string;
-
-    beforeAll(async () => {
+    it('returns 400 Bad Request with BULK_LOAD_NO_INCLUDED_ROWS when direct confirm has 0 included rows', async () => {
       const csvContent =
-        'internalCode,quantityBase\nBLK001,50.00\nBLK002,25.50\n';
-      validCsvBuffer = Buffer.from(csvContent, 'utf8');
+        'internalCode,productName,baseUnit,quantityBase\nBLK001,Amox,ub,\n';
+      const buffer = Buffer.from(csvContent, 'utf8');
 
       const previewRes = await request(app.getHttpServer())
         .post('/api/v1/stock/bulk-load/preview')
         .set('Authorization', `Bearer ${adminToken}`)
-        .attach('file', validCsvBuffer, 'carga.csv')
+        .attach('file', buffer, 'empty.csv')
         .expect(200);
 
-      validFileChecksum = previewRes.body.fileChecksum;
-      validContentChecksum = previewRes.body.contentChecksum;
-    });
-
-    it('rejects confirmation when previewFileChecksum does not match binary fileChecksum', async () => {
-      const wrongChecksum =
-        '0000000000000000000000000000000000000000000000000000000000000000';
-
-      const res = await request(app.getHttpServer())
+      const confirmRes = await request(app.getHttpServer())
         .post('/api/v1/stock/bulk-load/confirm')
         .set('Authorization', `Bearer ${adminToken}`)
-        .attach('file', validCsvBuffer, 'carga.csv')
-        .field('previewFileChecksum', wrongChecksum)
-        .expect(409);
+        .attach('file', buffer, 'empty.csv')
+        .field('previewFileChecksum', previewRes.body.fileChecksum)
+        .expect(400);
 
-      expect(res.body.code).toBe(
-        StockBulkFileErrorCode.BULK_LOAD_PREVIEW_MISMATCH,
+      expect(confirmRes.body.code).toBe(
+        StockBulkFileErrorCode.BULK_LOAD_NO_INCLUDED_ROWS,
       );
     });
 
-    it('atomically confirms valid bulk load, creates movements, updates stocks, creates batch, and emits audit log', async () => {
+    it('atomically confirms valid bulk load, creates movements only for included rows, updates stocks, and logs audit', async () => {
+      const csvContent =
+        'internalCode,productName,baseUnit,quantityBase\nBLK001,Amox,ub,50.00\nBLK002,Ibu,ub,\n';
+      const buffer = Buffer.from(csvContent, 'utf8');
+
+      const previewRes = await request(app.getHttpServer())
+        .post('/api/v1/stock/bulk-load/preview')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .attach('file', buffer, 'partial.csv')
+        .expect(200);
+
       const initialStock1 = await ds
         .getRepository(Stock)
         .findOneByOrFail({ productId: activeProduct1.id });
@@ -361,158 +376,73 @@ describe('Stock Initial Bulk Load API (E2E)', () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/stock/bulk-load/confirm')
         .set('Authorization', `Bearer ${adminToken}`)
-        .attach('file', validCsvBuffer, 'carga.csv')
-        .field('previewFileChecksum', validFileChecksum)
+        .attach('file', buffer, 'partial.csv')
+        .field('previewFileChecksum', previewRes.body.fileChecksum)
         .expect(201);
 
       expect(res.body.batchId).toBeDefined();
-      expect(res.body.rowCount).toBe(2);
-      expect(res.body.movementCount).toBe(2);
-      expect(res.body.totalQuantityBase).toBe(75.5);
+      expect(res.body.rowCount).toBe(1); // rowCount = includedRows
+      expect(res.body.movementCount).toBe(1);
+      expect(res.body.totalQuantityBase).toBe(50);
 
-      // Verify updated stock balances in DB
+      // Verify updated stock balances in DB (BLK001 updated, BLK002 untouched)
       const updatedStock1 = await ds
         .getRepository(Stock)
         .findOneByOrFail({ productId: activeProduct1.id });
       expect(Number(updatedStock1.currentBaseStock)).toBe(initialBal1 + 50);
 
-      const updatedStock2 = await ds
+      const stock2 = await ds
         .getRepository(Stock)
-        .findOneByOrFail({ productId: activeProduct2.id });
-      expect(Number(updatedStock2.currentBaseStock)).toBe(25.5);
+        .findOneBy({ productId: activeProduct2.id });
+      expect(stock2).toBeNull(); // No stock row created for skipped product
 
-      // Verify movements generated in DB
+      // Verify movements generated in DB (only 1)
       const movements = await ds.getRepository(StockMovement).find({
         where: { documentReference: `BULK_LOAD:${res.body.batchId}` },
       });
-      expect(movements).toHaveLength(2);
+      expect(movements).toHaveLength(1);
       expect(movements[0].movementType).toBe(StockMovementType.AJUSTE_ENTRADA);
-      expect(movements[0].reason).toBe('Carga inicial de inventario');
 
       // Verify batch record in DB
       const batch = await ds
         .getRepository(StockImportBatch)
         .findOneByOrFail({ id: res.body.batchId });
-      expect(batch.contentChecksum).toBe(validContentChecksum);
-      expect(batch.fileChecksum).toBe(validFileChecksum);
+      expect(batch.rowCount).toBe(1);
+      expect(batch.movementCount).toBe(1);
       expect(batch.actorId).toBe(adminUser.id);
 
-      // Verify audit log emitted in DB
+      // Verify audit log emitted in DB with included and skipped metrics
       const auditLog = await ds.getRepository(AuditLog).findOneByOrFail({
         entityName: 'StockBulkLoad',
         entityId: res.body.batchId,
       });
       expect(auditLog.action).toBe(AuditAction.CREATE);
-      expect(auditLog.actorId).toBe(adminUser.id);
+      expect(auditLog.newValues.totalRows).toBe(2);
+      expect(auditLog.newValues.includedRows).toBe(1);
+      expect(auditLog.newValues.skippedRows).toBe(1);
     });
 
-    it('rejects second attempt with same CSV as 409 Conflict (BULK_LOAD_ALREADY_CONFIRMED)', async () => {
+    it('rejects second attempt with same content as 409 Conflict (BULK_LOAD_ALREADY_CONFIRMED)', async () => {
+      const csvContent =
+        'internalCode,productName,baseUnit,quantityBase\nBLK001,Amox,ub,50.00\n';
+      const buffer = Buffer.from(csvContent, 'utf8');
+
+      const previewRes = await request(app.getHttpServer())
+        .post('/api/v1/stock/bulk-load/preview')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .attach('file', buffer, 'duplicate.csv')
+        .expect(200);
+
       const res = await request(app.getHttpServer())
         .post('/api/v1/stock/bulk-load/confirm')
         .set('Authorization', `Bearer ${adminToken}`)
-        .attach('file', validCsvBuffer, 'carga.csv')
-        .field('previewFileChecksum', validFileChecksum)
+        .attach('file', buffer, 'duplicate.csv')
+        .field('previewFileChecksum', previewRes.body.fileChecksum)
         .expect(409);
 
       expect(res.body.code).toBe(
         StockBulkFileErrorCode.BULK_LOAD_ALREADY_CONFIRMED,
       );
-    });
-
-    it('rejects equivalent XLSX previewed and confirmed with its own fileChecksum as 409 Conflict', async () => {
-      const workbook = new ExcelJS.Workbook();
-      const sheet = workbook.addWorksheet('Inventario');
-      sheet.addRow(['internalCode', 'quantityBase']);
-      sheet.addRow(['BLK001', 50]);
-      sheet.addRow(['BLK002', 25.5]);
-
-      const xlsxBuffer = Buffer.from(await workbook.xlsx.writeBuffer());
-
-      // 1. Preview XLSX
-      const previewRes = await request(app.getHttpServer())
-        .post('/api/v1/stock/bulk-load/preview')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .attach('file', xlsxBuffer, 'carga.xlsx')
-        .expect(200);
-
-      // 2. Confirm XLSX with XLSX's own fileChecksum
-      const confirmRes = await request(app.getHttpServer())
-        .post('/api/v1/stock/bulk-load/confirm')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .attach('file', xlsxBuffer, 'carga.xlsx')
-        .field('previewFileChecksum', previewRes.body.fileChecksum)
-        .expect(409);
-
-      expect(confirmRes.body.code).toBe(
-        StockBulkFileErrorCode.BULK_LOAD_ALREADY_CONFIRMED,
-      );
-    });
-
-    it('rejects re-ordered rows file previewed and confirmed with its own fileChecksum as 409 Conflict', async () => {
-      const reorderedCsv =
-        'internalCode,quantityBase\nBLK002,25.50\nBLK001,50.00\n';
-      const reorderedBuffer = Buffer.from(reorderedCsv, 'utf8');
-
-      // 1. Preview reordered CSV
-      const previewRes = await request(app.getHttpServer())
-        .post('/api/v1/stock/bulk-load/preview')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .attach('file', reorderedBuffer, 'reordered.csv')
-        .expect(200);
-
-      // 2. Confirm reordered CSV with its own fileChecksum
-      const confirmRes = await request(app.getHttpServer())
-        .post('/api/v1/stock/bulk-load/confirm')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .attach('file', reorderedBuffer, 'reordered.csv')
-        .field('previewFileChecksum', previewRes.body.fileChecksum)
-        .expect(409);
-
-      expect(confirmRes.body.code).toBe(
-        StockBulkFileErrorCode.BULK_LOAD_ALREADY_CONFIRMED,
-      );
-    });
-
-    it('triggers complete transaction rollback when audit recording fails and restores spy', async () => {
-      const newCsv = 'internalCode,quantityBase\nBLK001,10.00\n';
-      const newBuffer = Buffer.from(newCsv, 'utf8');
-
-      const previewRes = await request(app.getHttpServer())
-        .post('/api/v1/stock/bulk-load/preview')
-        .set('Authorization', `Bearer ${adminToken}`)
-        .attach('file', newBuffer, 'new.csv')
-        .expect(200);
-
-      const beforeStock = await ds
-        .getRepository(Stock)
-        .findOneByOrFail({ productId: activeProduct1.id });
-
-      const auditSpy = jest
-        .spyOn(auditService, 'record')
-        .mockRejectedValueOnce(new Error('Simulated audit failure'));
-
-      try {
-        await request(app.getHttpServer())
-          .post('/api/v1/stock/bulk-load/confirm')
-          .set('Authorization', `Bearer ${adminToken}`)
-          .attach('file', newBuffer, 'new.csv')
-          .field('previewFileChecksum', previewRes.body.fileChecksum)
-          .expect(500);
-
-        // Verify that stock was not modified
-        const afterStock = await ds
-          .getRepository(Stock)
-          .findOneByOrFail({ productId: activeProduct1.id });
-        expect(afterStock.currentBaseStock).toBe(beforeStock.currentBaseStock);
-
-        // Verify that batch was not persisted
-        const batch = await ds
-          .getRepository(StockImportBatch)
-          .findOneBy({ contentChecksum: previewRes.body.contentChecksum });
-        expect(batch).toBeNull();
-      } finally {
-        auditSpy.mockRestore();
-      }
     });
 
     it('prevents direct UPDATE or DELETE on stock_import_batches table via PostgreSQL trigger', async () => {

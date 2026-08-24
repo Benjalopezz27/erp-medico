@@ -4,7 +4,11 @@ import { StockBulkLoadPage } from './StockBulkLoadPage';
 import { renderWithProviders } from '@/test/test-utils';
 import * as routerModule from '@tanstack/react-router';
 import * as stockApi from '@/features/stock/api/stock.api';
-import { StockBulkRowErrorCode, StockBulkFileErrorCode } from '@/features/stock/types/stock.types';
+import {
+  StockBulkRowErrorCode,
+  StockBulkFileErrorCode,
+  StockBulkLoadRowStatus,
+} from '@/features/stock/types/stock.types';
 
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: vi.fn(),
@@ -29,7 +33,9 @@ describe('StockBulkLoadPage Wizard Flow', () => {
     contentChecksum: 'content-checksum-123',
     valid: true,
     summary: {
-      totalRows: 2,
+      totalRows: 3,
+      includedRows: 2,
+      skippedRows: 1,
       validRows: 2,
       invalidRows: 0,
       totalQuantityBase: 75.5,
@@ -39,6 +45,7 @@ describe('StockBulkLoadPage Wizard Flow', () => {
         rowNumber: 2,
         internalCode: 'P0001',
         quantityBase: 50,
+        status: StockBulkLoadRowStatus.INCLUDED_VALID,
         product: {
           id: 'prod-1',
           internalCode: 'P0001',
@@ -48,12 +55,12 @@ describe('StockBulkLoadPage Wizard Flow', () => {
           baseUnit: { id: 'u1', name: 'Unidad', symbol: 'u' },
         },
         errors: [],
-        isValid: true,
       },
       {
         rowNumber: 3,
         internalCode: 'P0002',
         quantityBase: 25.5,
+        status: StockBulkLoadRowStatus.INCLUDED_VALID,
         product: {
           id: 'prod-2',
           internalCode: 'P0002',
@@ -63,7 +70,21 @@ describe('StockBulkLoadPage Wizard Flow', () => {
           baseUnit: { id: 'u1', name: 'Unidad', symbol: 'u' },
         },
         errors: [],
-        isValid: true,
+      },
+      {
+        rowNumber: 4,
+        internalCode: 'P0003',
+        quantityBase: null,
+        status: StockBulkLoadRowStatus.SKIPPED,
+        product: {
+          id: 'prod-3',
+          internalCode: 'P0003',
+          name: 'Gasa estéril',
+          currentBaseStock: 0,
+          projectedStock: 0,
+          baseUnit: { id: 'u1', name: 'Unidad', symbol: 'u' },
+        },
+        errors: [],
       },
     ],
   };
@@ -93,13 +114,58 @@ describe('StockBulkLoadPage Wizard Flow', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Detalle de Filas (2)')).toBeInTheDocument();
+      expect(screen.getByText(/Detalle de Filas/i)).toBeInTheDocument();
     });
 
     expect(screen.getByText('Amoxicilina 500mg')).toBeInTheDocument();
     expect(screen.getByText('Ibuprofeno 600mg')).toBeInTheDocument();
     expect(screen.getByText('Paso 2')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /siguiente: confirmación/i })).toBeEnabled();
+  });
+
+  it('disables Siguiente button when all rows are SKIPPED (includedRows === 0)', async () => {
+    const allSkippedResponse = {
+      fileChecksum: 'file-checksum-123',
+      contentChecksum: null,
+      valid: false,
+      summary: {
+        totalRows: 2,
+        includedRows: 0,
+        skippedRows: 2,
+        validRows: 0,
+        invalidRows: 0,
+        totalQuantityBase: 0,
+      },
+      rows: [
+        {
+          rowNumber: 2,
+          internalCode: 'P0001',
+          quantityBase: null,
+          status: StockBulkLoadRowStatus.SKIPPED,
+          product: null,
+          errors: [],
+        },
+      ],
+    };
+
+    vi.mocked(stockApi.postStockBulkPreviewApi).mockResolvedValueOnce(allSkippedResponse as any);
+
+    renderWithProviders(<StockBulkLoadPage />);
+
+    const file = new File(['internalCode,quantityBase\nP0001,\n'], 'carga.csv', {
+      type: 'text/csv',
+    });
+
+    const dropzone = screen.getByLabelText(/zona de carga de archivo/i);
+    fireEvent.drop(dropzone, {
+      dataTransfer: { files: [file] },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/sin productos para cargar/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole('button', { name: /siguiente: confirmación/i })).toBeDisabled();
   });
 
   it('disables Siguiente button when preview has validation errors', async () => {
@@ -109,6 +175,8 @@ describe('StockBulkLoadPage Wizard Flow', () => {
       valid: false,
       summary: {
         totalRows: 1,
+        includedRows: 1,
+        skippedRows: 0,
         validRows: 0,
         invalidRows: 1,
         totalQuantityBase: 0,
@@ -118,6 +186,7 @@ describe('StockBulkLoadPage Wizard Flow', () => {
           rowNumber: 2,
           internalCode: 'UNKNOWN01',
           quantityBase: 10,
+          status: StockBulkLoadRowStatus.INCLUDED_INVALID,
           product: null,
           errors: [
             {
@@ -125,7 +194,6 @@ describe('StockBulkLoadPage Wizard Flow', () => {
               message: 'El producto con código "UNKNOWN01" no existe en el catálogo.',
             },
           ],
-          isValid: false,
         },
       ],
     };
@@ -162,7 +230,7 @@ describe('StockBulkLoadPage Wizard Flow', () => {
     fireEvent.drop(dropzone, { dataTransfer: { files: [file] } });
 
     await waitFor(() => {
-      expect(screen.getByText('Detalle de Filas (2)')).toBeInTheDocument();
+      expect(screen.getByText(/Detalle de Filas/i)).toBeInTheDocument();
     });
 
     const changeBtn = screen.getByRole('button', { name: /cambiar archivo/i });
@@ -201,7 +269,8 @@ describe('StockBulkLoadPage Wizard Flow', () => {
 
     // Step 3
     expect(screen.getByText('Confirmación de Carga Masiva')).toBeInTheDocument();
-    expect(screen.getByText('2 productos')).toBeInTheDocument();
+    expect(screen.getByText('2 producto(s)')).toBeInTheDocument();
+    expect(screen.getByText('1 fila(s)')).toBeInTheDocument();
 
     const confirmBtn = screen.getByRole('button', { name: /confirmar y aplicar carga/i });
     fireEvent.click(confirmBtn);
@@ -241,7 +310,7 @@ describe('StockBulkLoadPage Wizard Flow', () => {
     await waitFor(() => {
       expect(
         screen.getByText(
-          'El archivo seleccionado está vacío, corrupto o contiene fórmulas no permitidas.',
+          'El archivo seleccionado está vacío, corrupto, contiene fórmulas o celdas no permitidas.',
         ),
       ).toBeInTheDocument();
     });

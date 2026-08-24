@@ -70,15 +70,24 @@ export class StockController {
 
   @Get('bulk-load/template')
   @Roles(UserRole.ADMINISTRADOR)
-  @ApiOperation({ summary: 'Download empty bulk load template (CSV or XLSX)' })
+  @ApiOperation({
+    summary:
+      'Download initial stock bulk load count template pre-populated with active products (CSV or XLSX)',
+  })
   @ApiResponse({
     status: 200,
-    description: 'Template file stream with headers only',
+    description:
+      'Pre-populated template file stream with active products and informative columns',
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
     status: 403,
     description: 'Forbidden - Only ADMINISTRADOR can download templates',
+  })
+  @ApiResponse({
+    status: 422,
+    description:
+      'Unprocessable Entity - Active products catalog exceeds maximum template limit of 1000 items',
   })
   async downloadBulkLoadTemplate(
     @Query() query: QueryStockBulkLoadTemplateDto,

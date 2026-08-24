@@ -13,7 +13,33 @@ describe('parseBulkLoadApiError', () => {
       },
     };
     expect(parseBulkLoadApiError(error)).toBe(
-      'El archivo seleccionado está vacío, corrupto o contiene fórmulas no permitidas.',
+      'El archivo seleccionado está vacío, corrupto, contiene fórmulas o celdas no permitidas.',
+    );
+  });
+
+  it('translates BULK_LOAD_TEMPLATE_ROW_LIMIT_EXCEEDED into catalog limit message', () => {
+    const error = {
+      response: {
+        data: {
+          code: StockBulkFileErrorCode.BULK_LOAD_TEMPLATE_ROW_LIMIT_EXCEEDED,
+        },
+      },
+    };
+    expect(parseBulkLoadApiError(error)).toBe(
+      'El catálogo de productos activos supera el límite de 1000 productos para la descarga de la plantilla.',
+    );
+  });
+
+  it('translates BULK_LOAD_NO_INCLUDED_ROWS into action message', () => {
+    const error = {
+      response: {
+        data: {
+          code: StockBulkFileErrorCode.BULK_LOAD_NO_INCLUDED_ROWS,
+        },
+      },
+    };
+    expect(parseBulkLoadApiError(error)).toBe(
+      'Debes ingresar la cantidad de al menos un producto para confirmar la carga.',
     );
   });
 

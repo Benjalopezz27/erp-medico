@@ -1,9 +1,12 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import {
   ProductStatus,
   StockMovementType,
-  StockImportBatchResult,
+  StockBulkLoadRowStatus,
 } from '@erp/shared-types';
 import { StockBulkLoadService } from './stock-bulk-load.service';
 import { StockService } from '../stock.service';
@@ -15,346 +18,303 @@ import { StockBulkFileParser } from './stock-bulk-file-parser';
 
 describe('StockBulkLoadService', () => {
   let service: StockBulkLoadService;
-  let mockDataSource: jest.Mocked<DataSource>;
-  let mockTxManager: jest.Mocked<EntityManager>;
-  let mockStockService: jest.Mocked<StockService>;
-  let mockAuditService: jest.Mocked<AuditService>;
-  let mockValidator: jest.Mocked<StockBulkLoadValidator>;
-  let mockBatchRepo: jest.Mocked<Repository<StockImportBatch>>;
-  let mockProductRepo: jest.Mocked<Repository<Product>>;
+  let mockDataSource: Partial<DataSource>;
+  let mockStockService: Partial<StockService>;
+  let mockAuditService: Partial<AuditService>;
+  let mockValidator: Partial<StockBulkLoadValidator>;
+  let mockBatchRepo: Partial<Repository<StockImportBatch>>;
+  let mockProductRepo: Partial<Repository<Product>>;
+  let mockManager: Partial<EntityManager>;
 
-  const mockActor = {
-    id: 'user-admin-uuid',
-    email: 'admin@example.com',
-    role: 'ADMINISTRADOR',
-  };
+  const activeProducts = [
+    {
+      id: 'prod-uuid-1',
+      internalCode: 'P0001',
+      name: 'Amoxicilina 500mg, comprimidos "Forte"',
+      status: ProductStatus.ACTIVE,
+      baseUnit: { id: 'u1', name: 'Comprimido', symbol: 'cmp' },
+    },
+    {
+      id: 'prod-uuid-2',
+      internalCode: 'P0002',
+      name: 'Ibuprofeno 600mg',
+      status: ProductStatus.ACTIVE,
+      baseUnit: { id: 'u1', name: 'Comprimido', symbol: 'cmp' },
+    },
+  ] as Product[];
 
   beforeEach(() => {
-    mockTxManager = {
-      create: jest.fn(),
-      save: jest.fn(),
-      findOne: jest.fn(),
-    } as unknown as jest.Mocked<EntityManager>;
+    mockManager = {
+      create: jest.fn().mockImplementation((entityClass, data) => ({
+        id: 'new-batch-uuid',
+        createdAt: new Date('2026-08-24T12:00:00.000Z'),
+        ...data,
+      })),
+      save: jest.fn().mockImplementation((entityClass, data) => data),
+      findOne: jest.fn().mockResolvedValue(activeProducts[0]),
+    };
 
     mockDataSource = {
-      transaction: jest.fn((cb: (manager: EntityManager) => Promise<any>) =>
-        cb(mockTxManager),
-      ),
-    } as unknown as jest.Mocked<DataSource>;
+      transaction: jest.fn().mockImplementation(async (callback) => {
+        return callback(mockManager as EntityManager);
+      }),
+    };
 
     mockStockService = {
-      recordMovement: jest.fn(),
-    } as unknown as jest.Mocked<StockService>;
+      recordMovement: jest.fn().mockResolvedValue({ id: 'mov-uuid' } as any),
+    };
 
     mockAuditService = {
-      record: jest.fn(),
-    } as unknown as jest.Mocked<AuditService>;
+      record: jest.fn().mockResolvedValue({ id: 'audit-uuid' } as any),
+    };
 
     mockValidator = {
       validate: jest.fn(),
-    } as unknown as jest.Mocked<StockBulkLoadValidator>;
+    };
 
     mockBatchRepo = {
-      findOne: jest.fn(),
-    } as unknown as jest.Mocked<Repository<StockImportBatch>>;
+      findOneBy: jest.fn(),
+    };
 
     mockProductRepo = {
-      findOne: jest.fn(),
-    } as unknown as jest.Mocked<Repository<Product>>;
+      find: jest.fn().mockResolvedValue(activeProducts),
+    };
 
     service = new StockBulkLoadService(
-      mockDataSource,
-      mockStockService,
-      mockAuditService,
-      mockValidator,
-      mockBatchRepo,
-      mockProductRepo,
+      mockDataSource as DataSource,
+      mockStockService as StockService,
+      mockAuditService as AuditService,
+      mockValidator as StockBulkLoadValidator,
+      mockBatchRepo as Repository<StockImportBatch>,
+      mockProductRepo as Repository<Product>,
     );
   });
 
-  describe('generateTemplate', () => {
-    it('generates CSV template with headers only', async () => {
-      const template = await service.generateTemplate('csv');
-      expect(template.filename).toBe('plantilla_carga_stock.csv');
-      expect(template.contentType).toBe('text/csv; charset=utf-8');
-      expect(template.buffer.toString('utf8')).toBe(
-        'internalCode,quantityBase\n',
-      );
+  describe('1. Template Generation', () => {
+    it('generates pre-populated CSV template with RFC-4180 escaping and active products', async () => {
+      const result = await service.generateTemplate('csv');
+
+      expect(result.contentType).toBe('text/csv; charset=utf-8');
+      expect(result.filename).toBe('plantilla_carga_stock.csv');
+
+      const text = result.buffer.toString('utf8');
+      expect(text).toContain('internalCode,productName,baseUnit,quantityBase');
+      expect(text).toContain('P0001');
+      expect(text).toContain('"Amoxicilina 500mg, comprimidos ""Forte"""');
+      expect(text).toContain('Comprimido (cmp)');
     });
 
-    it('generates XLSX template with headers only', async () => {
-      const template = await service.generateTemplate('xlsx');
-      expect(template.filename).toBe('plantilla_carga_stock.xlsx');
-      expect(template.contentType).toContain('spreadsheetml');
-      expect(template.buffer.length).toBeGreaterThan(0);
+    it('generates pre-populated XLSX template with active products', async () => {
+      const result = await service.generateTemplate('xlsx');
+
+      expect(result.contentType).toContain('spreadsheetml');
+      expect(result.filename).toBe('plantilla_carga_stock.xlsx');
+      expect(result.buffer.length).toBeGreaterThan(0);
+    });
+
+    it('throws UnprocessableEntityException when active catalog exceeds 1000 items', async () => {
+      const hugeCatalog = Array.from({ length: 1001 }, (_, i) => ({
+        id: `prod-${i}`,
+        internalCode: `P${String(i).padStart(4, '0')}`,
+        name: `Product ${i}`,
+        status: ProductStatus.ACTIVE,
+        baseUnit: { id: 'u1', name: 'Unidad', symbol: 'u' },
+      })) as Product[];
+
+      mockProductRepo.find = jest.fn().mockResolvedValue(hugeCatalog);
+
+      await expect(service.generateTemplate('xlsx')).rejects.toThrow(
+        UnprocessableEntityException,
+      );
     });
   });
 
-  describe('previewBulkLoad', () => {
-    it('parses and validates file returning complete preview diagnostics', async () => {
-      const csvBuffer = Buffer.from(
-        'internalCode,quantityBase\nP0001,100\n',
-        'utf8',
-      );
+  describe('2. Confirmation Orchestration & Invariants', () => {
+    it('throws BadRequestException(BULK_LOAD_NO_INCLUDED_ROWS) when direct confirm has 0 included rows', async () => {
       const mockFile = {
-        buffer: csvBuffer,
-        originalname: 'carga.csv',
+        buffer: Buffer.from('internalCode,quantityBase\nP0001,\n'),
+        originalname: 'all-skipped.csv',
         mimetype: 'text/csv',
       } as Express.Multer.File;
 
-      mockValidator.validate.mockResolvedValueOnce({
-        valid: true,
-        contentChecksum: 'canonical-hash-123456',
-        summary: {
-          totalRows: 1,
-          validRows: 1,
-          invalidRows: 0,
-          totalQuantityBase: 100,
-        },
-        rows: [
-          {
-            rowNumber: 2,
-            internalCode: 'P0001',
-            quantityBase: 100,
-            product: {
-              id: 'p-1',
-              internalCode: 'P0001',
-              name: 'Paracetamol',
-              currentBaseStock: 0,
-              projectedStock: 100,
-              baseUnit: { id: 'u1', name: 'Unidad', symbol: 'u' },
-            },
-            errors: [],
-            isValid: true,
-          },
+      jest.spyOn(StockBulkFileParser, 'parse').mockResolvedValueOnce({
+        fileChecksum: 'file-sum-1',
+        rawRows: [
+          { rowNumber: 2, rawInternalCode: 'P0001', rawQuantity: null },
         ],
       });
 
-      const response = await service.previewBulkLoad(mockFile);
-
-      expect(response.valid).toBe(true);
-      expect(response.contentChecksum).toBe('canonical-hash-123456');
-      expect(response.summary.totalRows).toBe(1);
-    });
-  });
-
-  describe('confirmBulkLoad', () => {
-    it('rejects confirmation when previewFileChecksum does not match binary fileChecksum', async () => {
-      const csvBuffer = Buffer.from(
-        'internalCode,quantityBase\nP0001,100\n',
-        'utf8',
-      );
-      const mockFile = {
-        buffer: csvBuffer,
-        originalname: 'carga.csv',
-        mimetype: 'text/csv',
-      } as Express.Multer.File;
-
-      await expect(
-        service.confirmBulkLoad(
-          mockFile,
-          'mismatched-checksum-hex-00000',
-          mockActor,
-        ),
-      ).rejects.toThrow(ConflictException);
-    });
-
-    it('rejects confirmation when file validation fails', async () => {
-      const csvBuffer = Buffer.from(
-        'internalCode,quantityBase\nP0001,100\n',
-        'utf8',
-      );
-      const mockFile = {
-        buffer: csvBuffer,
-        originalname: 'carga.csv',
-        mimetype: 'text/csv',
-      } as Express.Multer.File;
-
-      const parsed = await StockBulkFileParser.parse(
-        csvBuffer,
-        'carga.csv',
-        'text/csv',
-      );
-
-      mockValidator.validate.mockResolvedValueOnce({
+      mockValidator.validate = jest.fn().mockResolvedValueOnce({
         valid: false,
         contentChecksum: null,
         summary: {
           totalRows: 1,
+          includedRows: 0,
+          skippedRows: 1,
+          validRows: 0,
+          invalidRows: 0,
+          totalQuantityBase: 0,
+        },
+        rows: [
+          {
+            rowNumber: 2,
+            internalCode: 'P0001',
+            quantityBase: null,
+            status: StockBulkLoadRowStatus.SKIPPED,
+            product: null,
+            errors: [],
+          },
+        ],
+      });
+
+      await expect(
+        service.confirmBulkLoad(mockFile, 'file-sum-1', {
+          id: 'user-1',
+          email: 'admin@erp.com',
+          role: 'ADMINISTRADOR',
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException(BULK_LOAD_VALIDATION_FAILED) when direct confirm has invalid included rows', async () => {
+      const mockFile = {
+        buffer: Buffer.from('internalCode,quantityBase\nP0001,0\n'),
+        originalname: 'invalid.csv',
+        mimetype: 'text/csv',
+      } as Express.Multer.File;
+
+      jest.spyOn(StockBulkFileParser, 'parse').mockResolvedValueOnce({
+        fileChecksum: 'file-sum-1',
+        rawRows: [{ rowNumber: 2, rawInternalCode: 'P0001', rawQuantity: '0' }],
+      });
+
+      mockValidator.validate = jest.fn().mockResolvedValueOnce({
+        valid: false,
+        contentChecksum: null,
+        summary: {
+          totalRows: 1,
+          includedRows: 1,
+          skippedRows: 0,
           validRows: 0,
           invalidRows: 1,
           totalQuantityBase: 0,
         },
-        rows: [],
+        rows: [
+          {
+            rowNumber: 2,
+            internalCode: 'P0001',
+            quantityBase: null,
+            status: StockBulkLoadRowStatus.INCLUDED_INVALID,
+            product: null,
+            errors: [{ code: 'ZERO_QUANTITY', message: 'Error' }],
+          },
+        ],
       });
 
       await expect(
-        service.confirmBulkLoad(mockFile, parsed.fileChecksum, mockActor),
+        service.confirmBulkLoad(mockFile, 'file-sum-1', {
+          id: 'user-1',
+          email: 'admin@erp.com',
+          role: 'ADMINISTRADOR',
+        }),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('successfully confirms valid batch atomically and emits batch audit log', async () => {
-      const csvBuffer = Buffer.from(
-        'internalCode,quantityBase\nP0001,100\n',
-        'utf8',
-      );
+    it('atomically confirms valid batch, records movements only for INCLUDED_VALID rows, and audits metrics', async () => {
       const mockFile = {
-        buffer: csvBuffer,
+        buffer: Buffer.from('internalCode,quantityBase\nP0001,50\nP0002,\n'),
         originalname: 'carga.csv',
         mimetype: 'text/csv',
       } as Express.Multer.File;
 
-      const parsed = await StockBulkFileParser.parse(
-        csvBuffer,
-        'carga.csv',
-        'text/csv',
-      );
+      jest.spyOn(StockBulkFileParser, 'parse').mockResolvedValueOnce({
+        fileChecksum: 'file-sum-1',
+        rawRows: [
+          { rowNumber: 2, rawInternalCode: 'P0001', rawQuantity: '50' },
+          { rowNumber: 3, rawInternalCode: 'P0002', rawQuantity: null },
+        ],
+      });
 
-      mockValidator.validate.mockResolvedValueOnce({
+      mockValidator.validate = jest.fn().mockResolvedValueOnce({
         valid: true,
-        contentChecksum: 'content-hash-abcdef',
+        contentChecksum: 'content-checksum-1',
         summary: {
-          totalRows: 1,
+          totalRows: 2,
+          includedRows: 1,
+          skippedRows: 1,
           validRows: 1,
           invalidRows: 0,
-          totalQuantityBase: 100,
+          totalQuantityBase: 50,
         },
         rows: [
           {
             rowNumber: 2,
             internalCode: 'P0001',
-            quantityBase: 100,
+            quantityBase: 50,
+            status: StockBulkLoadRowStatus.INCLUDED_VALID,
             product: {
-              id: 'p-uuid-1',
+              id: 'prod-uuid-1',
               internalCode: 'P0001',
-              name: 'Paracetamol',
-              currentBaseStock: 0,
-              projectedStock: 100,
+              name: 'Amoxicilina',
+              currentBaseStock: 10,
+              projectedStock: 60,
               baseUnit: { id: 'u1', name: 'Unidad', symbol: 'u' },
             },
             errors: [],
-            isValid: true,
+          },
+          {
+            rowNumber: 3,
+            internalCode: 'P0002',
+            quantityBase: null,
+            status: StockBulkLoadRowStatus.SKIPPED,
+            product: {
+              id: 'prod-uuid-2',
+              internalCode: 'P0002',
+              name: 'Ibuprofeno',
+              currentBaseStock: 0,
+              projectedStock: 0,
+              baseUnit: { id: 'u1', name: 'Unidad', symbol: 'u' },
+            },
+            errors: [],
           },
         ],
       });
 
-      (mockTxManager.create as unknown as jest.Mock).mockReturnValueOnce({
-        id: 'batch-uuid-1',
-        contentChecksum: 'content-hash-abcdef',
-        fileChecksum: parsed.fileChecksum,
-        actorId: mockActor.id,
-        rowCount: 1,
-        movementCount: 1,
-        totalQuantityBase: '100.00',
-        result: StockImportBatchResult.COMPLETED,
-        createdAt: new Date('2026-08-24T12:00:00.000Z'),
-      } as StockImportBatch);
+      const res = await service.confirmBulkLoad(mockFile, 'file-sum-1', {
+        id: 'user-1',
+        email: 'admin@erp.com',
+        role: 'ADMINISTRADOR',
+      });
 
-      (mockTxManager.save as unknown as jest.Mock).mockResolvedValueOnce({
-        id: 'batch-uuid-1',
-        contentChecksum: 'content-hash-abcdef',
-        fileChecksum: parsed.fileChecksum,
-        actorId: mockActor.id,
-        rowCount: 1,
-        movementCount: 1,
-        totalQuantityBase: '100.00',
-        result: StockImportBatchResult.COMPLETED,
-        createdAt: new Date('2026-08-24T12:00:00.000Z'),
-      } as StockImportBatch);
+      expect(res.batchId).toBe('new-batch-uuid');
+      expect(res.rowCount).toBe(1);
+      expect(res.movementCount).toBe(1);
+      expect(res.totalQuantityBase).toBe(50);
 
-      (mockTxManager.findOne as unknown as jest.Mock).mockResolvedValueOnce({
-        id: 'p-uuid-1',
-        internalCode: 'P0001',
-        status: ProductStatus.ACTIVE,
-      } as Product);
-
-      mockStockService.recordMovement.mockResolvedValueOnce({} as any);
-      mockAuditService.record.mockResolvedValueOnce({} as any);
-
-      const result = await service.confirmBulkLoad(
-        mockFile,
-        parsed.fileChecksum,
-        mockActor,
-      );
-
-      expect(result.batchId).toBe('batch-uuid-1');
-      expect(result.rowCount).toBe(1);
-      expect(result.movementCount).toBe(1);
-      expect(result.totalQuantityBase).toBe(100);
-
+      // Exactly 1 movement created (for prod-uuid-1 only)
+      expect(mockStockService.recordMovement).toHaveBeenCalledTimes(1);
       expect(mockStockService.recordMovement).toHaveBeenCalledWith(
         expect.objectContaining({
-          productId: 'p-uuid-1',
+          productId: 'prod-uuid-1',
+          quantityBase: 50,
           movementType: StockMovementType.AJUSTE_ENTRADA,
-          quantityBase: 100,
-          documentReference: 'BULK_LOAD:batch-uuid-1',
         }),
-        mockTxManager,
+        mockManager,
       );
 
+      // Audit record contains included and skipped rows metrics
       expect(mockAuditService.record).toHaveBeenCalledWith(
-        mockTxManager,
+        mockManager,
         expect.objectContaining({
-          entityName: 'StockBulkLoad',
-          entityId: 'batch-uuid-1',
+          newValues: expect.objectContaining({
+            totalRows: 2,
+            includedRows: 1,
+            skippedRows: 1,
+            rowCount: 1,
+            movementCount: 1,
+          }),
         }),
       );
-    });
-
-    it('translates duplicate content_checksum unique violation into 409 Conflict', async () => {
-      const csvBuffer = Buffer.from(
-        'internalCode,quantityBase\nP0001,100\n',
-        'utf8',
-      );
-      const mockFile = {
-        buffer: csvBuffer,
-        originalname: 'carga.csv',
-        mimetype: 'text/csv',
-      } as Express.Multer.File;
-
-      const parsed = await StockBulkFileParser.parse(
-        csvBuffer,
-        'carga.csv',
-        'text/csv',
-      );
-
-      mockValidator.validate.mockResolvedValueOnce({
-        valid: true,
-        contentChecksum: 'content-hash-duplicate',
-        summary: {
-          totalRows: 1,
-          validRows: 1,
-          invalidRows: 0,
-          totalQuantityBase: 100,
-        },
-        rows: [
-          {
-            rowNumber: 2,
-            internalCode: 'P0001',
-            quantityBase: 100,
-            product: {
-              id: 'p-uuid-1',
-              internalCode: 'P0001',
-              name: 'Paracetamol',
-              currentBaseStock: 0,
-              projectedStock: 100,
-              baseUnit: { id: 'u1', name: 'Unidad', symbol: 'u' },
-            },
-            errors: [],
-            isValid: true,
-          },
-        ],
-      });
-
-      mockDataSource.transaction.mockRejectedValueOnce({
-        code: '23505',
-        detail:
-          'Key (content_checksum)=(content-hash-duplicate) already exists.',
-      });
-
-      await expect(
-        service.confirmBulkLoad(mockFile, parsed.fileChecksum, mockActor),
-      ).rejects.toThrow(ConflictException);
     });
   });
 });

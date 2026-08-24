@@ -6,6 +6,7 @@ import * as crypto from 'crypto';
 import {
   ProductStatus,
   StockBulkRowErrorCode,
+  StockBulkLoadRowStatus,
   IStockBulkLoadRawRow,
   IStockBulkLoadValidatedRow,
   IStockBulkLoadSummary,
@@ -13,7 +14,7 @@ import {
 import { Product } from '../../products/entities/product.entity';
 import { parseStockDecimal } from '../utils/stock-math.utils';
 
-export const MAX_CELL_QUANTITY = new Decimal('999999999.99'); // 10^9 - 0.01 (enables 1000 rows to fit in numeric(14,2))
+export const MAX_CELL_QUANTITY = new Decimal('999999999.99'); // 10^9 - 0.01
 export const MAX_CUMULATIVE_STOCK = new Decimal('999999999999.99'); // PostgreSQL numeric(14,2) ceiling
 
 export interface ValidationResult {
@@ -31,15 +32,22 @@ export class StockBulkLoadValidator {
   ) {}
 
   /**
-   * Validates raw parsed rows against catalog invariants and business constraints.
+   * Validates raw parsed rows against catalog invariants and business constraints with skipped row support.
    */
   async validate(rawRows: IStockBulkLoadRawRow[]): Promise<ValidationResult> {
-    const validatedRows: IStockBulkLoadValidatedRow[] = [];
-    const seenCodes = new Set<string>();
-    const duplicateCodes = new Set<string>();
-    const validCodesToQuery = new Set<string>();
+    const intermediateRows: {
+      rowNumber: number;
+      internalCode: string;
+      quantityBase: number | null;
+      isSkipped: boolean;
+      errors: { code: StockBulkRowErrorCode; message: string }[];
+    }[] = [];
 
-    // 1. First Pass: Code format, syntax, duplicates, and quantity syntax
+    const seenIncludedCodes = new Set<string>();
+    const duplicateIncludedCodes = new Set<string>();
+    const allNormalizedCodesToQuery = new Set<string>();
+
+    // 1. First Pass: Code format, syntax, classification into SKIPPED vs INCLUDED
     for (const raw of rawRows) {
       const errors: { code: StockBulkRowErrorCode; message: string }[] = [];
       const normalizedCode = (raw.rawInternalCode || '').trim().toUpperCase();
@@ -56,12 +64,7 @@ export class StockBulkLoadValidator {
             'El código de producto supera la longitud máxima permitida de 50 caracteres.',
         });
       } else {
-        if (seenCodes.has(normalizedCode)) {
-          duplicateCodes.add(normalizedCode);
-        } else {
-          seenCodes.add(normalizedCode);
-        }
-        validCodesToQuery.add(normalizedCode);
+        allNormalizedCodesToQuery.add(normalizedCode);
       }
 
       if (raw.hasFormula) {
@@ -71,18 +74,19 @@ export class StockBulkLoadValidator {
         });
       }
 
+      const isBlankQuantity =
+        raw.rawQuantity === null ||
+        raw.rawQuantity === undefined ||
+        String(raw.rawQuantity).trim() === '';
+
+      let isSkipped = false;
       let parsedQuantity: Decimal | null = null;
       let quantityBaseNumber: number | null = null;
 
-      if (
-        raw.rawQuantity === null ||
-        raw.rawQuantity === undefined ||
-        String(raw.rawQuantity).trim() === ''
-      ) {
-        errors.push({
-          code: StockBulkRowErrorCode.EMPTY_QUANTITY,
-          message: 'La cantidad a ingresar no puede estar vacía.',
-        });
+      if (isBlankQuantity) {
+        if (!raw.hasFormula) {
+          isSkipped = true;
+        }
       } else {
         const rawStr = String(raw.rawQuantity).trim().replace(',', '.');
         try {
@@ -128,31 +132,42 @@ export class StockBulkLoadValidator {
         }
       }
 
-      validatedRows.push({
+      // Track duplicate codes strictly among INCLUDED rows
+      if (!isSkipped && normalizedCode) {
+        if (seenIncludedCodes.has(normalizedCode)) {
+          duplicateIncludedCodes.add(normalizedCode);
+        } else {
+          seenIncludedCodes.add(normalizedCode);
+        }
+      }
+
+      intermediateRows.push({
         rowNumber: raw.rowNumber,
         internalCode: normalizedCode,
         quantityBase: quantityBaseNumber,
-        product: null,
+        isSkipped,
         errors,
-        isValid: errors.length === 0,
       });
     }
 
-    // Flag duplicate codes in file
-    for (const row of validatedRows) {
-      if (row.internalCode && duplicateCodes.has(row.internalCode)) {
+    // Flag duplicate codes in file (only for included rows)
+    for (const row of intermediateRows) {
+      if (
+        !row.isSkipped &&
+        row.internalCode &&
+        duplicateIncludedCodes.has(row.internalCode)
+      ) {
         row.errors.push({
           code: StockBulkRowErrorCode.DUPLICATE_INTERNAL_CODE,
-          message: `El código "${row.internalCode}" aparece duplicado en el archivo.`,
+          message: `El código "${row.internalCode}" aparece duplicado en filas con cantidad a cargar.`,
         });
-        row.isValid = false;
       }
     }
 
-    // 2. Second Pass: Batch database query for product catalog resolution
+    // 2. Second Pass: Single unified database query for all normalized codes present in file
     const productsMap = new Map<string, Product>();
-    if (validCodesToQuery.size > 0) {
-      const codeList = Array.from(validCodesToQuery);
+    if (allNormalizedCodesToQuery.size > 0) {
+      const codeList = Array.from(allNormalizedCodesToQuery);
       const foundProducts = await this.productRepository.find({
         where: { internalCode: In(codeList) },
         relations: ['stock', 'baseUnit'],
@@ -164,77 +179,110 @@ export class StockBulkLoadValidator {
     }
 
     let totalQuantityDecimal = new Decimal(0);
+    const validatedRows: IStockBulkLoadValidatedRow[] = [];
 
-    // 3. Third Pass: Attach resolved products & verify status/overflow
-    for (const row of validatedRows) {
-      if (row.internalCode) {
-        const product = productsMap.get(row.internalCode);
+    // 3. Third Pass: Attach resolved products & verify status/overflow for included rows
+    for (const row of intermediateRows) {
+      const product = row.internalCode
+        ? productsMap.get(row.internalCode)
+        : null;
+      let resolvedProductDto = null;
 
-        if (!product) {
-          row.errors.push({
-            code: StockBulkRowErrorCode.PRODUCT_NOT_FOUND,
-            message: `El producto con código "${row.internalCode}" no existe en el catálogo.`,
-          });
-          row.isValid = false;
-        } else {
+      if (product) {
+        const currentBaseStock = product.stock
+          ? parseStockDecimal(product.stock.currentBaseStock, 2)
+          : 0;
+        const currentStockDec = new Decimal(currentBaseStock);
+        const additionDec =
+          row.quantityBase !== null
+            ? new Decimal(row.quantityBase)
+            : new Decimal(0);
+        const projectedStockDec = currentStockDec.plus(additionDec);
+
+        resolvedProductDto = {
+          id: product.id,
+          internalCode: product.internalCode,
+          name: product.name,
+          currentBaseStock,
+          projectedStock: parseStockDecimal(projectedStockDec.toString(), 2),
+          baseUnit: {
+            id: product.baseUnit?.id || product.baseUnitId,
+            name: product.baseUnit?.name || '',
+            symbol: product.baseUnit?.symbol || '',
+          },
+        };
+
+        // For INCLUDED rows: verify active status & overflow
+        if (!row.isSkipped) {
           if (product.status !== ProductStatus.ACTIVE) {
             row.errors.push({
               code: StockBulkRowErrorCode.PRODUCT_INACTIVE,
               message: `El producto "${product.name}" (${row.internalCode}) está inactivo en el catálogo.`,
             });
-            row.isValid = false;
           }
-
-          const currentBaseStock = product.stock
-            ? parseStockDecimal(product.stock.currentBaseStock, 2)
-            : 0;
-          const currentStockDec = new Decimal(currentBaseStock);
-          const additionDec =
-            row.quantityBase !== null
-              ? new Decimal(row.quantityBase)
-              : new Decimal(0);
-          const projectedStockDec = currentStockDec.plus(additionDec);
 
           if (projectedStockDec.greaterThan(MAX_CUMULATIVE_STOCK)) {
             row.errors.push({
               code: StockBulkRowErrorCode.STOCK_OVERFLOW,
               message: `El saldo resultante proyectado superaría el límite máximo permitido de ${MAX_CUMULATIVE_STOCK.toFixed(2)}.`,
             });
-            row.isValid = false;
           }
+        }
+      } else if (!row.isSkipped && row.internalCode) {
+        // Product not found for an included row
+        row.errors.push({
+          code: StockBulkRowErrorCode.PRODUCT_NOT_FOUND,
+          message: `El producto con código "${row.internalCode}" no existe en el catálogo.`,
+        });
+      }
 
-          row.product = {
-            id: product.id,
-            internalCode: product.internalCode,
-            name: product.name,
-            currentBaseStock,
-            projectedStock: parseStockDecimal(projectedStockDec.toString(), 2),
-            baseUnit: {
-              id: product.baseUnit?.id || product.baseUnitId,
-              name: product.baseUnit?.name || '',
-              symbol: product.baseUnit?.symbol || '',
-            },
-          };
+      let status: StockBulkLoadRowStatus;
+      if (row.isSkipped) {
+        status = StockBulkLoadRowStatus.SKIPPED;
+      } else if (row.errors.length > 0) {
+        status = StockBulkLoadRowStatus.INCLUDED_INVALID;
+      } else {
+        status = StockBulkLoadRowStatus.INCLUDED_VALID;
+        if (row.quantityBase !== null) {
+          totalQuantityDecimal = totalQuantityDecimal.plus(row.quantityBase);
         }
       }
 
-      if (row.isValid && row.quantityBase !== null) {
-        totalQuantityDecimal = totalQuantityDecimal.plus(row.quantityBase);
-      }
+      validatedRows.push({
+        rowNumber: row.rowNumber,
+        internalCode: row.internalCode,
+        quantityBase: row.quantityBase,
+        status,
+        product: resolvedProductDto,
+        errors: row.errors,
+      });
     }
 
     const totalRows = validatedRows.length;
-    const validRows = validatedRows.filter((r) => r.isValid).length;
-    const invalidRows = totalRows - validRows;
-    const valid = invalidRows === 0 && totalRows > 0;
+    const includedRows = validatedRows.filter(
+      (r) => r.status !== StockBulkLoadRowStatus.SKIPPED,
+    ).length;
+    const skippedRows = validatedRows.filter(
+      (r) => r.status === StockBulkLoadRowStatus.SKIPPED,
+    ).length;
+    const validRows = validatedRows.filter(
+      (r) => r.status === StockBulkLoadRowStatus.INCLUDED_VALID,
+    ).length;
+    const invalidRows = validatedRows.filter(
+      (r) => r.status === StockBulkLoadRowStatus.INCLUDED_INVALID,
+    ).length;
 
-    // 4. Compute canonical content checksum ONLY when valid is true
+    const valid = includedRows > 0 && invalidRows === 0;
+
+    // 4. Compute canonical content checksum strictly across INCLUDED_VALID rows
     let contentChecksum: string | null = null;
     if (valid) {
-      const canonicalEntries = validatedRows.map((r) => ({
-        code: r.internalCode,
-        qty: new Decimal(r.quantityBase!).toFixed(2),
-      }));
+      const canonicalEntries = validatedRows
+        .filter((r) => r.status === StockBulkLoadRowStatus.INCLUDED_VALID)
+        .map((r) => ({
+          code: r.internalCode,
+          qty: new Decimal(r.quantityBase!).toFixed(2),
+        }));
 
       // Sort alphabetically by code ASC
       canonicalEntries.sort((a, b) => a.code.localeCompare(b.code));
@@ -253,6 +301,8 @@ export class StockBulkLoadValidator {
       contentChecksum,
       summary: {
         totalRows,
+        includedRows,
+        skippedRows,
         validRows,
         invalidRows,
         totalQuantityBase: parseStockDecimal(

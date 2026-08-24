@@ -5,6 +5,7 @@ import {
   StockBulkRowErrorCode,
   StockBulkFileErrorCode,
   StockImportBatchResult,
+  StockBulkLoadRowStatus,
   IStockPaginationMeta,
   PaginatedStockResponse,
   IStockOverviewItem,
@@ -36,6 +37,7 @@ export {
   StockBulkRowErrorCode,
   StockBulkFileErrorCode,
   StockImportBatchResult,
+  StockBulkLoadRowStatus,
 };
 
 export type {

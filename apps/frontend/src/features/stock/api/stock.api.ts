@@ -143,15 +143,59 @@ export async function getStockEvolutionApi(
   return data;
 }
 
+async function extractBlobText(blob: any): Promise<string> {
+  if (typeof blob.text === 'function') {
+    try {
+      const txt = await blob.text();
+      if (typeof txt === 'string') return txt;
+    } catch {
+      // Fallback
+    }
+  }
+  if (typeof FileReader !== 'undefined') {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve((reader.result as string) || '');
+      reader.onerror = () => reject(reader.error);
+      reader.readAsText(blob);
+    });
+  }
+  if (typeof Response !== 'undefined') {
+    return new Response(blob).text();
+  }
+  return '';
+}
+
 /**
- * Downloads empty bulk load template (CSV or XLSX).
+ * Downloads pre-populated bulk load template (CSV or XLSX).
  */
 export async function downloadStockTemplateApi(format: 'xlsx' | 'csv' = 'xlsx'): Promise<Blob> {
-  const response = await apiClient.get('/stock/bulk-load/template', {
-    params: { format },
-    responseType: 'blob',
-  });
-  return response.data;
+  try {
+    const response = await apiClient.get('/stock/bulk-load/template', {
+      params: { format },
+      responseType: 'blob',
+    });
+    return response.data;
+  } catch (error: any) {
+    const responseData = error?.response?.data;
+    if (
+      responseData &&
+      (responseData instanceof Blob ||
+        responseData?.constructor?.name === 'Blob' ||
+        typeof responseData?.text === 'function')
+    ) {
+      try {
+        const text = await extractBlobText(responseData);
+        if (text) {
+          const json = JSON.parse(text);
+          error.response.data = json;
+        }
+      } catch {
+        // Leave raw error if not json
+      }
+    }
+    throw error;
+  }
 }
 
 /**

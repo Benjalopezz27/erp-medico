@@ -2,16 +2,19 @@ import {
   Injectable,
   BadRequestException,
   ConflictException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import * as ExcelJS from 'exceljs';
+import { stringify as stringifyCsv } from 'csv-stringify/sync';
 import Decimal from 'decimal.js';
 import {
   ProductStatus,
   StockMovementType,
   StockBulkFileErrorCode,
   StockImportBatchResult,
+  StockBulkLoadRowStatus,
   AuditAction,
   IStockBulkLoadPreviewResponse,
   IStockBulkLoadConfirmResponse,
@@ -20,7 +23,10 @@ import { StockImportBatch } from '../entities/stock-import-batch.entity';
 import { Product } from '../../products/entities/product.entity';
 import { StockService } from '../stock.service';
 import { AuditService } from '../../audit/audit.service';
-import { StockBulkFileParser } from './stock-bulk-file-parser';
+import {
+  StockBulkFileParser,
+  BULK_LOAD_MAX_DATA_ROWS,
+} from './stock-bulk-file-parser';
 import { StockBulkLoadValidator } from './stock-bulk-load-validator';
 import { parseStockDecimal } from '../utils/stock-math.utils';
 
@@ -44,13 +50,49 @@ export class StockBulkLoadService {
   ) {}
 
   /**
-   * Generates a template file (CSV or XLSX) with only headers.
+   * Generates a template file (CSV or XLSX) pre-populated with active products.
    */
   async generateTemplate(
     format: 'xlsx' | 'csv' = 'xlsx',
   ): Promise<{ buffer: Buffer; contentType: string; filename: string }> {
+    const products = await this.productRepository.find({
+      where: { status: ProductStatus.ACTIVE },
+      relations: ['baseUnit'],
+      select: {
+        id: true,
+        internalCode: true,
+        name: true,
+        status: true,
+        baseUnit: {
+          id: true,
+          name: true,
+          symbol: true,
+        },
+      },
+      order: { internalCode: 'ASC' },
+      take: BULK_LOAD_MAX_DATA_ROWS + 1, // 1001
+    });
+
+    if (products.length > BULK_LOAD_MAX_DATA_ROWS) {
+      throw new UnprocessableEntityException({
+        code: StockBulkFileErrorCode.BULK_LOAD_TEMPLATE_ROW_LIMIT_EXCEEDED,
+        message: `El catálogo de productos activos supera el límite máximo de ${BULK_LOAD_MAX_DATA_ROWS} productos para la plantilla de carga inicial.`,
+      });
+    }
+
     if (format === 'csv') {
-      const csvContent = 'internalCode,quantityBase\n';
+      const csvData = products.map((p) => [
+        p.internalCode,
+        p.name,
+        p.baseUnit ? `${p.baseUnit.name} (${p.baseUnit.symbol})` : '',
+        '',
+      ]);
+
+      const csvContent = stringifyCsv(csvData, {
+        header: true,
+        columns: ['internalCode', 'productName', 'baseUnit', 'quantityBase'],
+      });
+
       return {
         buffer: Buffer.from(csvContent, 'utf8'),
         contentType: 'text/csv; charset=utf-8',
@@ -58,9 +100,63 @@ export class StockBulkLoadService {
       };
     }
 
+    // XLSX template generation
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Inventario');
-    worksheet.addRow(['internalCode', 'quantityBase']);
+    const worksheet = workbook.addWorksheet('Inventario', {
+      views: [{ state: 'frozen', ySplit: 1 }],
+    });
+
+    worksheet.columns = [
+      { header: 'internalCode', key: 'internalCode', width: 16 },
+      { header: 'productName', key: 'productName', width: 40 },
+      { header: 'baseUnit', key: 'baseUnit', width: 24 },
+      { header: 'quantityBase', key: 'quantityBase', width: 18 },
+    ];
+
+    // Style Header Row (Dark Slate with bold white text)
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1E293B' },
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'left' };
+    headerRow.height = 24;
+
+    // Add Data Rows with visual differentiation
+    for (const p of products) {
+      const baseUnitLabel = p.baseUnit
+        ? `${p.baseUnit.name} (${p.baseUnit.symbol})`
+        : '';
+
+      const row = worksheet.addRow({
+        internalCode: p.internalCode,
+        productName: p.name,
+        baseUnit: baseUnitLabel,
+        quantityBase: null,
+      });
+
+      // Soft neutral background for informative columns
+      const neutralFill: ExcelJS.Fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFF8FAFC' },
+      };
+
+      row.getCell(1).fill = neutralFill;
+      row.getCell(2).fill = neutralFill;
+      row.getCell(3).fill = neutralFill;
+
+      // Soft yellow background and numeric formatting for quantityBase
+      const editableCell = row.getCell(4);
+      editableCell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFEF3C7' },
+      };
+      editableCell.numFmt = '#,##0.00';
+    }
 
     const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
     return {
@@ -134,7 +230,19 @@ export class StockBulkLoadService {
 
     // 3. Pre-transaction validation
     const validation = await this.validator.validate(parsed.rawRows);
-    if (!validation.valid || !validation.contentChecksum) {
+
+    if (validation.summary.includedRows === 0) {
+      throw new BadRequestException({
+        code: StockBulkFileErrorCode.BULK_LOAD_NO_INCLUDED_ROWS,
+        message: 'El archivo no contiene filas con cantidades a cargar.',
+      });
+    }
+
+    if (
+      validation.summary.invalidRows > 0 ||
+      !validation.valid ||
+      !validation.contentChecksum
+    ) {
       throw new BadRequestException({
         code: StockBulkFileErrorCode.BULK_LOAD_VALIDATION_FAILED,
         message:
@@ -143,7 +251,9 @@ export class StockBulkLoadService {
     }
 
     const contentChecksum = validation.contentChecksum;
-    const validRows = validation.rows.filter((r) => r.isValid && r.product);
+    const validRows = validation.rows.filter(
+      (r) => r.status === StockBulkLoadRowStatus.INCLUDED_VALID && r.product,
+    );
 
     // 4. Sort rows deterministically by productId ASC to eliminate concurrent deadlocks
     validRows.sort((a, b) =>
@@ -158,8 +268,8 @@ export class StockBulkLoadService {
           contentChecksum,
           fileChecksum: parsed.fileChecksum,
           actorId: actor.id,
-          rowCount: validation.summary.totalRows,
-          movementCount: validation.summary.validRows,
+          rowCount: validation.summary.includedRows,
+          movementCount: validRows.length,
           totalQuantityBase: new Decimal(
             validation.summary.totalQuantityBase,
           ).toFixed(2),
@@ -208,6 +318,9 @@ export class StockBulkLoadService {
             batchId: savedBatch.id,
             contentChecksum: savedBatch.contentChecksum,
             fileChecksum: savedBatch.fileChecksum,
+            totalRows: validation.summary.totalRows,
+            includedRows: validation.summary.includedRows,
+            skippedRows: validation.summary.skippedRows,
             rowCount: savedBatch.rowCount,
             movementCount: savedBatch.movementCount,
             totalQuantityBase: savedBatch.totalQuantityBase,

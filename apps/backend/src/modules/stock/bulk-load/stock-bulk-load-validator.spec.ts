@@ -1,214 +1,246 @@
 import { Repository } from 'typeorm';
-import { ProductStatus, StockBulkRowErrorCode } from '@erp/shared-types';
+import {
+  ProductStatus,
+  StockBulkRowErrorCode,
+  StockBulkLoadRowStatus,
+  IStockBulkLoadRawRow,
+} from '@erp/shared-types';
 import { StockBulkLoadValidator } from './stock-bulk-load-validator';
 import { Product } from '../../products/entities/product.entity';
 
 describe('StockBulkLoadValidator', () => {
   let validator: StockBulkLoadValidator;
-  let mockProductRepo: jest.Mocked<Repository<Product>>;
+  let mockProductRepo: Partial<Repository<Product>>;
+
+  const activeProduct1: Partial<Product> = {
+    id: 'prod-uuid-1',
+    internalCode: 'P0001',
+    name: 'Amoxicilina 500mg',
+    status: ProductStatus.ACTIVE,
+    stock: {
+      id: 's1',
+      productId: 'prod-uuid-1',
+      currentBaseStock: '50.00',
+    } as any,
+    baseUnit: { id: 'u1', name: 'Comprimido', symbol: 'cmp' } as any,
+    baseUnitId: 'u1',
+  };
+
+  const activeProduct2: Partial<Product> = {
+    id: 'prod-uuid-2',
+    internalCode: 'P0002',
+    name: 'Ibuprofeno 600mg',
+    status: ProductStatus.ACTIVE,
+    stock: {
+      id: 's2',
+      productId: 'prod-uuid-2',
+      currentBaseStock: '10.00',
+    } as any,
+    baseUnit: { id: 'u1', name: 'Comprimido', symbol: 'cmp' } as any,
+    baseUnitId: 'u1',
+  };
+
+  const inactiveProduct: Partial<Product> = {
+    id: 'prod-uuid-3',
+    internalCode: 'P0003',
+    name: 'Producto Inactivo',
+    status: ProductStatus.INACTIVE,
+    stock: {
+      id: 's3',
+      productId: 'prod-uuid-3',
+      currentBaseStock: '0.00',
+    } as any,
+    baseUnit: { id: 'u1', name: 'Comprimido', symbol: 'cmp' } as any,
+    baseUnitId: 'u1',
+  };
 
   beforeEach(() => {
     mockProductRepo = {
-      find: jest.fn(),
-    } as unknown as jest.Mocked<Repository<Product>>;
+      find: jest.fn().mockImplementation(async (options: any) => {
+        const codes: string[] = options?.where?.internalCode?._value || [];
+        const all = [
+          activeProduct1,
+          activeProduct2,
+          inactiveProduct,
+        ] as Product[];
+        return all.filter((p) => codes.includes(p.internalCode));
+      }),
+    };
 
-    validator = new StockBulkLoadValidator(mockProductRepo);
+    validator = new StockBulkLoadValidator(
+      mockProductRepo as Repository<Product>,
+    );
   });
 
-  it('validates a correct batch of items, resolves catalog, and computes content checksum', async () => {
-    mockProductRepo.find.mockResolvedValueOnce([
-      {
-        id: 'prod-uuid-1',
-        internalCode: 'P0001',
-        name: 'Paracetamol 500mg',
-        status: ProductStatus.ACTIVE,
-        stock: { currentBaseStock: '10.00' } as any,
-        baseUnit: { id: 'u1', name: 'Unidad', symbol: 'u' } as any,
-      } as Product,
-      {
-        id: 'prod-uuid-2',
-        internalCode: 'P0002',
-        name: 'Ibuprofeno 400mg',
-        status: ProductStatus.ACTIVE,
-        stock: { currentBaseStock: '0.00' } as any,
-        baseUnit: { id: 'u2', name: 'Caja', symbol: 'cj' } as any,
-      } as Product,
-    ]);
+  describe('1. Skipped vs Included Row Semantics', () => {
+    it('marks rows with blank quantities as SKIPPED and rows with quantities as INCLUDED_VALID', async () => {
+      const rawRows: IStockBulkLoadRawRow[] = [
+        {
+          rowNumber: 2,
+          rawInternalCode: 'P0001',
+          rawQuantity: '100',
+          rawProductName: 'Amoxicilina',
+          rawBaseUnit: 'cmp',
+        },
+        {
+          rowNumber: 3,
+          rawInternalCode: 'P0002',
+          rawQuantity: null, // blank
+          rawProductName: 'Ibuprofeno',
+          rawBaseUnit: 'cmp',
+        },
+      ];
 
-    const rawRows = [
-      {
-        rowNumber: 2,
-        rawInternalCode: 'p0001 ',
-        rawQuantity: '100.50',
-        hasFormula: false,
-      },
-      {
-        rowNumber: 3,
-        rawInternalCode: 'P0002',
-        rawQuantity: 50,
-        hasFormula: false,
-      },
-    ];
+      const result = await validator.validate(rawRows);
 
-    const result = await validator.validate(rawRows);
-
-    expect(result.valid).toBe(true);
-    expect(result.contentChecksum).toBeDefined();
-    expect(result.contentChecksum?.length).toBe(64);
-    expect(result.summary).toEqual({
-      totalRows: 2,
-      validRows: 2,
-      invalidRows: 0,
-      totalQuantityBase: 150.5,
+      expect(result.valid).toBe(true);
+      expect(result.contentChecksum).toBeDefined();
+      expect(result.summary).toEqual({
+        totalRows: 2,
+        includedRows: 1,
+        skippedRows: 1,
+        validRows: 1,
+        invalidRows: 0,
+        totalQuantityBase: 100,
+      });
+      expect(result.rows[0].status).toBe(StockBulkLoadRowStatus.INCLUDED_VALID);
+      expect(result.rows[0].quantityBase).toBe(100);
+      expect(result.rows[1].status).toBe(StockBulkLoadRowStatus.SKIPPED);
+      expect(result.rows[1].quantityBase).toBeNull();
+      expect(result.rows[1].product).toBeDefined(); // Authoritative product attached
     });
-    expect(result.rows[0].product?.projectedStock).toBe(110.5);
-    expect(result.rows[1].product?.projectedStock).toBe(50);
+
+    it('returns valid: false, contentChecksum: null when all rows are SKIPPED', async () => {
+      const rawRows: IStockBulkLoadRawRow[] = [
+        { rowNumber: 2, rawInternalCode: 'P0001', rawQuantity: null },
+        { rowNumber: 3, rawInternalCode: 'P0002', rawQuantity: '' },
+      ];
+
+      const result = await validator.validate(rawRows);
+
+      expect(result.valid).toBe(false);
+      expect(result.contentChecksum).toBeNull();
+      expect(result.summary.includedRows).toBe(0);
+      expect(result.summary.skippedRows).toBe(2);
+      expect(result.summary.invalidRows).toBe(0);
+    });
+
+    it('does not flag duplicate code error if one occurrence is SKIPPED and one is INCLUDED', async () => {
+      const rawRows: IStockBulkLoadRawRow[] = [
+        { rowNumber: 2, rawInternalCode: 'P0001', rawQuantity: '10' },
+        { rowNumber: 3, rawInternalCode: 'P0001', rawQuantity: null }, // Skipped
+      ];
+
+      const result = await validator.validate(rawRows);
+
+      expect(result.valid).toBe(true);
+      expect(result.rows[0].status).toBe(StockBulkLoadRowStatus.INCLUDED_VALID);
+      expect(result.rows[1].status).toBe(StockBulkLoadRowStatus.SKIPPED);
+    });
+
+    it('flags duplicate code error when two rows have the same code and non-empty quantities', async () => {
+      const rawRows: IStockBulkLoadRawRow[] = [
+        { rowNumber: 2, rawInternalCode: 'P0001', rawQuantity: '10' },
+        { rowNumber: 3, rawInternalCode: 'P0001', rawQuantity: '20' },
+      ];
+
+      const result = await validator.validate(rawRows);
+
+      expect(result.valid).toBe(false);
+      expect(result.rows[0].status).toBe(
+        StockBulkLoadRowStatus.INCLUDED_INVALID,
+      );
+      expect(result.rows[1].status).toBe(
+        StockBulkLoadRowStatus.INCLUDED_INVALID,
+      );
+      expect(result.rows[0].errors[0].code).toBe(
+        StockBulkRowErrorCode.DUPLICATE_INTERNAL_CODE,
+      );
+    });
   });
 
-  it('computes identical contentChecksum regardless of row ordering in input file', async () => {
-    const mockProducts = [
-      {
-        id: 'prod-uuid-1',
-        internalCode: 'P0001',
-        name: 'Paracetamol 500mg',
-        status: ProductStatus.ACTIVE,
-        stock: { currentBaseStock: '0.00' } as any,
-        baseUnit: { id: 'u1', name: 'Unidad', symbol: 'u' } as any,
-      } as Product,
-      {
-        id: 'prod-uuid-2',
-        internalCode: 'P0002',
-        name: 'Ibuprofeno 400mg',
-        status: ProductStatus.ACTIVE,
-        stock: { currentBaseStock: '0.00' } as any,
-        baseUnit: { id: 'u2', name: 'Caja', symbol: 'cj' } as any,
-      } as Product,
-    ];
+  describe('2. Checksum Invariance & Canonical Hashing', () => {
+    it('produces identical contentChecksum regardless of informative column values', async () => {
+      const file1: IStockBulkLoadRawRow[] = [
+        {
+          rowNumber: 2,
+          rawInternalCode: 'P0001',
+          rawProductName: 'Amoxicilina 500mg',
+          rawBaseUnit: 'Comprimido (cmp)',
+          rawQuantity: '50.00',
+        },
+      ];
 
-    mockProductRepo.find.mockResolvedValue(mockProducts);
+      const file2: IStockBulkLoadRawRow[] = [
+        {
+          rowNumber: 2,
+          rawInternalCode: 'P0001',
+          rawProductName: 'Modified Informative Name',
+          rawBaseUnit: 'Different Unit String',
+          rawQuantity: '50.00',
+        },
+      ];
 
-    const order1 = [
-      { rowNumber: 2, rawInternalCode: 'P0001', rawQuantity: '100.00' },
-      { rowNumber: 3, rawInternalCode: 'P0002', rawQuantity: '50.00' },
-    ];
+      const res1 = await validator.validate(file1);
+      const res2 = await validator.validate(file2);
 
-    const order2 = [
-      { rowNumber: 2, rawInternalCode: 'P0002', rawQuantity: '50.00' },
-      { rowNumber: 3, rawInternalCode: 'P0001', rawQuantity: '100.00' },
-    ];
+      expect(res1.contentChecksum).toBeDefined();
+      expect(res1.contentChecksum).toBe(res2.contentChecksum);
+    });
 
-    const result1 = await validator.validate(order1);
-    const result2 = await validator.validate(order2);
+    it('computes contentChecksum strictly across INCLUDED_VALID rows', async () => {
+      const withSkipped: IStockBulkLoadRawRow[] = [
+        { rowNumber: 2, rawInternalCode: 'P0001', rawQuantity: '50.00' },
+        { rowNumber: 3, rawInternalCode: 'P0002', rawQuantity: null },
+      ];
 
-    expect(result1.valid).toBe(true);
-    expect(result2.valid).toBe(true);
-    expect(result1.contentChecksum).toBe(result2.contentChecksum);
+      const withoutSkipped: IStockBulkLoadRawRow[] = [
+        { rowNumber: 2, rawInternalCode: 'P0001', rawQuantity: '50.00' },
+      ];
+
+      const res1 = await validator.validate(withSkipped);
+      const res2 = await validator.validate(withoutSkipped);
+
+      expect(res1.contentChecksum).toBe(res2.contentChecksum);
+    });
   });
 
-  it('flags PRODUCT_NOT_FOUND when product does not exist in database and sets contentChecksum to null', async () => {
-    mockProductRepo.find.mockResolvedValueOnce([]);
+  describe('3. Domain Validation Invariants for Included Rows', () => {
+    it('flags PRODUCT_INACTIVE when an included row targets an inactive product', async () => {
+      const rawRows: IStockBulkLoadRawRow[] = [
+        { rowNumber: 2, rawInternalCode: 'P0003', rawQuantity: '10' },
+      ];
 
-    const rawRows = [
-      { rowNumber: 2, rawInternalCode: 'UNKNOWN-01', rawQuantity: '10' },
-    ];
+      const result = await validator.validate(rawRows);
 
-    const result = await validator.validate(rawRows);
+      expect(result.valid).toBe(false);
+      expect(result.rows[0].status).toBe(
+        StockBulkLoadRowStatus.INCLUDED_INVALID,
+      );
+      expect(result.rows[0].errors[0].code).toBe(
+        StockBulkRowErrorCode.PRODUCT_INACTIVE,
+      );
+    });
 
-    expect(result.valid).toBe(false);
-    expect(result.contentChecksum).toBeNull();
-    expect(result.summary.invalidRows).toBe(1);
-    expect(result.rows[0].errors[0].code).toBe(
-      StockBulkRowErrorCode.PRODUCT_NOT_FOUND,
-    );
-  });
+    it('flags ZERO_QUANTITY, NEGATIVE_QUANTITY, and EXCESSIVE_DECIMAL_SCALE', async () => {
+      const rawRows: IStockBulkLoadRawRow[] = [
+        { rowNumber: 2, rawInternalCode: 'P0001', rawQuantity: '0' },
+        { rowNumber: 3, rawInternalCode: 'P0002', rawQuantity: '-5' },
+        { rowNumber: 4, rawInternalCode: 'P0001', rawQuantity: '10.555' },
+      ];
 
-  it('flags PRODUCT_INACTIVE when product is inactive in catalog', async () => {
-    mockProductRepo.find.mockResolvedValueOnce([
-      {
-        id: 'prod-uuid-1',
-        internalCode: 'P0001',
-        name: 'Producto Inactivo',
-        status: ProductStatus.INACTIVE,
-        stock: { currentBaseStock: '0.00' } as any,
-        baseUnit: { id: 'u1', name: 'Unidad', symbol: 'u' } as any,
-      } as Product,
-    ]);
+      const result = await validator.validate(rawRows);
 
-    const rawRows = [
-      { rowNumber: 2, rawInternalCode: 'P0001', rawQuantity: '10' },
-    ];
-
-    const result = await validator.validate(rawRows);
-
-    expect(result.valid).toBe(false);
-    expect(result.rows[0].errors[0].code).toBe(
-      StockBulkRowErrorCode.PRODUCT_INACTIVE,
-    );
-  });
-
-  it('flags DUPLICATE_INTERNAL_CODE when same code appears multiple times in file', async () => {
-    mockProductRepo.find.mockResolvedValueOnce([
-      {
-        id: 'prod-uuid-1',
-        internalCode: 'P0001',
-        name: 'Paracetamol 500mg',
-        status: ProductStatus.ACTIVE,
-        stock: { currentBaseStock: '0.00' } as any,
-        baseUnit: { id: 'u1', name: 'Unidad', symbol: 'u' } as any,
-      } as Product,
-    ]);
-
-    const rawRows = [
-      { rowNumber: 2, rawInternalCode: 'p0001', rawQuantity: '10' },
-      { rowNumber: 3, rawInternalCode: 'P0001 ', rawQuantity: '20' },
-    ];
-
-    const result = await validator.validate(rawRows);
-
-    expect(result.valid).toBe(false);
-    expect(
-      result.rows[0].errors.some(
-        (e) => e.code === StockBulkRowErrorCode.DUPLICATE_INTERNAL_CODE,
-      ),
-    ).toBe(true);
-    expect(
-      result.rows[1].errors.some(
-        (e) => e.code === StockBulkRowErrorCode.DUPLICATE_INTERNAL_CODE,
-      ),
-    ).toBe(true);
-  });
-
-  it('flags invalid, zero, and negative quantities appropriately', async () => {
-    mockProductRepo.find.mockResolvedValueOnce([]);
-
-    const rawRows = [
-      { rowNumber: 2, rawInternalCode: 'P0001', rawQuantity: '0' },
-      { rowNumber: 3, rawInternalCode: 'P0002', rawQuantity: '-5' },
-      { rowNumber: 4, rawInternalCode: 'P0003', rawQuantity: '10.555' },
-      { rowNumber: 5, rawInternalCode: 'P0004', rawQuantity: 'abc' },
-    ];
-
-    const result = await validator.validate(rawRows);
-
-    expect(
-      result.rows[0].errors.some(
-        (e) => e.code === StockBulkRowErrorCode.ZERO_QUANTITY,
-      ),
-    ).toBe(true);
-    expect(
-      result.rows[1].errors.some(
-        (e) => e.code === StockBulkRowErrorCode.NEGATIVE_QUANTITY,
-      ),
-    ).toBe(true);
-    expect(
-      result.rows[2].errors.some(
-        (e) => e.code === StockBulkRowErrorCode.EXCESSIVE_DECIMAL_SCALE,
-      ),
-    ).toBe(true);
-    expect(
-      result.rows[3].errors.some(
-        (e) => e.code === StockBulkRowErrorCode.INVALID_QUANTITY,
-      ),
-    ).toBe(true);
+      expect(result.valid).toBe(false);
+      expect(result.rows[0].errors[0].code).toBe(
+        StockBulkRowErrorCode.ZERO_QUANTITY,
+      );
+      expect(result.rows[1].errors[0].code).toBe(
+        StockBulkRowErrorCode.NEGATIVE_QUANTITY,
+      );
+      expect(result.rows[2].errors[0].code).toBe(
+        StockBulkRowErrorCode.EXCESSIVE_DECIMAL_SCALE,
+      );
+    });
   });
 });

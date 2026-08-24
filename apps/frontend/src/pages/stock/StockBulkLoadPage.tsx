@@ -214,18 +214,15 @@ export const StockBulkLoadPage: React.FC = () => {
                 <span className="font-semibold text-foreground">{selectedFile?.name}</span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-border/50">
-                <span className="text-muted-foreground">Total de Productos a Cargar:</span>
+                <span className="text-muted-foreground">Productos a Cargar:</span>
                 <span className="font-semibold text-foreground">
-                  {previewData.summary.validRows} productos
+                  {previewData.summary.includedRows} producto(s)
                 </span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-border/50">
-                <span className="text-muted-foreground">Total Unidades Base:</span>
-                <span className="font-semibold text-primary">
-                  {previewData.summary.totalQuantityBase.toLocaleString('es-AR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                <span className="text-muted-foreground">Filas Omitidas (Sin cantidad):</span>
+                <span className="font-medium text-muted-foreground">
+                  {previewData.summary.skippedRows} fila(s)
                 </span>
               </div>
               <div className="flex justify-between py-1.5">

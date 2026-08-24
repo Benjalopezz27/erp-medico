@@ -4,6 +4,7 @@ import {
   StockStatus,
   StockBulkRowErrorCode,
   StockImportBatchResult,
+  StockBulkLoadRowStatus,
 } from '../enums/stock.enum';
 import type { ProductStatus } from '../enums/catalog.enum';
 
@@ -181,6 +182,8 @@ export interface IStockBulkLoadRawRow {
   rowNumber: number;
   rawInternalCode: string;
   rawQuantity: string | number | null;
+  rawProductName?: string;
+  rawBaseUnit?: string;
   hasFormula?: boolean;
 }
 
@@ -206,13 +209,15 @@ export interface IStockBulkLoadValidatedRow {
   rowNumber: number;
   internalCode: string;
   quantityBase: number | null;
+  status: StockBulkLoadRowStatus;
   product: IStockBulkLoadRowProduct | null;
   errors: IStockBulkLoadRowError[];
-  isValid: boolean;
 }
 
 export interface IStockBulkLoadSummary {
   totalRows: number;
+  includedRows: number;
+  skippedRows: number;
   validRows: number;
   invalidRows: number;
   totalQuantityBase: number;
