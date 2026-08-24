@@ -252,9 +252,10 @@ export class StockBulkFileParser {
     }
 
     const worksheet = worksheetsWithData[0];
-    const totalRows = worksheet.rowCount;
+    const { lastContentRow, dataRowCount } =
+      this.getWorksheetContentBounds(worksheet);
 
-    if (totalRows < 1) {
+    if (lastContentRow < 1) {
       throw new BadRequestException({
         code: StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
         message: 'El archivo Excel está vacío.',
@@ -264,7 +265,7 @@ export class StockBulkFileParser {
     // Extract headers preserving exact column indices
     const headerRow = worksheet.getRow(1);
     const headers: string[] = [];
-    const maxCol = headerRow.actualCellCount > 0 ? headerRow.cellCount : 0;
+    const maxCol = this.findLastNonEmptyCellIndex(headerRow);
 
     for (let c = 1; c <= maxCol; c++) {
       const cellVal = headerRow.getCell(c).value;
@@ -275,7 +276,7 @@ export class StockBulkFileParser {
 
     const headerMap = this.validateAndBuildHeaderMap(headers);
 
-    if (totalRows - 1 > BULK_LOAD_MAX_DATA_ROWS) {
+    if (dataRowCount > BULK_LOAD_MAX_DATA_ROWS) {
       throw new BadRequestException({
         code: StockBulkFileErrorCode.BULK_LOAD_ROW_LIMIT_EXCEEDED,
         message: `El archivo supera el límite máximo de ${BULK_LOAD_MAX_DATA_ROWS} filas de datos.`,
@@ -284,7 +285,7 @@ export class StockBulkFileParser {
 
     const rawRows: IStockBulkLoadRawRow[] = [];
 
-    for (let r = 2; r <= totalRows; r++) {
+    for (let r = 2; r <= lastContentRow; r++) {
       const row = worksheet.getRow(r);
 
       // Check if any non-empty cell exists beyond declared header columns
@@ -398,6 +399,51 @@ export class StockBulkFileParser {
     }
 
     return rawRows;
+  }
+
+  /**
+   * Returns the last column containing a real value. Excel and compatible editors
+   * frequently persist styles for trailing empty cells, which increases `cellCount`
+   * even though those cells are not part of the uploaded data contract.
+   */
+  private static findLastNonEmptyCellIndex(row: ExcelJS.Row): number {
+    for (let column = row.cellCount; column >= 1; column--) {
+      const value = row.getCell(column).value;
+      if (
+        value !== null &&
+        value !== undefined &&
+        String(value).trim() !== ''
+      ) {
+        return column;
+      }
+    }
+
+    return 0;
+  }
+
+  /**
+   * Counts and bounds only rows containing values. Style-only rows must not make a
+   * valid template look like a 1,000-row import or trigger the row limit.
+   */
+  private static getWorksheetContentBounds(worksheet: ExcelJS.Worksheet): {
+    lastContentRow: number;
+    dataRowCount: number;
+  } {
+    let lastContentRow = 0;
+    let dataRowCount = 0;
+
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      if (this.findLastNonEmptyCellIndex(row) === 0) {
+        return;
+      }
+
+      lastContentRow = Math.max(lastContentRow, rowNumber);
+      if (rowNumber > 1) {
+        dataRowCount++;
+      }
+    });
+
+    return { lastContentRow, dataRowCount };
   }
 
   /**

@@ -73,6 +73,36 @@ describe('StockBulkFileParser', () => {
       expect(result.rawRows[1].rawInternalCode).toBe('P0002');
       expect(result.rawRows[1].rawQuantity).toBeNull();
     });
+
+    it('ignores trailing style-only XLSX columns and rows', async () => {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Inventario');
+      sheet.addRow(['internalCode', 'productName', 'baseUnit', 'quantityBase']);
+      sheet.addRow(['P0001', 'Ibuprofeno', 'Comprimido (cmp)', 200]);
+
+      const styleOnlyFill: ExcelJS.Fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFFFFF' },
+      };
+      sheet.getRow(1).getCell(26).fill = styleOnlyFill;
+      sheet.getRow(1000).getCell(26).fill = styleOnlyFill;
+
+      const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+      const result = await StockBulkFileParser.parse(
+        buffer,
+        'styled-template.xlsx',
+      );
+
+      expect(result.rawRows).toHaveLength(1);
+      expect(result.rawRows[0]).toMatchObject({
+        rowNumber: 2,
+        rawInternalCode: 'P0001',
+        rawQuantity: 200,
+        rawProductName: 'Ibuprofeno',
+        rawBaseUnit: 'Comprimido (cmp)',
+      });
+    });
   });
 
   describe('2. Legacy 2-Column Compatibility', () => {
