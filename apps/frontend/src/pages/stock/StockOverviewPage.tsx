@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Package } from 'lucide-react';
+import { Package, FileSpreadsheet } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAuthStore } from '@/stores/authStore';
+import { UserRole } from '@/features/users/types/users.types';
 import { StockOverviewFilters } from '@/features/stock/components/StockOverviewFilters';
 import { StockOverviewTable } from '@/features/stock/components/StockOverviewTable';
 import { StockPagination } from '@/features/stock/components/StockPagination';
@@ -15,6 +18,7 @@ import type { IStockSearchParams, IStockOverviewItem } from '@/features/stock/ty
 export const StockOverviewPage: React.FC = () => {
   const navigate = useNavigate();
   const searchParams = useSearch({ strict: false }) as IStockSearchParams;
+  const user = useAuthStore((s) => s.user);
   const [selectedProductForAdjustment, setSelectedProductForAdjustment] =
     useState<StockAdjustmentModalProduct | null>(null);
 
@@ -39,6 +43,7 @@ export const StockOverviewPage: React.FC = () => {
       search: (prev: any) => ({
         ...prev,
         ...newParams,
+        page: newParams.page !== undefined ? newParams.page : 1,
       }),
     });
   };
@@ -102,6 +107,19 @@ export const StockOverviewPage: React.FC = () => {
             </p>
           </div>
         </div>
+
+        {user?.role === UserRole.ADMINISTRADOR && (
+          <Button
+            type="button"
+            variant="default"
+            size="sm"
+            onClick={() => navigate({ to: '/stock/bulk-load' as any })}
+            className="text-xs gap-1.5"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            Carga Inicial Masiva
+          </Button>
+        )}
       </div>
 
       {/* Filter Section */}
@@ -123,12 +141,11 @@ export const StockOverviewPage: React.FC = () => {
       />
 
       {/* Pagination */}
-      {!isLoading && !isError && items.length > 0 && (
+      {!isLoading && !isError && meta.total > 0 && (
         <StockPagination
           meta={meta}
-          onPageChange={(p) => updateSearch({ page: p })}
-          onLimitChange={(l) => updateSearch({ limit: l, page: 1 })}
-          entityName="productos"
+          onPageChange={(page) => updateSearch({ page })}
+          onLimitChange={(limit) => updateSearch({ limit, page: 1 })}
         />
       )}
 

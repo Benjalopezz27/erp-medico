@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  UnprocessableEntityException,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -531,6 +532,13 @@ export class StockService {
           available: parseStockDecimal(previousStockDec.toString(), 2),
           requested: parseStockDecimal(decQty.toString(), 2),
         });
+      }
+
+      // Guard: Upper numeric bound ceiling (HTTP 422)
+      if (subsequentStockDec.greaterThan('999999999999.99')) {
+        throw new UnprocessableEntityException(
+          'El saldo resultante supera el límite máximo permitido de 999.999.999.999,99 unidades.',
+        );
       }
 
       // Update materialized balance

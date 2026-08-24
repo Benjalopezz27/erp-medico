@@ -27,6 +27,13 @@ describe('User Persistence & Seed Engine (E2E)', () => {
   });
 
   it('verifies migration up/down/up cycle cleanly', async () => {
+    // Revert stock import batches table migration (1700000000008)
+    await ds.undoLastMigration();
+    const afterDropBatches = await ds.query(
+      "SELECT to_regclass('public.stock_import_batches') as tablename",
+    );
+    expect(afterDropBatches[0].tablename).toBeNull();
+
     // Revert enforce non-negative stock check constraint migration (1700000000007)
     await ds.undoLastMigration();
 
