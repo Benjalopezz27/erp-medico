@@ -112,6 +112,74 @@ export function requireRole(allowedRole: UserRole): void {
   }
 }
 
+import { StockOverviewPage } from '@/pages/stock/StockOverviewPage';
+import { StockDetailPage } from '@/pages/stock/StockDetailPage';
+import {
+  StockStatus,
+  StockMovementType,
+  type IStockSearchParams,
+  type IStockMovementsSearchParams,
+} from '@/features/stock/types/stock.types';
+
+export function validateStockSearchParams(search: Record<string, unknown>): IStockSearchParams {
+  const page = Number(search.page);
+  const limit = Number(search.limit);
+  const validLimits = [10, 25, 50];
+
+  const rawStatus = search.stockStatus as string | undefined;
+  const stockStatus =
+    rawStatus && Object.values(StockStatus).includes(rawStatus as StockStatus)
+      ? (rawStatus as StockStatus)
+      : undefined;
+
+  const rawCategory = typeof search.category === 'string' ? search.category.trim() : undefined;
+  const category =
+    rawCategory &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawCategory)
+      ? rawCategory
+      : undefined;
+
+  const rawSearch = typeof search.search === 'string' ? search.search.trim() : undefined;
+  const searchParam = rawSearch && rawSearch.length > 0 ? rawSearch : undefined;
+
+  return {
+    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    limit: validLimits.includes(limit) ? limit : 10,
+    search: searchParam,
+    category,
+    stockStatus,
+  };
+}
+
+export function validateStockMovementsSearchParams(
+  search: Record<string, unknown>,
+): IStockMovementsSearchParams {
+  const page = Number(search.page);
+  const limit = Number(search.limit);
+  const validLimits = [10, 25, 50];
+
+  const rawType = search.movementType as string | undefined;
+  const movementType =
+    rawType && Object.values(StockMovementType).includes(rawType as StockMovementType)
+      ? (rawType as StockMovementType)
+      : undefined;
+
+  const rawFrom =
+    typeof search.from === 'string' && search.from.trim().length > 0
+      ? search.from.trim()
+      : undefined;
+  const rawTo =
+    typeof search.to === 'string' && search.to.trim().length > 0 ? search.to.trim() : undefined;
+
+  return {
+    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    limit: validLimits.includes(limit) ? limit : 10,
+    movementType,
+    from: rawFrom,
+    to: rawTo,
+  };
+}
+
 // 1. Root Route
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -167,16 +235,46 @@ const productEditRoute = createRoute({
   component: () => <ProductEditPage />,
 });
 
-const stockRoute = createRoute({
+// Static reserved stock subroutes
+const stockBulkLoadRoute = createRoute({
   getParentRoute: () => appShellRoute,
-  path: '/stock',
+  path: '/stock/bulk-load',
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
   component: () => (
     <PlaceholderPage
-      title="Stock e Inventario Ledger"
-      description="Control transaccional inmutable de stock y rechazo de stock negativo"
-      sprint="Sprint 2 — US-06"
+      title="Carga Masiva de Stock"
+      description="Importación por lote mediante archivo Excel / CSV"
+      sprint="Sprint 2 — US-08"
     />
   ),
+});
+
+const stockQuarantineRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/stock/quarantine',
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
+  component: () => (
+    <PlaceholderPage
+      title="Cuarentena de Stock"
+      description="Gestión y resolución de mercadería en cuarentena"
+      sprint="Sprint 2 — US-07"
+    />
+  ),
+});
+
+// Stock overview and detail routes
+const stockOverviewRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/stock',
+  validateSearch: validateStockSearchParams,
+  component: () => <StockOverviewPage />,
+});
+
+const stockDetailRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/stock/$productId',
+  validateSearch: validateStockMovementsSearchParams,
+  component: () => <StockDetailPage />,
 });
 
 const purchasesRoute = createRoute({
@@ -290,7 +388,10 @@ const routeTree = rootRoute.addChildren([
     productsRoute,
     productCreateRoute,
     productEditRoute,
-    stockRoute,
+    stockBulkLoadRoute,
+    stockQuarantineRoute,
+    stockOverviewRoute,
+    stockDetailRoute,
     purchasesRoute,
     salesRoute,
     customersRoute,

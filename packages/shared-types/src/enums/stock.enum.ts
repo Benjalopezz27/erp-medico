@@ -13,3 +13,9 @@ export enum QuarantineStatus {
   DEVOLUCION_PROVEEDOR = 'DEVOLUCION_PROVEEDOR',
   REINGRESADO_STOCK = 'REINGRESADO_STOCK',
 }
+
+export enum StockStatus {
+  CRITICAL = 'CRITICAL',
+  LOW = 'LOW',
+  NORMAL = 'NORMAL',
+}
