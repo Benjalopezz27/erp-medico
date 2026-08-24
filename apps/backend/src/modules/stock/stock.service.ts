@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, EntityManager } from 'typeorm';
 import Decimal from 'decimal.js';
+import { ProductStatus, StockStatus } from '@erp/shared-types';
 import { Stock } from './entities/stock.entity';
 import { StockMovement } from './entities/stock-movement.entity';
 import { Product } from '../products/entities/product.entity';
@@ -14,10 +15,19 @@ import {
   RecordStockMovementDto,
   StockResponseDto,
   StockMovementResponseDto,
+  QueryStockDto,
+  PaginatedStockResponseDto,
+  StockOverviewItemResponseDto,
+  QueryStockMovementsDto,
+  PaginatedStockMovementsResponseDto,
+  QueryStockEvolutionDto,
+  StockEvolutionResponseDto,
+  StockEvolutionPointDto,
 } from './dto';
 import {
   getStockMovementSign,
   parseStockDecimal,
+  deriveStockStatus,
 } from './utils/stock-math.utils';
 
 @Injectable()
@@ -36,6 +46,357 @@ export class StockService {
 
   getStatus(): { module: string; status: string } {
     return { module: 'stock', status: 'initialized' };
+  }
+
+  /**
+   * Queries active products with consolidated base stock, thresholds, and health status.
+   * Performs an explicit SQL SELECT projection preventing any cost or markup financial leaks.
+   */
+  async findAllStock(query: QueryStockDto): Promise<PaginatedStockResponseDto> {
+    const page = query.page && query.page > 0 ? query.page : 1;
+    const limit =
+      query.limit && query.limit > 0 ? Math.min(query.limit, 50) : 10;
+    const offset = (page - 1) * limit;
+
+    const qb = this.productRepository
+      .createQueryBuilder('product')
+      .innerJoin('product.category', 'category')
+      .innerJoin('product.baseUnit', 'baseUnit')
+      .leftJoin('product.stock', 'stock')
+      .select([
+        'product.id',
+        'product.internalCode',
+        'product.name',
+        'product.status',
+        'product.minStock',
+        'category.id',
+        'category.name',
+        'baseUnit.id',
+        'baseUnit.name',
+        'baseUnit.symbol',
+        'stock.id',
+        'stock.currentBaseStock',
+      ])
+      .where('product.status = :status', { status: ProductStatus.ACTIVE });
+
+    if (query.search && query.search.trim().length > 0) {
+      const escaped = query.search.trim().replace(/[%_\\]/g, '\\$&');
+      qb.andWhere(
+        '(UPPER(product.internalCode) LIKE UPPER(:searchLike) OR product.name ILIKE :searchLike)',
+        { searchLike: `%${escaped}%` },
+      );
+    }
+
+    if (query.categoryId) {
+      qb.andWhere('product.categoryId = :categoryId', {
+        categoryId: query.categoryId,
+      });
+    }
+
+    if (query.stockStatus) {
+      if (query.stockStatus === StockStatus.CRITICAL) {
+        qb.andWhere('COALESCE(stock.current_base_stock, 0) <= 0');
+      } else if (query.stockStatus === StockStatus.LOW) {
+        qb.andWhere(
+          'COALESCE(stock.current_base_stock, 0) > 0 AND COALESCE(stock.current_base_stock, 0) <= product.min_stock',
+        );
+      } else if (query.stockStatus === StockStatus.NORMAL) {
+        qb.andWhere(
+          'COALESCE(stock.current_base_stock, 0) > product.min_stock',
+        );
+      }
+    }
+
+    qb.orderBy('product.name', 'ASC').addOrderBy('product.id', 'ASC');
+    qb.skip(offset).take(limit);
+
+    const [products, total] = await qb.getManyAndCount();
+
+    const items: StockOverviewItemResponseDto[] = products.map((product) => {
+      const currentBaseStock = product.stock
+        ? parseStockDecimal(product.stock.currentBaseStock, 2)
+        : 0;
+      const minStock = parseStockDecimal(product.minStock, 2);
+
+      return {
+        productId: product.id,
+        internalCode: product.internalCode,
+        productName: product.name,
+        category: {
+          id: product.category?.id || product.categoryId,
+          name: product.category?.name || '',
+        },
+        baseUnit: {
+          id: product.baseUnit?.id || product.baseUnitId,
+          name: product.baseUnit?.name || '',
+          symbol: product.baseUnit?.symbol || '',
+        },
+        currentBaseStock,
+        minStock,
+        stockStatus: deriveStockStatus(currentBaseStock, minStock),
+        status: product.status,
+      };
+    });
+
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    return {
+      items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
+  }
+
+  /**
+   * Retrieves the paginated immutable movement ledger of a specific product.
+   * Allows historical auditing even if the product is INACTIVE.
+   */
+  async findProductMovements(
+    productId: string,
+    query: QueryStockMovementsDto,
+  ): Promise<PaginatedStockMovementsResponseDto> {
+    const product = await this.productRepository
+      .createQueryBuilder('product')
+      .innerJoinAndSelect('product.category', 'category')
+      .innerJoinAndSelect('product.baseUnit', 'baseUnit')
+      .leftJoinAndSelect('product.stock', 'stock')
+      .select([
+        'product.id',
+        'product.internalCode',
+        'product.name',
+        'product.status',
+        'product.minStock',
+        'category.id',
+        'category.name',
+        'baseUnit.id',
+        'baseUnit.name',
+        'baseUnit.symbol',
+        'stock.id',
+        'stock.currentBaseStock',
+      ])
+      .where('product.id = :productId', { productId })
+      .getOne();
+
+    if (!product) {
+      throw new NotFoundException('El producto especificado no existe.');
+    }
+
+    if (query.from && query.to) {
+      const fromTime = new Date(query.from).getTime();
+      const toTime = new Date(query.to).getTime();
+      if (isNaN(fromTime) || isNaN(toTime) || fromTime > toTime) {
+        throw new BadRequestException(
+          "La fecha 'from' no puede ser posterior a 'to'.",
+        );
+      }
+    }
+
+    const page = query.page && query.page > 0 ? query.page : 1;
+    const limit =
+      query.limit && query.limit > 0 ? Math.min(query.limit, 50) : 10;
+    const offset = (page - 1) * limit;
+
+    const qb = this.movementRepository
+      .createQueryBuilder('movement')
+      .innerJoin('movement.user', 'user')
+      .select([
+        'movement.id',
+        'movement.productId',
+        'movement.movementType',
+        'movement.quantityBase',
+        'movement.previousStock',
+        'movement.subsequentStock',
+        'movement.reason',
+        'movement.documentReference',
+        'movement.createdAt',
+        'user.id',
+        'user.name',
+      ])
+      .where('movement.productId = :productId', { productId });
+
+    if (query.movementType) {
+      qb.andWhere('movement.movementType = :movementType', {
+        movementType: query.movementType,
+      });
+    }
+
+    if (query.from) {
+      qb.andWhere('movement.createdAt >= :from', { from: query.from });
+    }
+
+    if (query.to) {
+      qb.andWhere('movement.createdAt <= :to', { to: query.to });
+    }
+
+    qb.orderBy('movement.createdAt', 'DESC').addOrderBy('movement.id', 'DESC');
+    qb.skip(offset).take(limit);
+
+    const [movements, total] = await qb.getManyAndCount();
+
+    const currentBaseStock = product.stock
+      ? parseStockDecimal(product.stock.currentBaseStock, 2)
+      : 0;
+    const minStock = parseStockDecimal(product.minStock, 2);
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    return {
+      product: {
+        productId: product.id,
+        internalCode: product.internalCode,
+        productName: product.name,
+        status: product.status,
+        category: {
+          id: product.category?.id || product.categoryId,
+          name: product.category?.name || '',
+        },
+        baseUnit: {
+          id: product.baseUnit?.id || product.baseUnitId,
+          name: product.baseUnit?.name || '',
+          symbol: product.baseUnit?.symbol || '',
+        },
+        currentBaseStock,
+        minStock,
+        stockStatus: deriveStockStatus(currentBaseStock, minStock),
+      },
+      items: movements.map((m) => ({
+        id: m.id,
+        movementType: m.movementType,
+        quantityBase: parseStockDecimal(m.quantityBase, 2),
+        previousStock: parseStockDecimal(m.previousStock, 2),
+        subsequentStock: parseStockDecimal(m.subsequentStock, 2),
+        reason: m.reason,
+        documentReference: m.documentReference,
+        user: {
+          id: m.user?.id || m.userId,
+          name: m.user?.name || 'Sistema',
+        },
+        createdAt: m.createdAt,
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
+  }
+
+  /**
+   * Retrieves bounded time-series stock evolution points for Recharts.
+   * Queries latest movements descending, detects truncation, slices limit,
+   * and reverses chronologically ascending with accurate baseline balance calculation.
+   */
+  async findStockEvolution(
+    productId: string,
+    query: QueryStockEvolutionDto,
+  ): Promise<StockEvolutionResponseDto> {
+    const product = await this.productRepository
+      .createQueryBuilder('product')
+      .leftJoinAndSelect('product.stock', 'stock')
+      .select([
+        'product.id',
+        'product.minStock',
+        'stock.id',
+        'stock.currentBaseStock',
+      ])
+      .where('product.id = :productId', { productId })
+      .getOne();
+
+    if (!product) {
+      throw new NotFoundException('El producto especificado no existe.');
+    }
+
+    if (query.from && query.to) {
+      const fromTime = new Date(query.from).getTime();
+      const toTime = new Date(query.to).getTime();
+      if (isNaN(fromTime) || isNaN(toTime) || fromTime > toTime) {
+        throw new BadRequestException(
+          "La fecha 'from' no puede ser posterior a 'to'.",
+        );
+      }
+    }
+
+    const limit =
+      query.limit && query.limit > 0 ? Math.min(query.limit, 100) : 50;
+
+    const qb = this.movementRepository
+      .createQueryBuilder('movement')
+      .select([
+        'movement.id',
+        'movement.movementType',
+        'movement.quantityBase',
+        'movement.previousStock',
+        'movement.subsequentStock',
+        'movement.createdAt',
+      ])
+      .where('movement.productId = :productId', { productId });
+
+    if (query.from) {
+      qb.andWhere('movement.createdAt >= :from', { from: query.from });
+    }
+
+    if (query.to) {
+      qb.andWhere('movement.createdAt <= :to', { to: query.to });
+    }
+
+    qb.orderBy('movement.createdAt', 'DESC')
+      .addOrderBy('movement.id', 'DESC')
+      .take(limit + 1);
+
+    const movements = await qb.getMany();
+    const isTruncated = movements.length > limit;
+    const slice = isTruncated ? movements.slice(0, limit) : movements;
+
+    // Reverse to chronological ascending
+    slice.reverse();
+
+    const minStock = parseStockDecimal(product.minStock, 2);
+    const points: StockEvolutionPointDto[] = [];
+    let effectiveFrom: string | null = null;
+    let effectiveTo: string | null = null;
+
+    if (slice.length > 0) {
+      effectiveFrom = slice[0].createdAt.toISOString();
+      effectiveTo = slice[slice.length - 1].createdAt.toISOString();
+
+      // Initial baseline from previousStock of first movement in slice
+      const initialBaseline = parseStockDecimal(slice[0].previousStock, 2);
+      points.push({
+        timestamp: slice[0].createdAt.toISOString(),
+        balance: initialBaseline,
+        event: 'BASELINE',
+        quantity: 0,
+      });
+
+      for (const m of slice) {
+        points.push({
+          timestamp: m.createdAt.toISOString(),
+          balance: parseStockDecimal(m.subsequentStock, 2),
+          event: m.movementType,
+          quantity: parseStockDecimal(m.quantityBase, 2),
+        });
+      }
+    } else {
+      effectiveFrom = query.from || null;
+      effectiveTo = query.to || null;
+    }
+
+    return {
+      productId: product.id,
+      minStock,
+      truncated: isTruncated,
+      effectiveFrom,
+      effectiveTo,
+      points,
+    };
   }
 
   /**

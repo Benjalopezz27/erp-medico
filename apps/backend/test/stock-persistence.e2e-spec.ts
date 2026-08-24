@@ -351,4 +351,19 @@ describe('Stock Persistence, Ledger Immutability & Search Projection (E2E)', () 
       expect(res2.body[0].currentStock).toBe(150.75);
     });
   });
+
+  afterAll(async () => {
+    if (ds?.isInitialized) {
+      const qr = ds.createQueryRunner();
+      await qr.connect();
+      await qr.query(
+        'TRUNCATE TABLE stock_movements, stocks, product_unit_conversions, products, categories, units, users CASCADE;',
+      );
+      await qr.release();
+      await ds.destroy();
+    }
+    if (app) {
+      await app.close();
+    }
+  });
 });

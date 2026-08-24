@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { StockMovementType } from '@erp/shared-types';
+import { StockMovementType, StockStatus } from '@erp/shared-types';
 import Decimal from 'decimal.js';
 
 /**
@@ -35,4 +35,23 @@ export function parseStockDecimal(
   return new Decimal(val)
     .toDecimalPlaces(scale, Decimal.ROUND_HALF_UP)
     .toNumber();
+}
+
+/**
+ * Derives the stock health status (CRITICAL, LOW, NORMAL) based on current balance and min stock.
+ */
+export function deriveStockStatus(
+  currentBaseStock: number | string | null | undefined,
+  minStock: number | string | null | undefined,
+): StockStatus {
+  const current = parseStockDecimal(currentBaseStock, 2);
+  const min = parseStockDecimal(minStock, 2);
+
+  if (current <= 0) {
+    return StockStatus.CRITICAL;
+  }
+  if (current <= min) {
+    return StockStatus.LOW;
+  }
+  return StockStatus.NORMAL;
 }

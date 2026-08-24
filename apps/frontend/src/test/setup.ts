@@ -9,6 +9,13 @@ beforeAll(() => {
   server.listen({ onUnhandledRequest: 'error' });
   if (typeof window !== 'undefined') {
     window.scrollTo = vi.fn();
+    window.ResizeObserver =
+      window.ResizeObserver ||
+      vi.fn().mockImplementation(() => ({
+        observe: vi.fn(),
+        unobserve: vi.fn(),
+        disconnect: vi.fn(),
+      }));
   }
 });
 
