@@ -1,7 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { StockOverviewTable } from './StockOverviewTable';
 import { StockStatus, ProductStatus } from '../types/stock.types';
+import { useAuthStore } from '@/stores/authStore';
+import { UserRole } from '@erp/shared-types';
 
 describe('StockOverviewTable Component', () => {
   const mockItems = [
@@ -17,6 +19,10 @@ describe('StockOverviewTable Component', () => {
       status: ProductStatus.ACTIVE,
     },
   ];
+
+  beforeEach(() => {
+    useAuthStore.setState(useAuthStore.getInitialState(), true);
+  });
 
   it('renders loading state when isLoading is true', () => {
     render(
@@ -90,5 +96,68 @@ describe('StockOverviewTable Component', () => {
     });
     fireEvent.click(ledgerBtn);
     expect(handleViewLedger).toHaveBeenCalledWith('prod-1');
+  });
+
+  it('shows adjustment button for administrators and triggers onOpenAdjustment', () => {
+    useAuthStore.getState().setSession({
+      accessToken: 'token',
+      user: {
+        id: 'admin-1',
+        name: 'Admin',
+        email: 'admin@erp.com',
+        role: UserRole.ADMINISTRADOR,
+        isActive: true,
+      },
+    });
+
+    const handleOpenAdjustment = vi.fn();
+    render(
+      <StockOverviewTable
+        items={mockItems}
+        isLoading={false}
+        isError={false}
+        onRetry={vi.fn()}
+        onViewLedger={vi.fn()}
+        onOpenAdjustment={handleOpenAdjustment}
+      />,
+    );
+
+    const adjustBtn = screen.getByRole('button', {
+      name: /ajustar stock de paracetamol 500mg/i,
+    });
+    expect(adjustBtn).toBeInTheDocument();
+    fireEvent.click(adjustBtn);
+    expect(handleOpenAdjustment).toHaveBeenCalledWith(mockItems[0]);
+  });
+
+  it('hides adjustment button for sellers', () => {
+    useAuthStore.getState().setSession({
+      accessToken: 'token',
+      user: {
+        id: 'seller-1',
+        name: 'Seller',
+        email: 'seller@erp.com',
+        role: UserRole.VENDEDOR,
+        isActive: true,
+      },
+    });
+
+    const handleOpenAdjustment = vi.fn();
+    render(
+      <StockOverviewTable
+        items={mockItems}
+        isLoading={false}
+        isError={false}
+        onRetry={vi.fn()}
+        onViewLedger={vi.fn()}
+        onOpenAdjustment={handleOpenAdjustment}
+      />,
+    );
+
+    expect(
+      screen.queryByRole('button', {
+        name: /ajustar stock de paracetamol 500mg/i,
+      }),
+    ).not.toBeInTheDocument();
   });
 });

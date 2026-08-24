@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, Filter } from 'lucide-react';
+import { Search, X, Filter, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -38,7 +38,8 @@ export const StockOverviewFilters: React.FC<StockOverviewFiltersProps> = ({
   const hasActiveFilters = Boolean(
     filters.search ||
     (filters.category && filters.category !== 'ALL') ||
-    (filters.stockStatus && filters.stockStatus !== ('ALL' as any)),
+    (filters.stockStatus && filters.stockStatus !== ('ALL' as any)) ||
+    filters.alertsOnly,
   );
 
   return (
@@ -118,9 +119,11 @@ export const StockOverviewFilters: React.FC<StockOverviewFiltersProps> = ({
             onChange={(e) =>
               onFilterChange({
                 stockStatus: e.target.value ? (e.target.value as StockStatus) : undefined,
+                alertsOnly: undefined, // Clear alertsOnly if specific stockStatus is selected
                 page: 1,
               })
             }
+            disabled={Boolean(filters.alertsOnly)}
             aria-label="Filtrar por estado de stock"
             className="text-sm"
           >
@@ -130,6 +133,29 @@ export const StockOverviewFilters: React.FC<StockOverviewFiltersProps> = ({
             <option value={StockStatus.NORMAL}>Normal (Óptimo)</option>
           </Select>
         </div>
+      </div>
+
+      {/* Solo bajo stock mínimo checkbox */}
+      <div className="pt-1 flex items-center">
+        <label className="flex items-center gap-2 text-xs font-medium text-foreground cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={Boolean(filters.alertsOnly)}
+            onChange={(e) =>
+              onFilterChange({
+                alertsOnly: e.target.checked ? true : undefined,
+                stockStatus: undefined, // Clear stockStatus if alertsOnly is checked
+                page: 1,
+              })
+            }
+            className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+            aria-label="Filtrar solo productos bajo mínimo"
+          />
+          <span className="flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+            <span>Solo productos bajo stock mínimo (Alertas)</span>
+          </span>
+        </label>
       </div>
     </div>
   );

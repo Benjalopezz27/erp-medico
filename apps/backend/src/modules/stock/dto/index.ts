@@ -10,3 +10,5 @@ export * from './stock-movement-item-response.dto';
 export * from './stock-product-summary-response.dto';
 export * from './paginated-stock-movements-response.dto';
 export * from './stock-evolution-response.dto';
+export * from './create-stock-adjustment.dto';
+export * from './query-stock-alerts.dto';

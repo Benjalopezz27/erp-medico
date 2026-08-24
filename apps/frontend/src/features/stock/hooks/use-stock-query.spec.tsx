@@ -63,4 +63,32 @@ describe('useStockQuery Hook', () => {
       limit: 10,
     });
   });
+
+  it('passes alertsOnly parameter to getStockOverviewApi', async () => {
+    const mockData = {
+      items: [],
+      meta: {
+        total: 0,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    };
+
+    vi.mocked(stockApi.getStockOverviewApi).mockResolvedValueOnce(mockData);
+
+    const { result } = renderHook(() => useStockQuery({ page: 1, limit: 10, alertsOnly: true }), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(stockApi.getStockOverviewApi).toHaveBeenCalledWith({
+      page: 1,
+      limit: 10,
+      alertsOnly: true,
+    });
+  });
 });

@@ -1,8 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
+import { server } from '@/test/mocks/server';
 import { UserRole } from '@erp/shared-types';
 import { createTestRouter, renderWithRouter } from '@/test/test-utils';
 import { useAuthStore } from '@/stores/authStore';
+import {
+  buildPaginatedStockResponse,
+  buildStockOverviewItem,
+} from '@/features/stock/testing/stock-fixtures';
 import { Sidebar } from './Sidebar';
 
 function renderSidebar(role: UserRole) {
@@ -23,7 +29,7 @@ function renderSidebar(role: UserRole) {
   return renderWithRouter({ router });
 }
 
-describe('Sidebar permissions', () => {
+describe('Sidebar permissions and badges', () => {
   beforeEach(() => useAuthStore.setState(useAuthStore.getInitialState(), true));
 
   it('hides administrative navigation from sellers but shows common and settings', async () => {
@@ -42,5 +48,21 @@ describe('Sidebar permissions', () => {
     expect(await screen.findByRole('link', { name: /compras/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /usuarios/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /configuración/i })).toBeInTheDocument();
+  });
+
+  it('renders low stock alert badge when alert count > 0', async () => {
+    server.use(
+      http.get('*/api/v1/stock/alerts', () => {
+        return HttpResponse.json(
+          buildPaginatedStockResponse([buildStockOverviewItem()], { total: 3 }),
+        );
+      }),
+    );
+
+    renderSidebar(UserRole.ADMINISTRADOR);
+
+    const badge = await screen.findByTestId('stock-alerts-badge');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveTextContent('3');
   });
 });

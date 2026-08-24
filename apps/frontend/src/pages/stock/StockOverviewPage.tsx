@@ -1,16 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { Package } from 'lucide-react';
 import { StockOverviewFilters } from '@/features/stock/components/StockOverviewFilters';
 import { StockOverviewTable } from '@/features/stock/components/StockOverviewTable';
 import { StockPagination } from '@/features/stock/components/StockPagination';
+import {
+  StockAdjustmentModal,
+  type StockAdjustmentModalProduct,
+} from '@/features/stock/components/StockAdjustmentModal';
 import { useStockQuery } from '@/features/stock/hooks/use-stock-query';
 import { parseStockApiError } from '@/features/stock/utils/stock.errors';
-import type { IStockSearchParams } from '@/features/stock/types/stock.types';
+import type { IStockSearchParams, IStockOverviewItem } from '@/features/stock/types/stock.types';
 
 export const StockOverviewPage: React.FC = () => {
   const navigate = useNavigate();
   const searchParams = useSearch({ strict: false }) as IStockSearchParams;
+  const [selectedProductForAdjustment, setSelectedProductForAdjustment] =
+    useState<StockAdjustmentModalProduct | null>(null);
 
   const currentFilters: IStockSearchParams = {
     page: Number(searchParams?.page) || 1,
@@ -18,6 +24,11 @@ export const StockOverviewPage: React.FC = () => {
     search: searchParams?.search || undefined,
     category: searchParams?.category || undefined,
     stockStatus: searchParams?.stockStatus || undefined,
+    alertsOnly:
+      searchParams?.alertsOnly === true ||
+      (searchParams?.alertsOnly as unknown as string) === 'true'
+        ? true
+        : undefined,
   };
 
   const { data, isLoading, isError, error, refetch } = useStockQuery(currentFilters);
@@ -50,6 +61,16 @@ export const StockOverviewPage: React.FC = () => {
         page: 1,
         limit: 10,
       } as any,
+    });
+  };
+
+  const handleOpenAdjustment = (item: IStockOverviewItem) => {
+    setSelectedProductForAdjustment({
+      productId: item.productId,
+      internalCode: item.internalCode,
+      productName: item.productName,
+      baseUnit: item.baseUnit,
+      currentBaseStock: item.currentBaseStock,
     });
   };
 
@@ -98,6 +119,7 @@ export const StockOverviewPage: React.FC = () => {
         errorMessage={parseStockApiError(error)}
         onRetry={() => refetch()}
         onViewLedger={handleViewLedger}
+        onOpenAdjustment={handleOpenAdjustment}
       />
 
       {/* Pagination */}
@@ -107,6 +129,15 @@ export const StockOverviewPage: React.FC = () => {
           onPageChange={(p) => updateSearch({ page: p })}
           onLimitChange={(l) => updateSearch({ limit: l, page: 1 })}
           entityName="productos"
+        />
+      )}
+
+      {/* Stock Adjustment Modal */}
+      {selectedProductForAdjustment && (
+        <StockAdjustmentModal
+          isOpen={Boolean(selectedProductForAdjustment)}
+          onClose={() => setSelectedProductForAdjustment(null)}
+          product={selectedProductForAdjustment}
         />
       )}
     </div>

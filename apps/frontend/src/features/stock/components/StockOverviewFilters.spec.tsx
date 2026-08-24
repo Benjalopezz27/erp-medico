@@ -22,7 +22,7 @@ describe('StockOverviewFilters Component', () => {
     } as any);
   });
 
-  it('renders search input, category select, and status select', () => {
+  it('renders search input, category select, status select, and alertsOnly checkbox', () => {
     render(
       <StockOverviewFilters
         filters={{ page: 1, limit: 10 }}
@@ -34,6 +34,7 @@ describe('StockOverviewFilters Component', () => {
     expect(screen.getByPlaceholderText(/buscar por código o nombre/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/filtrar por categoría/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/filtrar por estado de stock/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/filtrar solo productos bajo mínimo/i)).toBeInTheDocument();
   });
 
   it('calls onFilterChange when category or stockStatus is selected', () => {
@@ -54,6 +55,27 @@ describe('StockOverviewFilters Component', () => {
     fireEvent.change(statusSelect, { target: { value: StockStatus.CRITICAL } });
     expect(handleFilterChange).toHaveBeenCalledWith({
       stockStatus: StockStatus.CRITICAL,
+      alertsOnly: undefined,
+      page: 1,
+    });
+  });
+
+  it('toggles alertsOnly and clears stockStatus', () => {
+    const handleFilterChange = vi.fn();
+    render(
+      <StockOverviewFilters
+        filters={{ page: 1, limit: 10, stockStatus: StockStatus.NORMAL }}
+        onFilterChange={handleFilterChange}
+        onResetFilters={vi.fn()}
+      />,
+    );
+
+    const checkbox = screen.getByLabelText(/filtrar solo productos bajo mínimo/i);
+    fireEvent.click(checkbox);
+
+    expect(handleFilterChange).toHaveBeenCalledWith({
+      alertsOnly: true,
+      stockStatus: undefined,
       page: 1,
     });
   });
