@@ -113,7 +113,9 @@ export class ProductMapper {
         name: product.baseUnit?.name || '',
         symbol: product.baseUnit?.symbol || '',
       },
-      currentStock: null,
+      currentStock: product.stock
+        ? this.parseDecimal(product.stock.currentBaseStock, 2)
+        : 0,
       activePriceNet: this.parseDecimal(product.activePriceNet, 2),
     };
   }

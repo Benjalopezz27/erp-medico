@@ -819,7 +819,7 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
         name: 'Unidad Farmacia',
         symbol: 'ufarm',
       });
-      expect(item.currentStock).toBeNull();
+      expect(item.currentStock).toBe(0);
       expect(item.activePriceNet).toBeGreaterThan(0);
 
       // Verify no sensitive fields leaked
