@@ -2,6 +2,10 @@ import {
   ProductStatus,
   StockMovementType,
   StockStatus,
+  StockBulkRowErrorCode,
+  StockBulkFileErrorCode,
+  StockImportBatchResult,
+  StockBulkLoadRowStatus,
   IStockPaginationMeta,
   PaginatedStockResponse,
   IStockOverviewItem,
@@ -15,9 +19,27 @@ import {
   ICreateStockAdjustmentDto,
   IStockAlertsSearchParams,
   IStockMovement,
+  IStockImportBatch,
+  IStockBulkLoadRawRow,
+  IStockBulkLoadRowProduct,
+  IStockBulkLoadRowError,
+  IStockBulkLoadValidatedRow,
+  IStockBulkLoadSummary,
+  IStockBulkLoadPreviewResponse,
+  IStockBulkLoadConfirmResponse,
+  IStockBulkLoadTemplateQuery,
 } from '@erp/shared-types';
 
-export { StockStatus, StockMovementType, ProductStatus };
+export {
+  StockStatus,
+  StockMovementType,
+  ProductStatus,
+  StockBulkRowErrorCode,
+  StockBulkFileErrorCode,
+  StockImportBatchResult,
+  StockBulkLoadRowStatus,
+};
+
 export type {
   IStockPaginationMeta,
   PaginatedStockResponse,
@@ -32,6 +54,15 @@ export type {
   ICreateStockAdjustmentDto,
   IStockAlertsSearchParams,
   IStockMovement,
+  IStockImportBatch,
+  IStockBulkLoadRawRow,
+  IStockBulkLoadRowProduct,
+  IStockBulkLoadRowError,
+  IStockBulkLoadValidatedRow,
+  IStockBulkLoadSummary,
+  IStockBulkLoadPreviewResponse,
+  IStockBulkLoadConfirmResponse,
+  IStockBulkLoadTemplateQuery,
 };
 
 export interface StockEvolutionParams {

@@ -12,3 +12,6 @@ export * from './paginated-stock-movements-response.dto';
 export * from './stock-evolution-response.dto';
 export * from './create-stock-adjustment.dto';
 export * from './query-stock-alerts.dto';
+export * from './confirm-stock-bulk-load.dto';
+export * from './query-stock-bulk-load-template.dto';
+export * from './stock-bulk-load-response.dto';

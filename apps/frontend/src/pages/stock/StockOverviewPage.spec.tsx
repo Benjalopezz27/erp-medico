@@ -5,6 +5,8 @@ import { renderWithProviders } from '@/test/test-utils';
 import * as routerModule from '@tanstack/react-router';
 import * as stockHook from '@/features/stock/hooks/use-stock-query';
 import * as categoriesHook from '@/features/categories/hooks/use-categories-query';
+import { useAuthStore } from '@/stores/authStore';
+import { UserRole } from '@/features/users/types/users.types';
 import { StockStatus, ProductStatus } from '@/features/stock/types/stock.types';
 
 vi.mock('@tanstack/react-router', () => ({
@@ -31,9 +33,21 @@ describe('StockOverviewPage Component', () => {
       data: [{ id: 'cat-1', name: 'Descartables' }],
       isLoading: false,
     } as any);
+
+    useAuthStore.setState({
+      user: {
+        id: 'admin-uuid',
+        name: 'Admin User',
+        email: 'admin@erp.com',
+        role: UserRole.ADMINISTRADOR,
+        isActive: true,
+      },
+      isAuthenticated: true,
+      token: 'jwt-token',
+    });
   });
 
-  it('renders overview header and table with items', () => {
+  it('renders overview header, table with items, and Carga Inicial Masiva button for Admin', () => {
     vi.mocked(stockHook.useStockQuery).mockReturnValue({
       data: {
         items: [
@@ -69,6 +83,68 @@ describe('StockOverviewPage Component', () => {
     expect(screen.getByText('P0001')).toBeInTheDocument();
     expect(screen.getByText('Catéter IV 20G')).toBeInTheDocument();
     expect(screen.getByText('Crítico')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /carga inicial masiva/i })).toBeInTheDocument();
+  });
+
+  it('navigates to /stock/bulk-load when clicking Carga Inicial Masiva button', () => {
+    vi.mocked(stockHook.useStockQuery).mockReturnValue({
+      data: {
+        items: [],
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    renderWithProviders(<StockOverviewPage />);
+
+    const bulkBtn = screen.getByRole('button', { name: /carga inicial masiva/i });
+    fireEvent.click(bulkBtn);
+
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/stock/bulk-load' });
+  });
+
+  it('hides Carga Inicial Masiva button when user is VENDEDOR', () => {
+    useAuthStore.setState({
+      user: {
+        id: 'seller-uuid',
+        name: 'Vendedor User',
+        email: 'vendedor@erp.com',
+        role: UserRole.VENDEDOR,
+        isActive: true,
+      },
+      isAuthenticated: true,
+      token: 'jwt-token',
+    });
+
+    vi.mocked(stockHook.useStockQuery).mockReturnValue({
+      data: {
+        items: [],
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    renderWithProviders(<StockOverviewPage />);
+
+    expect(screen.queryByRole('button', { name: /carga inicial masiva/i })).not.toBeInTheDocument();
   });
 
   it('navigates to product ledger detail on button click', () => {

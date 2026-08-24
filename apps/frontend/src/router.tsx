@@ -114,6 +114,7 @@ export function requireRole(allowedRole: UserRole): void {
 
 import { StockOverviewPage } from '@/pages/stock/StockOverviewPage';
 import { StockDetailPage } from '@/pages/stock/StockDetailPage';
+import { StockBulkLoadPage } from '@/pages/stock/StockBulkLoadPage';
 import {
   StockStatus,
   StockMovementType,
@@ -240,13 +241,7 @@ const stockBulkLoadRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/stock/bulk-load',
   beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
-  component: () => (
-    <PlaceholderPage
-      title="Carga Masiva de Stock"
-      description="Importación por lote mediante archivo Excel / CSV"
-      sprint="Sprint 2 — US-08"
-    />
-  ),
+  component: () => <StockBulkLoadPage />,
 });
 
 const stockQuarantineRoute = createRoute({
