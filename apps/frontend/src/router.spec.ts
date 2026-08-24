@@ -8,6 +8,8 @@ import {
   requireRole,
   validateUserSearchParams,
   validateProductSearchParams,
+  validateStockSearchParams,
+  validateStockMovementsSearchParams,
 } from './router';
 
 const session = (role: UserRole): IAuthSession => ({
@@ -143,5 +145,72 @@ describe('validateProductSearchParams', () => {
     const result = validateProductSearchParams({ category: 'not-a-uuid' });
 
     expect(result.category).toBeUndefined();
+  });
+});
+
+describe('validateStockSearchParams', () => {
+  it('defaults invalid search params to page 1 and limit 10', () => {
+    const result = validateStockSearchParams({
+      page: -1,
+      limit: 100,
+      stockStatus: 'INVALID_STATUS',
+      category: 'invalid-category',
+      search: '   ',
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(10);
+    expect(result.stockStatus).toBeUndefined();
+    expect(result.category).toBeUndefined();
+    expect(result.search).toBeUndefined();
+  });
+
+  it('correctly parses valid stock search params, category UUID, and status', () => {
+    const categoryId = '51b94ef4-4bac-44d0-8cd6-9b5124928c65';
+    const result = validateStockSearchParams({
+      page: 2,
+      limit: 25,
+      search: '  Catéter  ',
+      category: categoryId,
+      stockStatus: 'CRITICAL',
+    });
+
+    expect(result.page).toBe(2);
+    expect(result.limit).toBe(25);
+    expect(result.search).toBe('Catéter');
+    expect(result.category).toBe(categoryId);
+    expect(result.stockStatus).toBe('CRITICAL');
+  });
+});
+
+describe('validateStockMovementsSearchParams', () => {
+  it('defaults invalid search params to page 1 and limit 10', () => {
+    const result = validateStockMovementsSearchParams({
+      page: 0,
+      limit: 75,
+      movementType: 'INVALID_TYPE',
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(10);
+    expect(result.movementType).toBeUndefined();
+    expect(result.from).toBeUndefined();
+    expect(result.to).toBeUndefined();
+  });
+
+  it('correctly parses valid movementType and ISO date range strings', () => {
+    const result = validateStockMovementsSearchParams({
+      page: 3,
+      limit: 50,
+      movementType: 'ENTRADA_COMPRA',
+      from: '2026-08-01T00:00:00.000Z',
+      to: '2026-08-31T23:59:59.999Z',
+    });
+
+    expect(result.page).toBe(3);
+    expect(result.limit).toBe(50);
+    expect(result.movementType).toBe('ENTRADA_COMPRA');
+    expect(result.from).toBe('2026-08-01T00:00:00.000Z');
+    expect(result.to).toBe('2026-08-31T23:59:59.999Z');
   });
 });
