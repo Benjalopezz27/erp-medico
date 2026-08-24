@@ -25,6 +25,7 @@ import {
   QueryStockEvolutionDto,
   StockEvolutionResponseDto,
   StockEvolutionPointDto,
+  QueryStockAlertsDto,
 } from './dto';
 import {
   getStockMovementSign,
@@ -51,15 +52,14 @@ export class StockService {
   }
 
   /**
-   * Queries active products with consolidated base stock, thresholds, and health status.
-   * Performs an explicit SQL SELECT projection preventing any cost or markup financial leaks.
+   * Builds the base QueryBuilder for active products and stock balances.
    */
-  async findAllStock(query: QueryStockDto): Promise<PaginatedStockResponseDto> {
-    const page = query.page && query.page > 0 ? query.page : 1;
-    const limit =
-      query.limit && query.limit > 0 ? Math.min(query.limit, 50) : 10;
-    const offset = (page - 1) * limit;
-
+  private buildStockBaseQuery(options: {
+    search?: string;
+    categoryId?: string;
+    stockStatus?: StockStatus;
+    alertsOnly?: boolean;
+  }) {
     const qb = this.productRepository
       .createQueryBuilder('product')
       .innerJoin('product.category', 'category')
@@ -81,65 +81,120 @@ export class StockService {
       ])
       .where('product.status = :status', { status: ProductStatus.ACTIVE });
 
-    if (query.search && query.search.trim().length > 0) {
-      const escaped = query.search.trim().replace(/[%_\\]/g, '\\$&');
+    if (options.search && options.search.trim().length > 0) {
+      const escaped = options.search.trim().replace(/[%_\\]/g, '\\$&');
       qb.andWhere(
         '(UPPER(product.internalCode) LIKE UPPER(:searchLike) OR product.name ILIKE :searchLike)',
         { searchLike: `%${escaped}%` },
       );
     }
 
-    if (query.categoryId) {
+    if (options.categoryId) {
       qb.andWhere('product.categoryId = :categoryId', {
-        categoryId: query.categoryId,
+        categoryId: options.categoryId,
       });
     }
 
-    if (query.stockStatus) {
-      if (query.stockStatus === StockStatus.CRITICAL) {
+    if (options.alertsOnly) {
+      // Invariant: currentBaseStock <= minStock
+      qb.andWhere('COALESCE(stock.current_base_stock, 0) <= product.min_stock');
+    } else if (options.stockStatus) {
+      if (options.stockStatus === StockStatus.CRITICAL) {
         qb.andWhere('COALESCE(stock.current_base_stock, 0) <= 0');
-      } else if (query.stockStatus === StockStatus.LOW) {
+      } else if (options.stockStatus === StockStatus.LOW) {
         qb.andWhere(
           'COALESCE(stock.current_base_stock, 0) > 0 AND COALESCE(stock.current_base_stock, 0) <= product.min_stock',
         );
-      } else if (query.stockStatus === StockStatus.NORMAL) {
+      } else if (options.stockStatus === StockStatus.NORMAL) {
         qb.andWhere(
           'COALESCE(stock.current_base_stock, 0) > product.min_stock',
         );
       }
     }
 
+    return qb;
+  }
+
+  private mapProductToOverviewItem(
+    product: Product,
+  ): StockOverviewItemResponseDto {
+    const currentBaseStock = product.stock
+      ? parseStockDecimal(product.stock.currentBaseStock, 2)
+      : 0;
+    const minStock = parseStockDecimal(product.minStock, 2);
+
+    return {
+      productId: product.id,
+      internalCode: product.internalCode,
+      productName: product.name,
+      category: {
+        id: product.category?.id || product.categoryId,
+        name: product.category?.name || '',
+      },
+      baseUnit: {
+        id: product.baseUnit?.id || product.baseUnitId,
+        name: product.baseUnit?.name || '',
+        symbol: product.baseUnit?.symbol || '',
+      },
+      currentBaseStock,
+      minStock,
+      stockStatus: deriveStockStatus(currentBaseStock, minStock),
+      status: product.status,
+    };
+  }
+
+  /**
+   * Queries active products with consolidated base stock, thresholds, and health status.
+   * Performs an explicit SQL SELECT projection preventing any cost or markup financial leaks.
+   */
+  async findAllStock(query: QueryStockDto): Promise<PaginatedStockResponseDto> {
+    const page = query.page && query.page > 0 ? query.page : 1;
+    const limit =
+      query.limit && query.limit > 0 ? Math.min(query.limit, 50) : 10;
+    const offset = (page - 1) * limit;
+
+    const qb = this.buildStockBaseQuery(query);
     qb.orderBy('product.name', 'ASC').addOrderBy('product.id', 'ASC');
     qb.skip(offset).take(limit);
 
     const [products, total] = await qb.getManyAndCount();
+    const items = products.map((product) =>
+      this.mapProductToOverviewItem(product),
+    );
+    const totalPages = Math.ceil(total / limit) || 1;
 
-    const items: StockOverviewItemResponseDto[] = products.map((product) => {
-      const currentBaseStock = product.stock
-        ? parseStockDecimal(product.stock.currentBaseStock, 2)
-        : 0;
-      const minStock = parseStockDecimal(product.minStock, 2);
+    return {
+      items,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
+  }
 
-      return {
-        productId: product.id,
-        internalCode: product.internalCode,
-        productName: product.name,
-        category: {
-          id: product.category?.id || product.categoryId,
-          name: product.category?.name || '',
-        },
-        baseUnit: {
-          id: product.baseUnit?.id || product.baseUnitId,
-          name: product.baseUnit?.name || '',
-          symbol: product.baseUnit?.symbol || '',
-        },
-        currentBaseStock,
-        minStock,
-        stockStatus: deriveStockStatus(currentBaseStock, minStock),
-        status: product.status,
-      };
-    });
+  /**
+   * Queries active products with stock balance at or below minimum threshold (currentBaseStock <= minStock).
+   */
+  async findStockAlerts(
+    query: QueryStockAlertsDto,
+  ): Promise<PaginatedStockResponseDto> {
+    const page = query.page && query.page > 0 ? query.page : 1;
+    const limit =
+      query.limit && query.limit > 0 ? Math.min(query.limit, 50) : 10;
+    const offset = (page - 1) * limit;
 
+    const qb = this.buildStockBaseQuery({ ...query, alertsOnly: true });
+    qb.orderBy('product.name', 'ASC').addOrderBy('product.id', 'ASC');
+    qb.skip(offset).take(limit);
+
+    const [products, total] = await qb.getManyAndCount();
+    const items = products.map((product) =>
+      this.mapProductToOverviewItem(product),
+    );
     const totalPages = Math.ceil(total / limit) || 1;
 
     return {

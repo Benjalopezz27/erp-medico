@@ -1,18 +1,16 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { getStockOverviewApi } from '../api/stock.api';
+import { getStockAlertsApi } from '../api/stock.api';
 import { stockKeys } from './stock-keys';
 import type {
+  IStockAlertsSearchParams,
   IStockOverviewItem,
-  IStockSearchParams,
   PaginatedStockResponse,
 } from '../types/stock.types';
 
-export const STOCK_QUERY_KEY = stockKeys.overviews();
-
-export function useStockQuery(params: IStockSearchParams) {
+export function useStockAlertsQuery(params: IStockAlertsSearchParams = {}) {
   return useQuery<PaginatedStockResponse<IStockOverviewItem>, Error>({
-    queryKey: stockKeys.overview(params),
-    queryFn: () => getStockOverviewApi(params),
+    queryKey: stockKeys.alertList(params),
+    queryFn: () => getStockAlertsApi(params),
     placeholderData: keepPreviousData,
     staleTime: 1000 * 30, // 30 seconds
   });

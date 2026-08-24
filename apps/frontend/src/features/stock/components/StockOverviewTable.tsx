@@ -1,7 +1,9 @@
 import React from 'react';
-import { Eye, Inbox, RefreshCw } from 'lucide-react';
+import { Eye, Inbox, RefreshCw, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StockStatusBadge } from './StockStatusBadge';
+import { useAuthStore } from '@/stores/authStore';
+import { UserRole } from '@erp/shared-types';
 import type { IStockOverviewItem } from '../types/stock.types';
 
 interface StockOverviewTableProps {
@@ -11,6 +13,7 @@ interface StockOverviewTableProps {
   errorMessage?: string;
   onRetry: () => void;
   onViewLedger: (productId: string) => void;
+  onOpenAdjustment?: (item: IStockOverviewItem) => void;
 }
 
 export const StockOverviewTable: React.FC<StockOverviewTableProps> = ({
@@ -20,7 +23,11 @@ export const StockOverviewTable: React.FC<StockOverviewTableProps> = ({
   errorMessage,
   onRetry,
   onViewLedger,
+  onOpenAdjustment,
 }) => {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === UserRole.ADMINISTRADOR;
+
   if (isLoading) {
     return (
       <div
@@ -94,7 +101,7 @@ export const StockOverviewTable: React.FC<StockOverviewTableProps> = ({
               <th scope="col" className="py-3 px-4 text-center">
                 Estado
               </th>
-              <th scope="col" className="py-3 px-4 text-center w-28">
+              <th scope="col" className="py-3 px-4 text-center w-36">
                 Acciones
               </th>
             </tr>
@@ -147,16 +154,30 @@ export const StockOverviewTable: React.FC<StockOverviewTableProps> = ({
                     <StockStatusBadge status={item.stockStatus} />
                   </td>
                   <td className="py-3 px-4 text-center">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onViewLedger(item.productId)}
-                      className="h-8 px-2.5 text-xs text-primary hover:text-primary-foreground hover:bg-primary"
-                      aria-label={`Ver ledger de ${item.productName}`}
-                    >
-                      <Eye className="w-3.5 h-3.5 mr-1" />
-                      Ledger
-                    </Button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      {isAdmin && onOpenAdjustment && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onOpenAdjustment(item)}
+                          className="h-8 px-2 text-xs text-foreground hover:bg-muted"
+                          aria-label={`Ajustar stock de ${item.productName}`}
+                        >
+                          <SlidersHorizontal className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
+                          Ajustar
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onViewLedger(item.productId)}
+                        className="h-8 px-2.5 text-xs text-primary hover:text-primary-foreground hover:bg-primary"
+                        aria-label={`Ver ledger de ${item.productName}`}
+                      >
+                        <Eye className="w-3.5 h-3.5 mr-1" />
+                        Ledger
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );

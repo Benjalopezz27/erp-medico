@@ -522,6 +522,29 @@ describe('StockService', () => {
     });
   });
 
+  describe('findStockAlerts', () => {
+    it('applies alerts predicate and filters by category and search', async () => {
+      await service.findStockAlerts({
+        page: 1,
+        limit: 10,
+        search: 'Amox',
+        categoryId: 'cat-1',
+      });
+
+      expect(mockProductQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'COALESCE(stock.current_base_stock, 0) <= product.min_stock',
+      );
+      expect(mockProductQueryBuilder.andWhere).toHaveBeenCalledWith(
+        '(UPPER(product.internalCode) LIKE UPPER(:searchLike) OR product.name ILIKE :searchLike)',
+        expect.objectContaining({ searchLike: '%Amox%' }),
+      );
+      expect(mockProductQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'product.categoryId = :categoryId',
+        { categoryId: 'cat-1' },
+      );
+    });
+  });
+
   describe('findProductMovements', () => {
     it('throws NotFoundException when product does not exist', async () => {
       mockProductQueryBuilder.getOne.mockResolvedValueOnce(null);

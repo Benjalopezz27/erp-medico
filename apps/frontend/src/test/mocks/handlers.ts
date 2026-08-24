@@ -1,4 +1,11 @@
-﻿import { RequestHandler } from 'msw';
+import { http, HttpResponse, RequestHandler } from 'msw';
+import { buildPaginatedStockResponse } from '@/features/stock/testing/stock-fixtures';
 
-// Base handlers start empty to avoid pre-defining functional API contracts in infrastructure task #55
-export const handlers: RequestHandler[] = [];
+export const handlers: RequestHandler[] = [
+  // Default stock alerts handler (returns total: 0 so Sidebar/Layout tests are clean by default)
+  http.get('*/api/v1/stock/alerts', ({ request }) => {
+    const url = new URL(request.url);
+    const limit = Number(url.searchParams.get('limit')) || 10;
+    return HttpResponse.json(buildPaginatedStockResponse([], { total: 0, limit }));
+  }),
+];

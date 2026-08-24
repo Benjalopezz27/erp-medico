@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import { StockOverviewPage } from './StockOverviewPage';
+import { renderWithProviders } from '@/test/test-utils';
 import * as routerModule from '@tanstack/react-router';
 import * as stockHook from '@/features/stock/hooks/use-stock-query';
 import * as categoriesHook from '@/features/categories/hooks/use-categories-query';
@@ -62,7 +63,7 @@ describe('StockOverviewPage Component', () => {
       refetch: vi.fn(),
     } as any);
 
-    render(<StockOverviewPage />);
+    renderWithProviders(<StockOverviewPage />);
 
     expect(screen.getByText('Control de Stock')).toBeInTheDocument();
     expect(screen.getByText('P0001')).toBeInTheDocument();
@@ -100,7 +101,7 @@ describe('StockOverviewPage Component', () => {
       refetch: vi.fn(),
     } as any);
 
-    render(<StockOverviewPage />);
+    renderWithProviders(<StockOverviewPage />);
 
     const ledgerBtn = screen.getByRole('button', {
       name: /ver ledger de catéter iv 20g/i,

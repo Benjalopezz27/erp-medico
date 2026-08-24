@@ -17,6 +17,7 @@ import {
   HeartPulse,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
+import { useStockAlertsCountQuery } from '@/features/stock/hooks/use-stock-alerts-count-query';
 import { cn } from '@/lib/utils';
 import { isRouteAllowed } from '@/config/permissions.config';
 
@@ -48,6 +49,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user } = useAuthStore();
+  const { data: stockAlertCount } = useStockAlertsCountQuery();
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
 
@@ -119,6 +121,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 >
                   <Icon className={cn('w-4 h-4', isActive ? 'text-white' : 'text-slate-400')} />
                   <span>{item.name}</span>
+                  {item.href === '/stock' &&
+                    stockAlertCount !== undefined &&
+                    stockAlertCount > 0 && (
+                      <span
+                        data-testid="stock-alerts-badge"
+                        aria-label={`${stockAlertCount} productos bajo stock mínimo`}
+                        className="ml-auto px-2 py-0.5 text-[11px] font-bold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                      >
+                        {stockAlertCount}
+                      </span>
+                    )}
                 </Link>
               );
             })}
