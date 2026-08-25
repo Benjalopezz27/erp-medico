@@ -54,6 +54,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       categoryId: '',
       baseUnitId: '',
       minStock: 0,
+      initialStock: 0,
       costNet: 0,
       markupPercentage: null,
       activePriceNet: 0,
@@ -78,6 +79,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         categoryId: initialProduct.categoryId,
         baseUnitId: initialProduct.baseUnitId,
         minStock: initialProduct.minStock,
+        initialStock: 0,
         costNet: initialProduct.costNet,
         markupPercentage: initialProduct.markupPercentage ?? null,
         activePriceNet: initialProduct.activePriceNet,
@@ -128,6 +130,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const watchedCost = watch('costNet');
   const watchedMarkup = watch('markupPercentage');
   const watchedBaseUnitId = watch('baseUnitId');
+  const selectedBaseUnit = units.find((unit) => unit.id === watchedBaseUnitId);
 
   const liveSuggestedPrice = calculateSuggestedPrice(watchedCost, watchedMarkup);
 
@@ -391,23 +394,56 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           </h3>
         </div>
 
-        <div className="max-w-xs">
-          <label htmlFor="minStock" className="block text-xs font-semibold text-slate-700 mb-1">
-            Stock Mínimo (Alerta de Reposición) *
-          </label>
-          <Input
-            id="minStock"
-            type="number"
-            step="any"
-            min="0"
-            {...register('minStock')}
-            disabled={isSubmitting}
-            placeholder="0"
-            aria-invalid={Boolean(errors.minStock)}
-            className="text-xs font-mono"
-          />
-          {errors.minStock && (
-            <p className="text-[11px] text-red-600 mt-1">{errors.minStock.message}</p>
+        <div className={isEdit ? 'max-w-xs' : 'grid grid-cols-1 sm:grid-cols-2 gap-4'}>
+          <div>
+            <label htmlFor="minStock" className="block text-xs font-semibold text-slate-700 mb-1">
+              Stock Mínimo (Alerta de Reposición) *
+            </label>
+            <Input
+              id="minStock"
+              type="number"
+              step="0.01"
+              min="0"
+              {...register('minStock')}
+              disabled={isSubmitting}
+              placeholder="0"
+              aria-invalid={Boolean(errors.minStock)}
+              className="text-xs font-mono"
+            />
+            {errors.minStock && (
+              <p className="text-[11px] text-red-600 mt-1">{errors.minStock.message}</p>
+            )}
+          </div>
+
+          {!isEdit && (
+            <div>
+              <label
+                htmlFor="initialStock"
+                className="block text-xs font-semibold text-slate-700 mb-1"
+              >
+                Stock Inicial
+                {selectedBaseUnit
+                  ? ` (${selectedBaseUnit.name} - ${selectedBaseUnit.symbol})`
+                  : ' (Unidad Base)'}
+              </label>
+              <Input
+                id="initialStock"
+                type="number"
+                step="0.01"
+                min="0"
+                {...register('initialStock')}
+                disabled={isSubmitting}
+                placeholder="0"
+                aria-invalid={Boolean(errors.initialStock)}
+                className="text-xs font-mono"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">
+                Cantidad disponible actualmente. Se registrará como carga inicial de inventario.
+              </p>
+              {errors.initialStock && (
+                <p className="text-[11px] text-red-600 mt-1">{errors.initialStock.message}</p>
+              )}
+            </div>
           )}
         </div>
       </div>

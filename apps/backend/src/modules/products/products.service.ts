@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { UserRole, ProductStatus } from '@erp/shared-types';
+import { UserRole, ProductStatus, StockMovementType } from '@erp/shared-types';
 import Decimal from 'decimal.js';
 import { Product } from './entities/product.entity';
 import { ProductUnitConversion } from './entities/product-unit-conversion.entity';
@@ -29,6 +29,8 @@ import {
 } from './dto/paginated-products-response.dto';
 import { ProductMapper } from './mappers/product.mapper';
 import { UnitConversionEngine } from './services/unit-conversion-engine.service';
+import { StockAdjustmentsService } from '../stock/stock-adjustments.service';
+import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 
 @Injectable()
 export class ProductsService {
@@ -42,6 +44,7 @@ export class ProductsService {
     @InjectRepository(Unit)
     private readonly unitRepository: Repository<Unit>,
     private readonly unitConversionEngine: UnitConversionEngine,
+    private readonly stockAdjustmentsService: StockAdjustmentsService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -186,7 +189,10 @@ export class ProductsService {
     return ProductMapper.toResponse(product, userRole);
   }
 
-  async create(dto: CreateProductDto): Promise<ProductAdminResponseDto> {
+  async create(
+    dto: CreateProductDto,
+    actor: AuthenticatedUser,
+  ): Promise<ProductAdminResponseDto> {
     // 1. Verify Category exists
     const category = await this.categoryRepository.findOneBy({
       id: dto.categoryId,
@@ -265,6 +271,20 @@ export class ProductsService {
         currentBaseStock: '0.00',
       });
       await queryRunner.manager.save(Stock, stockEntity);
+
+      if (dto.initialStock !== undefined && dto.initialStock > 0) {
+        await this.stockAdjustmentsService.createAdjustment(
+          {
+            productId: createdProduct.id,
+            movementType: StockMovementType.AJUSTE_ENTRADA,
+            quantityBase: dto.initialStock,
+            reason: 'Stock inicial al crear el producto',
+            documentReference: null,
+          },
+          actor,
+          queryRunner.manager,
+        );
+      }
 
       if (dto.conversions && dto.conversions.length > 0) {
         const conversionEntities = dto.conversions.map((c) =>

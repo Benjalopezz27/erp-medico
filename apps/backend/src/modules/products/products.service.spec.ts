@@ -6,13 +6,14 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { UserRole, ProductStatus } from '@erp/shared-types';
+import { UserRole, ProductStatus, StockMovementType } from '@erp/shared-types';
 import { ProductsService } from './products.service';
 import { Product } from './entities/product.entity';
 import { ProductUnitConversion } from './entities/product-unit-conversion.entity';
 import { Category } from '../categories/entities/category.entity';
 import { Unit } from '../units/entities/unit.entity';
 import { UnitConversionEngine } from './services/unit-conversion-engine.service';
+import { StockAdjustmentsService } from '../stock/stock-adjustments.service';
 
 describe('ProductsService', () => {
   let service: ProductsService;
@@ -22,6 +23,15 @@ describe('ProductsService', () => {
   let unitRepo: any;
   let dataSource: any;
   let queryRunner: any;
+  let stockAdjustmentsService: any;
+
+  const mockActor = {
+    id: 'user-admin',
+    email: 'admin@erp.com',
+    name: 'Admin User',
+    role: UserRole.ADMINISTRADOR,
+    isActive: true,
+  };
 
   const mockCategory = {
     id: 'cat-1',
@@ -142,10 +152,22 @@ describe('ProductsService', () => {
       }),
     };
 
+    stockAdjustmentsService = {
+      createAdjustment: jest.fn().mockResolvedValue({
+        id: 'movement-1',
+        previousStock: 0,
+        subsequentStock: 25,
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ProductsService,
         UnitConversionEngine,
+        {
+          provide: StockAdjustmentsService,
+          useValue: stockAdjustmentsService,
+        },
         {
           provide: getRepositoryToken(Product),
           useValue: productRepo,
@@ -234,7 +256,7 @@ describe('ProductsService', () => {
     };
 
     it('creates product and nested conversions in a single transaction', async () => {
-      const result = await service.create(validDto);
+      const result = await service.create(validDto, mockActor);
 
       expect(queryRunner.startTransaction).toHaveBeenCalled();
       expect(queryRunner.commitTransaction).toHaveBeenCalled();
@@ -243,12 +265,42 @@ describe('ProductsService', () => {
         expect.not.objectContaining({ internalCode: expect.anything() }),
       );
       expect(result).toBeDefined();
+      expect(stockAdjustmentsService.createAdjustment).not.toHaveBeenCalled();
+    });
+
+    it('records optional initial stock inside the product transaction', async () => {
+      await service.create({ ...validDto, initialStock: 25 }, mockActor);
+
+      expect(stockAdjustmentsService.createAdjustment).toHaveBeenCalledWith(
+        {
+          productId: 'prod-created',
+          movementType: StockMovementType.AJUSTE_ENTRADA,
+          quantityBase: 25,
+          reason: 'Stock inicial al crear el producto',
+          documentReference: null,
+        },
+        mockActor,
+        queryRunner.manager,
+      );
+      expect(queryRunner.commitTransaction).toHaveBeenCalled();
+    });
+
+    it('rolls back product creation when the initial stock movement fails', async () => {
+      stockAdjustmentsService.createAdjustment.mockRejectedValueOnce(
+        new Error('Stock movement failed'),
+      );
+
+      await expect(
+        service.create({ ...validDto, initialStock: 25 }, mockActor),
+      ).rejects.toThrow('Stock movement failed');
+      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+      expect(queryRunner.commitTransaction).not.toHaveBeenCalled();
     });
 
     it('returns a clear conflict when the automatic code range is exhausted', async () => {
       queryRunner.manager.save.mockRejectedValueOnce({ code: '2200H' });
 
-      await expect(service.create(validDto)).rejects.toThrow(
+      await expect(service.create(validDto, mockActor)).rejects.toThrow(
         new ConflictException(
           'Se alcanzó el límite de códigos automáticos disponibles (P9999).',
         ),
@@ -258,12 +310,16 @@ describe('ProductsService', () => {
 
     it('throws NotFoundException on invalid categoryId', async () => {
       categoryRepo.findOneBy.mockResolvedValueOnce(null);
-      await expect(service.create(validDto)).rejects.toThrow(NotFoundException);
+      await expect(service.create(validDto, mockActor)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws NotFoundException on invalid baseUnitId', async () => {
       unitRepo.findOneBy.mockResolvedValueOnce(null);
-      await expect(service.create(validDto)).rejects.toThrow(NotFoundException);
+      await expect(service.create(validDto, mockActor)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('throws BadRequestException when presentation unit equals base unit', async () => {
@@ -276,7 +332,7 @@ describe('ProductsService', () => {
           },
         ],
       };
-      await expect(service.create(invalidDto)).rejects.toThrow(
+      await expect(service.create(invalidDto, mockActor)).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -295,7 +351,7 @@ describe('ProductsService', () => {
           },
         ],
       };
-      await expect(service.create(invalidDto)).rejects.toThrow(
+      await expect(service.create(invalidDto, mockActor)).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -304,7 +360,9 @@ describe('ProductsService', () => {
       productRepo.createQueryBuilder().getOne.mockResolvedValueOnce(null);
       queryRunner.manager.save.mockRejectedValueOnce(new Error('DB Error'));
 
-      await expect(service.create(validDto)).rejects.toThrow('DB Error');
+      await expect(service.create(validDto, mockActor)).rejects.toThrow(
+        'DB Error',
+      );
       expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
     });
   });

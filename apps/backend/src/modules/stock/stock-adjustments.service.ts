@@ -3,7 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { ProductStatus, AuditAction } from '@erp/shared-types';
 import { StockService } from './stock.service';
 import { AuditService } from '../audit/audit.service';
@@ -26,10 +26,15 @@ export class StockAdjustmentsService {
   async createAdjustment(
     dto: CreateStockAdjustmentDto,
     actor: AuthenticatedUser,
+    manager?: EntityManager,
   ): Promise<StockMovementResponseDto> {
-    return this.dataSource.transaction(async (manager) => {
+    const executeInTransaction = async (
+      transactionManager: EntityManager,
+    ): Promise<StockMovementResponseDto> => {
       // 1. Verify Product exists in database
-      const product = await manager.findOneBy(Product, { id: dto.productId });
+      const product = await transactionManager.findOneBy(Product, {
+        id: dto.productId,
+      });
       if (!product) {
         throw new NotFoundException('El producto especificado no existe.');
       }
@@ -51,11 +56,11 @@ export class StockAdjustmentsService {
           documentReference: dto.documentReference,
           userId: actor.id,
         },
-        manager,
+        transactionManager,
       );
 
       // 4. Atomically persist audit log entry in the same transaction
-      await this.auditService.record(manager, {
+      await this.auditService.record(transactionManager, {
         actorId: actor.id,
         action: AuditAction.UPDATE,
         entityName: 'Stock',
@@ -77,6 +82,12 @@ export class StockAdjustmentsService {
       });
 
       return movement;
-    });
+    };
+
+    if (manager) {
+      return executeInTransaction(manager);
+    }
+
+    return this.dataSource.transaction(executeInTransaction);
   }
 }
