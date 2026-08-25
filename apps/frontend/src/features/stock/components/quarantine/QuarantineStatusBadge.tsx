@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  AlertTriangle,
-  Trash2,
-  Undo2,
-  CheckCircle2,
-} from 'lucide-react';
+import { AlertTriangle, Trash2, Undo2, CheckCircle2 } from 'lucide-react';
 import { QuarantineStatus } from '../../types/quarantine.types';
 import { cn } from '@/lib/utils';
 

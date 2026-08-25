@@ -51,9 +51,7 @@ describe('QuarantineResolveModal Component', () => {
   });
 
   it('validates resolution notes and submits REINGRESO resolution', () => {
-    render(
-      <QuarantineResolveModal isOpen={true} onClose={onClose} item={mockItem} />,
-    );
+    render(<QuarantineResolveModal isOpen={true} onClose={onClose} item={mockItem} />);
 
     expect(screen.getByText('Amoxicilina 500mg')).toBeInTheDocument();
     expect(screen.getByText('15,00 cmp')).toBeInTheDocument();
@@ -61,9 +59,7 @@ describe('QuarantineResolveModal Component', () => {
     // Submit without notes
     fireEvent.submit(screen.getByTestId('quarantine-resolve-form'));
     expect(
-      screen.getByText(
-        'Las notas de resolución son obligatorias (mínimo 3 caracteres).',
-      ),
+      screen.getByText('Las notas de resolución son obligatorias (mínimo 3 caracteres).'),
     ).toBeInTheDocument();
 
     // Enter notes and submit REINGRESO (default)
@@ -85,9 +81,7 @@ describe('QuarantineResolveModal Component', () => {
   });
 
   it('submits MERMA resolution when selected', () => {
-    render(
-      <QuarantineResolveModal isOpen={true} onClose={onClose} item={mockItem} />,
-    );
+    render(<QuarantineResolveModal isOpen={true} onClose={onClose} item={mockItem} />);
 
     // Select MERMA
     fireEvent.click(screen.getByTestId('quarantine-option-merma'));

@@ -1,21 +1,10 @@
 import React, { useState } from 'react';
-import {
-  CheckSquare,
-  Loader2,
-  AlertCircle,
-  RotateCcw,
-  Trash2,
-  Undo2,
-  Info,
-} from 'lucide-react';
+import { CheckSquare, Loader2, AlertCircle, RotateCcw, Trash2, Undo2, Info } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { useResolveQuarantineMutation } from '../../hooks/use-quarantine';
 import { parseQuarantineApiError } from '../../utils/quarantine.errors';
-import {
-  QuarantineResolution,
-  type IQuarantineStock,
-} from '../../types/quarantine.types';
+import { QuarantineResolution, type IQuarantineStock } from '../../types/quarantine.types';
 
 interface QuarantineResolveModalProps {
   isOpen: boolean;
@@ -154,7 +143,9 @@ export const QuarantineResolveModal: React.FC<QuarantineResolveModalProps> = ({
             >
               <Trash2 className="w-5 h-5 mb-1.5 text-destructive" />
               <span className="font-semibold text-xs text-foreground">Merma</span>
-              <span className="text-[10px] text-muted-foreground mt-0.5">Destrucción / Pérdida</span>
+              <span className="text-[10px] text-muted-foreground mt-0.5">
+                Destrucción / Pérdida
+              </span>
             </button>
 
             {/* Devolución */}
@@ -192,15 +183,19 @@ export const QuarantineResolveModal: React.FC<QuarantineResolveModalProps> = ({
             {resolution === QuarantineResolution.MERMA && (
               <p className="text-muted-foreground">
                 <strong className="text-foreground">Impacto en Stock:</strong> Se confirmará la baja
-                definitiva por merma. <strong className="text-foreground">No se generarán movimientos adicionales</strong> ya
-                que el saldo fue descontado al apartar a cuarentena.
+                definitiva por merma.{' '}
+                <strong className="text-foreground">No se generarán movimientos adicionales</strong>{' '}
+                ya que el saldo fue descontado al apartar a cuarentena.
               </p>
             )}
             {resolution === QuarantineResolution.DEVOLUCION_PROVEEDOR && (
               <p className="text-muted-foreground">
                 <strong className="text-foreground">Impacto en Stock:</strong> Se confirmará la
                 devolución física al proveedor.{' '}
-                <strong className="text-foreground">No se generarán movimientos adicionales de saldo</strong>.
+                <strong className="text-foreground">
+                  No se generarán movimientos adicionales de saldo
+                </strong>
+                .
               </p>
             )}
           </div>

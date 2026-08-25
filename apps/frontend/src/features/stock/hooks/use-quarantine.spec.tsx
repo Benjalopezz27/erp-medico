@@ -39,7 +39,14 @@ describe('use-quarantine Hooks', () => {
     it('fetches quarantine entries with query params', async () => {
       const mockResult = {
         items: [{ id: 'q1', status: QuarantineStatus.EN_CUARENTENA }],
-        meta: { total: 1, page: 1, limit: 10, totalPages: 1, hasNextPage: false, hasPreviousPage: false },
+        meta: {
+          total: 1,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
       };
       vi.mocked(quarantineApi.getQuarantineListApi).mockResolvedValueOnce(mockResult as any);
 
