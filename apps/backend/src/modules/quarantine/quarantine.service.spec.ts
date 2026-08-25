@@ -22,7 +22,6 @@ import { CreateQuarantineDto, ResolveQuarantineDto } from './dto';
 
 describe('QuarantineService Unit Tests', () => {
   let service: QuarantineService;
-  let quarantineRepo: jest.Mocked<Repository<QuarantineStock>>;
   let productRepo: jest.Mocked<Repository<Product>>;
   let stockService: jest.Mocked<StockService>;
   let auditService: jest.Mocked<AuditService>;
@@ -45,7 +44,11 @@ describe('QuarantineService Unit Tests', () => {
     reason: 'Cajas rotas',
     status: QuarantineStatus.EN_CUARENTENA,
     entryActorId: 'user-admin-1',
-    entryActor: { id: 'user-admin-1', name: 'Admin', email: 'admin@erp.com' } as any,
+    entryActor: {
+      id: 'user-admin-1',
+      name: 'Admin',
+      email: 'admin@erp.com',
+    } as any,
     entryMovementId: 'mov-out-1',
     resolvedByActorId: null,
     resolvedByActor: null,
@@ -86,7 +89,9 @@ describe('QuarantineService Unit Tests', () => {
     };
 
     dataSource = {
-      transaction: jest.fn().mockImplementation(async (cb) => cb(mockEntityManager)),
+      transaction: jest
+        .fn()
+        .mockImplementation(async (cb) => cb(mockEntityManager)),
     } as any;
 
     stockService = {
@@ -124,7 +129,6 @@ describe('QuarantineService Unit Tests', () => {
     }).compile();
 
     service = module.get<QuarantineService>(QuarantineService);
-    quarantineRepo = module.get(getRepositoryToken(QuarantineStock));
     productRepo = module.get(getRepositoryToken(Product));
   });
 
@@ -246,7 +250,8 @@ describe('QuarantineService Unit Tests', () => {
         quantityBase: 10,
         previousStock: 40,
         subsequentStock: 50,
-        reason: 'Reingreso desde cuarentena: Mercadería revisada en buen estado',
+        reason:
+          'Reingreso desde cuarentena: Mercadería revisada en buen estado',
         documentReference: null,
         userId: 'user-admin-1',
         createdAt: new Date(),
@@ -293,11 +298,7 @@ describe('QuarantineService Unit Tests', () => {
           createQueryBuilder: jest.fn().mockReturnValue(mockQb),
         });
 
-      await service.resolve(
-        'quar-uuid-1',
-        resolveDtoMerma,
-        'user-admin-1',
-      );
+      await service.resolve('quar-uuid-1', resolveDtoMerma, 'user-admin-1');
 
       expect(stockService.recordMovement).not.toHaveBeenCalled();
       expect(auditService.record).toHaveBeenCalledWith(
