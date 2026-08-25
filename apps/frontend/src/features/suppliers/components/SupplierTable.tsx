@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, Ban, CheckCircle2, Loader2, Building2 } from 'lucide-react';
+import { Edit2, Ban, CheckCircle2, Loader2, Building2, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCuit } from '@erp/shared-types';
 import { SupplierStatusBadge } from './SupplierStatusBadge';
@@ -14,6 +14,7 @@ export interface SupplierTableProps {
   onEditSupplier: (supplier: ISupplier) => void;
   onDeactivateSupplier: (supplier: ISupplier) => void;
   onReactivateSupplier: (supplier: ISupplier) => void;
+  onOpenCatalog?: (supplier: ISupplier) => void;
   mutatingSupplierId?: string | null;
 }
 
@@ -24,6 +25,7 @@ export const SupplierTable: React.FC<SupplierTableProps> = ({
   onEditSupplier,
   onDeactivateSupplier,
   onReactivateSupplier,
+  onOpenCatalog,
   mutatingSupplierId,
 }) => {
   if (isPending) {
@@ -133,6 +135,21 @@ export const SupplierTable: React.FC<SupplierTableProps> = ({
                   {/* Acciones */}
                   <td className="py-3.5 px-4 text-right">
                     <div className="flex items-center justify-end gap-1.5">
+                      {onOpenCatalog && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onOpenCatalog(supplier)}
+                          disabled={isMutating}
+                          className="h-8 px-2 text-xs text-slate-600 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+                          title="Ver catálogo del proveedor"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 mr-1" />
+                          Catálogo
+                        </Button>
+                      )}
+
                       <Button
                         type="button"
                         variant="ghost"
