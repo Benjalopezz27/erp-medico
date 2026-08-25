@@ -26,6 +26,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { User } from '../users/entities/user.entity';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -130,9 +131,9 @@ export class ProductsController {
   @Roles(UserRole.ADMINISTRADOR)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
-    summary: 'Create a new product with optional initial conversions',
+    summary: 'Create a new product with optional initial conversions and stock',
     description:
-      'Restricted to ADMINISTRADOR. Atomically creates product and presentation conversions.',
+      'Restricted to ADMINISTRADOR. Atomically creates the product, presentation conversions, stock balance, and initial ledger movement when initialStock is greater than zero.',
   })
   @ApiResponse({
     status: 201,
@@ -158,8 +159,9 @@ export class ProductsController {
   })
   async create(
     @Body() dto: CreateProductDto,
+    @CurrentUser() actor: AuthenticatedUser,
   ): Promise<ProductAdminResponseDto> {
-    return this.productsService.create(dto);
+    return this.productsService.create(dto, actor);
   }
 
   @Patch(':id')
