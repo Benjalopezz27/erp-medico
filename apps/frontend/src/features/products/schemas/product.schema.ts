@@ -55,6 +55,20 @@ export const productFormSchema = z
           { message: 'El stock mínimo puede tener como máximo 2 decimales.' },
         ),
     ),
+    initialStock: z.preprocess(
+      (val) => (val === '' || val === null || val === undefined ? 0 : Number(val)),
+      z
+        .number({ required_error: 'El stock inicial es obligatorio.' })
+        .min(0, 'El stock inicial no puede ser negativo.')
+        .max(999999999999.99, 'El stock inicial no puede exceder 999999999999.99.')
+        .refine(
+          (val) => {
+            const parts = val.toString().split('.');
+            return !parts[1] || parts[1].length <= 2;
+          },
+          { message: 'El stock inicial puede tener como máximo 2 decimales.' },
+        ),
+    ),
     costNet: z.preprocess(
       (val) => (val === '' || val === null || val === undefined ? undefined : Number(val)),
       z

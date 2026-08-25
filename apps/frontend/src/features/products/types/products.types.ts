@@ -65,6 +65,7 @@ export interface ProductFormValues {
   categoryId: string;
   baseUnitId: string;
   minStock: number;
+  initialStock: number;
   costNet: number;
   markupPercentage?: number | null;
   activePriceNet: number;
@@ -77,6 +78,7 @@ export interface CreateProductPayload {
   categoryId: string;
   baseUnitId: string;
   minStock?: number;
+  initialStock?: number;
   costNet: number;
   markupPercentage?: number | null;
   activePriceNet: number;

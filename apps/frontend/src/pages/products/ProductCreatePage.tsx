@@ -46,6 +46,7 @@ export const ProductCreatePage: React.FC = () => {
         categoryId: values.categoryId,
         baseUnitId: values.baseUnitId,
         minStock: Number(values.minStock) || 0,
+        initialStock: Number(values.initialStock) || 0,
         costNet: Number(values.costNet),
         markupPercentage:
           values.markupPercentage !== null &&

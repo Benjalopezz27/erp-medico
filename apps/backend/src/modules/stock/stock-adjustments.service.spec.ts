@@ -180,6 +180,35 @@ describe('StockAdjustmentsService', () => {
     expect(res).toEqual(mockMovementResponse);
   });
 
+  it('participates in an existing transaction when a manager is provided', async () => {
+    const res = await service.createAdjustment(
+      {
+        productId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+        movementType: StockMovementType.AJUSTE_ENTRADA,
+        quantityBase: 15,
+        reason: 'Stock inicial al crear el producto',
+      },
+      mockActor,
+      mockManager,
+    );
+
+    expect(mockDataSource.transaction).not.toHaveBeenCalled();
+    expect(mockStockService.recordMovement).toHaveBeenCalledWith(
+      expect.objectContaining({
+        productId: mockActiveProduct.id,
+        movementType: StockMovementType.AJUSTE_ENTRADA,
+        quantityBase: 15,
+        userId: mockActor.id,
+      }),
+      mockManager,
+    );
+    expect(mockAuditService.record).toHaveBeenCalledWith(
+      mockManager,
+      expect.objectContaining({ entityName: 'Stock' }),
+    );
+    expect(res).toEqual(mockMovementResponse);
+  });
+
   it('propagates InsufficientStockException and does not record audit log', async () => {
     mockStockService.recordMovement.mockRejectedValueOnce(
       new InsufficientStockException({

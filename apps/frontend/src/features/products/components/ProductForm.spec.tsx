@@ -93,6 +93,26 @@ describe('ProductForm', () => {
     expect(
       screen.getByText(/Para modificar la unidad base, primero elimina todas las conversiones/i),
     ).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Stock Inicial/i)).not.toBeInTheDocument();
+  });
+
+  it('shows initial stock only on creation and labels it with the selected base unit', async () => {
+    const user = userEvent.setup();
+    render(
+      <ProductForm
+        mode="create"
+        categories={mockCategories}
+        units={mockUnits}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+        isSubmitting={false}
+      />,
+    );
+
+    expect(screen.getByLabelText(/Stock Inicial \(Unidad Base\)/i)).toHaveValue(0);
+    await user.selectOptions(screen.getByLabelText(/^Unidad Base \*$/i), 'u-base');
+    expect(screen.getByLabelText(/Stock Inicial \(Unidad - u\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/carga inicial de inventario/i)).toBeInTheDocument();
   });
 
   it('triggers onCancel when clicking Cancelar', async () => {

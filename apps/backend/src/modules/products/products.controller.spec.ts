@@ -120,7 +120,7 @@ describe('ProductsController', () => {
   });
 
   describe('create', () => {
-    it('calls service.create with dto', async () => {
+    it('calls service.create with dto and authenticated actor', async () => {
       const dto = {
         name: 'Ibuprofeno',
         categoryId: 'c-1',
@@ -128,8 +128,8 @@ describe('ProductsController', () => {
         costNet: 100,
         activePriceNet: 130,
       };
-      const result = await controller.create(dto as any);
-      expect(service.create).toHaveBeenCalledWith(dto);
+      const result = await controller.create(dto as any, mockAdminUser as any);
+      expect(service.create).toHaveBeenCalledWith(dto, mockAdminUser);
       expect(result).toBeDefined();
     });
   });

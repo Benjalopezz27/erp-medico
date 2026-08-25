@@ -78,6 +78,25 @@ export class CreateProductDto {
   })
   minStock?: number;
 
+  @ApiPropertyOptional({
+    description:
+      'Optional initial stock expressed in the selected base unit. Values greater than zero create an AJUSTE_ENTRADA ledger movement atomically with the product.',
+    example: 25,
+    default: 0,
+    minimum: 0,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber(
+    { maxDecimalPlaces: 2 },
+    { message: 'El stock inicial debe ser un número con hasta 2 decimales.' },
+  )
+  @Min(0, { message: 'El stock inicial no puede ser negativo.' })
+  @Max(999999999999.99, {
+    message: 'El stock inicial no puede exceder 999999999999.99.',
+  })
+  initialStock?: number;
+
   @ApiProperty({
     description: 'Net purchase cost from supplier in ARS',
     example: 1500.5,

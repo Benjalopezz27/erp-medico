@@ -75,7 +75,9 @@ describe('ProductCreatePage', () => {
 
     await user.type(screen.getByLabelText(/Nombre Comercial/i), 'Amoxicilina 500mg');
     await user.selectOptions(screen.getByLabelText(/Categoría/i), validCategoryId);
-    await user.selectOptions(screen.getByLabelText(/Unidad Base/i), validBaseUnitId);
+    await user.selectOptions(screen.getByLabelText(/^Unidad Base \*$/i), validBaseUnitId);
+    await user.clear(screen.getByLabelText(/Stock Inicial/i));
+    await user.type(screen.getByLabelText(/Stock Inicial/i), '25');
     await user.type(screen.getByLabelText(/Costo Neto/i), '1500');
     await user.type(screen.getByLabelText(/Precio Activo/i), '2000');
 
@@ -85,7 +87,7 @@ describe('ProductCreatePage', () => {
     await waitFor(() => {
       expect(productsApi.createProductApi).toHaveBeenCalled();
       expect(productsApi.createProductApi).toHaveBeenCalledWith(
-        expect.not.objectContaining({ internalCode: expect.anything() }),
+        expect.objectContaining({ initialStock: 25 }),
       );
       expect(mockNavigate).toHaveBeenCalledWith(expect.objectContaining({ to: '/products' }));
     });
