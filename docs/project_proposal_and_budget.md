@@ -119,10 +119,10 @@ Se propone un esquema de pagos dividido en **4 hitos vinculados a entregables ve
 
 Los siguientes costos de infraestructura son **a cargo del cliente** y no están incluidos en el honorario de desarrollo:
 
-- **Hosting / Servidor Nube:** (ej. Hetzner, AWS, Render o VPS dedicado $\approx$ \$15 - \$30 USD/mes).
+- **Hosting / Servidor Nube:** Railway, con plan y consumo final a confirmar mediante métricas de staging antes del Go-Live.
 - **Base de Datos Gestionada & Backups:** Incluido en la infraestructura en la nube.
 - **Certificado Digital ARCA:** Gratuito (gestionado con clave fiscal en AFIP).
-- **Dominio / SSL:** Domain HTTPS ($\approx$ \$10 - \$15 USD/año).
+- **Dominio / SSL:** un dominio HTTPS para producción ($\approx$ \$10 - \$15 USD/año); staging usa el dominio administrado de Railway.
 
 ---
 

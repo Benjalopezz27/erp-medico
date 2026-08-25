@@ -14,7 +14,7 @@ The system is accessed from **a single workstation** in the distributor's office
 
 - **No real concurrent database sessions** from multiple browsers.
 - **No horizontal scaling** needed at any point in the MVP.
-- A single low-cost VPS is entirely sufficient.
+- A small Railway deployment is sufficient; no horizontal scaling is required.
 - Row-level locking (`SELECT FOR UPDATE`) is still implemented as a correctness guarantee, not a performance requirement — it protects against any future multi-session or automation scenario.
 - Session management via **JWT tokens stored in memory** (not `localStorage`) is sufficient; no WebSocket or SSE real-time sync is needed between sessions.
 
@@ -22,27 +22,27 @@ The system is accessed from **a single workstation** in the distributor's office
 
 ## 2. Full Stack Decision Table
 
-| Layer                  | Technology                          | Discarded Alternative | Key Reason                                                                   |
-| ---------------------- | ----------------------------------- | --------------------- | ---------------------------------------------------------------------------- |
-| **Backend framework**  | NestJS (Node.js / TypeScript)       | —                     | Already decided; modular architecture maps well to bounded contexts          |
-| **ORM**                | **TypeORM**                         | Prisma                | Native `QueryRunner` + `SELECT FOR UPDATE`; explicit multi-step transactions |
-| **Database**           | PostgreSQL 16                       | —                     | Already decided; ACID, immutable ledger, row-level locking                   |
-| **Frontend**           | **Vite + React 19 (SPA)**           | Next.js               | Pure backoffice — SSR adds complexity with zero benefit                      |
-| **Routing**            | TanStack Router v1                  | React Router v6       | Fully type-safe, file-based routes                                           |
-| **Server state**       | **TanStack Query v5**               | SWR / Apollo          | Caching + optimistic updates + retry; ideal for data grids                   |
-| **UI components**      | **shadcn/ui + Tailwind CSS**        | Ant Design, MUI       | Composable, no vendor lock-in, perfect for data-dense ERP                    |
-| **Forms**              | React Hook Form + Zod               | Formik                | Performance, shared schema validation with backend                           |
-| **Data grids**         | **TanStack Table v8**               | AG Grid               | Sufficient for ≤350 products; no paid license required                       |
-| **Queue / ARCA retry** | BullMQ + Redis                      | —                     | Idempotency keys for WSFE; exponential backoff                               |
-| **Fiscal PDF**         | **Puppeteer (headless)**            | pdf-lib               | HTML → PDF with embedded QR; easier to maintain                              |
-| **ARCA SOAP**          | `soap` npm + Axios                  | Axios only            | `soap` parses WSDL; Axios handles WSAA token refresh                         |
-| **Auth**               | Passport.js + JWT + NestJS Guards   | —                     | Native NestJS integration                                                    |
-| **Logging**            | Winston + Pino-HTTP                 | —                     | Winston for app events; Pino for request-level logging                       |
-| **Monorepo**           | **pnpm workspaces**                 | Nx / Turborepo        | Simpler for solo dev; no build graph overhead                                |
-| **Containerization**   | Docker Compose                      | Kubernetes            | Single VPS, sequential users — K8s is overkill                               |
-| **CI/CD**              | GitHub Actions                      | —                     | Already documented                                                           |
-| **Hosting**            | **Hetzner CX21** (~$6.50 USD/month) | AWS, Render           | Cheapest option; direct Docker Compose deploy; Certbot SSL                   |
-| **Language**           | TypeScript (strict)                 | —                     | Shared types between backend and frontend via `shared-types` package         |
+| Layer                  | Technology                        | Discarded Alternative | Key Reason                                                                   |
+| ---------------------- | --------------------------------- | --------------------- | ---------------------------------------------------------------------------- |
+| **Backend framework**  | NestJS (Node.js / TypeScript)     | —                     | Already decided; modular architecture maps well to bounded contexts          |
+| **ORM**                | **TypeORM**                       | Prisma                | Native `QueryRunner` + `SELECT FOR UPDATE`; explicit multi-step transactions |
+| **Database**           | PostgreSQL 16                     | —                     | Already decided; ACID, immutable ledger, row-level locking                   |
+| **Frontend**           | **Vite + React 19 (SPA)**         | Next.js               | Pure backoffice — SSR adds complexity with zero benefit                      |
+| **Routing**            | TanStack Router v1                | React Router v6       | Fully type-safe, file-based routes                                           |
+| **Server state**       | **TanStack Query v5**             | SWR / Apollo          | Caching + optimistic updates + retry; ideal for data grids                   |
+| **UI components**      | **shadcn/ui + Tailwind CSS**      | Ant Design, MUI       | Composable, no vendor lock-in, perfect for data-dense ERP                    |
+| **Forms**              | React Hook Form + Zod             | Formik                | Performance, shared schema validation with backend                           |
+| **Data grids**         | **TanStack Table v8**             | AG Grid               | Sufficient for ≤350 products; no paid license required                       |
+| **Queue / ARCA retry** | BullMQ + Redis                    | —                     | Idempotency keys for WSFE; exponential backoff                               |
+| **Fiscal PDF**         | **Puppeteer (headless)**          | pdf-lib               | HTML → PDF with embedded QR; easier to maintain                              |
+| **ARCA SOAP**          | `soap` npm + Axios                | Axios only            | `soap` parses WSDL; Axios handles WSAA token refresh                         |
+| **Auth**               | Passport.js + JWT + NestJS Guards | —                     | Native NestJS integration                                                    |
+| **Logging**            | Winston + Pino-HTTP               | —                     | Winston for app events; Pino for request-level logging                       |
+| **Monorepo**           | **pnpm workspaces**               | Nx / Turborepo        | Simpler for solo dev; no build graph overhead                                |
+| **Containerization**   | Production Dockerfiles + Compose  | Kubernetes            | Portable local/CI images without cluster complexity                          |
+| **CI/CD**              | GitHub Actions                    | —                     | Already documented                                                           |
+| **Hosting**            | **Railway**                       | Self-managed VPS      | Low operational burden, private networking and managed HTTPS                 |
+| **Language**           | TypeScript (strict)               | —                     | Shared types between backend and frontend via `shared-types` package         |
 
 ---
 
@@ -304,23 +304,23 @@ ARCA_PUNTO_VENTA=1
 
 ## 9. Staging & Production Hosting
 
-**Proveedor objetivo:** VPS único por ambiente; Hetzner es la opción inicial, su plan y precio deben confirmarse antes de contratar.
+**Proveedor objetivo:** Railway. Staging inicia en Hobby y producción se evalúa
+con métricas reales antes del Go-Live; el crédito incluido no funciona como tope.
 
-- Ubuntu LTS endurecido
-- Docker Compose directo (sin Kubernetes)
-- Imágenes multi-stage publicadas en GHCR por commit SHA
-- Staging y producción promueven el mismo digest; no se compila en el servidor
-- Nginx como reverse proxy y terminación TLS
-- PostgreSQL y Redis en redes privadas, sin puertos públicos
-- GitHub Environments con secrets independientes
-- Backup PostgreSQL cifrado y externo al VPS, con restore probado
-- Health/readiness, logs estructurados, alertas y rollback documentado
+- Servicios frontend y backend construidos desde Dockerfiles del monorepo
+- Autodeploy desde GitHub exclusivamente después de CI verde (`Wait for CI`)
+- Nginx del frontend como proxy same-origin hacia el backend privado
+- PostgreSQL administrado en una red aislada por ambiente
+- Redis se incorpora al implementar BullMQ/ARCA, no antes
+- Dominio Railway para staging y dominio comprado únicamente para producción
+- Secrets, base de datos y red independientes por ambiente
+- Health/readiness, logs, alertas de gasto y rollback documentado
 
 ```
-Nginx (reverse proxy + SSL)
-    +-- :80 -> redirect to :443
-    +-- :443/api/* -> NestJS :3000
-    +-- :443/* -> React SPA static files
+Railway Edge (TLS administrado)
+    +-- HTTPS -> frontend Nginx :8080
+                    +-- /api/* -> backend.railway.internal:3000
+                    +-- /* -> React SPA
 ```
 
 El track se gestiona en [#65](https://github.com/Benjalopezz27/erp-medico/issues/65). Proveedor, tamaño, presupuesto, dominio/DNS, accesos, monitoreo, almacenamiento de backups, certificados ARCA y ventana de Go-Live son gates externos: no se asumen ni ejecutan sin aprobación explícita.
@@ -334,7 +334,7 @@ El track se gestiona en [#65](https://github.com/Benjalopezz27/erp-medico/issues
 | GraphQL               | Plain REST — CRUD + a few specialized endpoints                                             |
 | Microservices         | Modular NestJS monolith — sequential single-workstation users do not justify the complexity |
 | CQRS + Event Sourcing | Immutable ledger already covers audit — CQRS is over-engineering                            |
-| Kubernetes            | Docker Compose directly on VPS                                                              |
+| Kubernetes            | Railway services backed by production Dockerfiles                                           |
 | Prisma                | TypeORM for native `SELECT FOR UPDATE` + explicit `QueryRunner`                             |
 | Next.js               | Vite SPA — pure backoffice, no SEO, no public pages                                         |
 | Redux                 | Zustand (if needed) + TanStack Query for server state                                       |

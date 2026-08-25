@@ -136,23 +136,38 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod down -v
 
 ---
 
-## 4. CI/CD & GHCR Publication Workflow
+## 4. CI/CD & Container Publication Pipelines
 
-The `.github/workflows/ci.yml` pipeline executes the following stages on pull requests and branch pushes:
+The automated CI/CD lifecycle is split into two specialized workflows:
 
-1. **Lint & Code Style**: Prettier and ESLint validation across all workspace packages.
+### A. Continuous Integration (`.github/workflows/ci.yml`)
+
+Runs on all pull requests and branch pushes:
+
+1. **Lint & Code Style**: Prettier and ESLint across all packages.
 2. **Backend & Frontend Tests**: Unit, integration, E2E tests, and code coverage.
 3. **Workspace Build**: Type checking and compilation of all packages with Node 24.
-4. **Container Build**: Multi-stage Docker image builds with BuildKit caching.
-5. **Security Scanning & Smoke Test**:
+
+### B. Container Image Publication (`.github/workflows/publish-images.yml`)
+
+Triggered automatically via `workflow_run` upon successful CI completion on `dev` and `main`:
+
+1. **Container Build**: Multi-stage Docker image builds with BuildKit caching.
+2. **Security Scanning**:
    - Trivy vulnerability scanner on both images with `exit-code: 1` on `CRITICAL,HIGH` CVEs.
-   - Repository scan for committed secrets and unsafe infrastructure configuration.
-   - Automated Compose smoke test in isolated project namespace (`-p erp_ci_smoke`) with guaranteed cleanup.
-6. **Publication to GHCR** (Pushes to `dev` and `main` only):
-   - Authenticates to GitHub Container Registry using `GITHUB_TOKEN`.
+   - Repository scan for committed secrets and unsafe configurations.
+3. **Automated Compose Smoke Test**: Boots stack in isolated namespace (`-p erp_ci_smoke`), runs one-shot migrations, verifies non-root execution, and validates health.
+4. **Publication to GHCR**:
    - Pushes immutable tag `sha-<full_commit_sha>`.
-   - Pushes floating branch tag (`dev` or `latest`).
-   - Generates summary with image digest.
+   - Pushes floating branch tag (`dev` or `latest`) as convenience alias.
+   - Extracts immutable digests (`image@sha256:<digest>`).
+   - Generates and uploads `release-manifest.json` as release evidence.
+
+Railway Hobby staging builds these same Dockerfiles from the private GitHub
+repository after CI succeeds. It does not consume private GHCR images because
+Railway reserves private registry credentials for its Pro plan. See
+[`staging-environment.md`](./staging-environment.md) for the provider-specific
+deployment model and the external steps that remain intentionally unprovisioned.
 
 ---
 

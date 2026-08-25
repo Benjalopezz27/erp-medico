@@ -513,7 +513,7 @@
 
 ## 5. Estructura de Presupuesto y Esfuerzo
 
-El esfuerzo de infraestructura productiva se distribuye de forma transversal: imágenes y staging en Sprints 2–3, homologación antes de Sprint 8, restore/rehearsal en Sprint 9 y Go-Live en Sprint 10. Los costos de VPS, dominio, monitoreo, backups y servicios externos requieren aprobación separada y no están incluidos en los días de desarrollo.
+El esfuerzo de infraestructura productiva se distribuye de forma transversal: imágenes y staging en Sprints 2–3, homologación antes de Sprint 8, restore/rehearsal en Sprint 9 y Go-Live en Sprint 10. Los costos de Railway, dominio de producción, monitoreo, backups y servicios externos requieren aprobación separada y no están incluidos en los días de desarrollo.
 
 | Módulo / Fase                    | Días Estimados           | Peso base % |
 | -------------------------------- | ------------------------ | ----------- |
