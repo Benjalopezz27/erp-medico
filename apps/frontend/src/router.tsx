@@ -125,10 +125,48 @@ import {
   type IQuarantineSearchParams,
 } from '@/features/stock/types/stock.types';
 import { SuppliersPage } from '@/pages/suppliers/SuppliersPage';
+import { SupplierCatalogPage } from '@/pages/suppliers/SupplierCatalogPage';
 import type {
   ISupplierSearchParams,
   SupplierSortField,
 } from '@/features/suppliers/types/suppliers.types';
+import type {
+  ISupplierProductSearchParams,
+  SupplierProductSortField,
+} from '@/features/supplier-products/types/supplier-products.types';
+
+export function validateSupplierCatalogSearchParams(
+  search: Record<string, unknown>,
+): ISupplierProductSearchParams {
+  const page = Number(search.page);
+  const limit = Number(search.limit);
+  const validLimits = [10, 25, 50];
+
+  const rawSortBy = search.sortBy as SupplierProductSortField | undefined;
+  const validSortFields: SupplierProductSortField[] = [
+    'supplierExternalCode',
+    'productInternalCode',
+    'productName',
+    'isPrimarySupplier',
+    'createdAt',
+    'updatedAt',
+  ];
+  const sortBy = rawSortBy && validSortFields.includes(rawSortBy) ? rawSortBy : undefined;
+
+  const rawSortOrder = search.sortOrder as 'ASC' | 'DESC' | undefined;
+  const sortOrder = rawSortOrder === 'ASC' || rawSortOrder === 'DESC' ? rawSortOrder : undefined;
+
+  const rawSearch = typeof search.search === 'string' ? search.search.trim() : undefined;
+  const searchParam = rawSearch && rawSearch.length > 0 ? rawSearch : undefined;
+
+  return {
+    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    limit: validLimits.includes(limit) ? limit : 10,
+    search: searchParam,
+    sortBy,
+    sortOrder,
+  };
+}
 
 export function validateSuppliersSearchParams(
   search: Record<string, unknown>,
@@ -390,6 +428,14 @@ const suppliersRoute = createRoute({
   component: () => <SuppliersPage />,
 });
 
+const supplierCatalogRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/suppliers/$supplierId/catalog',
+  validateSearch: validateSupplierCatalogSearchParams,
+  beforeLoad: () => requireRoutePermission('/suppliers'),
+  component: () => <SupplierCatalogPage />,
+});
+
 const receivablesRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/receivables',
@@ -459,6 +505,7 @@ const routeTree = rootRoute.addChildren([
     salesRoute,
     customersRoute,
     suppliersRoute,
+    supplierCatalogRoute,
     receivablesRoute,
     treasuryRoute,
     reportsRoute,

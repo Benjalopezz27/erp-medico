@@ -46,6 +46,10 @@ function renderSuppliersPage(initialPath = '/suppliers') {
         component: SuppliersPage,
         validateSearch: validateSuppliersSearchParams,
       },
+      {
+        path: '/suppliers/$supplierId/catalog',
+        component: () => <div data-testid="catalog-page">Catálogo del Proveedor</div>,
+      },
     ],
     initialPath,
     'app',
@@ -277,5 +281,21 @@ describe('SuppliersPage Integration Suite', () => {
     });
 
     expect(screen.getByRole('button', { name: /reintentar/i })).toBeInTheDocument();
+  });
+
+  it('navigates to supplier catalog page when Catálogo action is clicked', async () => {
+    const { user } = renderSuppliersPage();
+
+    await waitFor(() => {
+      expect(screen.getByText('Droguería del Sol S.A.')).toBeInTheDocument();
+    });
+
+    const catalogBtns = screen.getAllByRole('button', { name: /catálogo/i });
+    expect(catalogBtns.length).toBeGreaterThan(0);
+    await user.click(catalogBtns[0]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('catalog-page')).toBeInTheDocument();
+    });
   });
 });

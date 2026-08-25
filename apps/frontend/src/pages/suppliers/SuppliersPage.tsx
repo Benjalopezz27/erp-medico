@@ -103,6 +103,13 @@ export const SuppliersPage: React.FC = () => {
   };
 
   // Action Handlers
+  const handleOpenCatalog = (supplier: ISupplier) => {
+    navigate({
+      to: '/suppliers/$supplierId/catalog',
+      params: { supplierId: supplier.id },
+    });
+  };
+
   const handleOpenCreateModal = () => {
     setFeedback(null);
     setFormModal({ isOpen: true, mode: 'create', supplier: null });
@@ -276,6 +283,7 @@ export const SuppliersPage: React.FC = () => {
             onEditSupplier={handleOpenEditModal}
             onDeactivateSupplier={handleOpenDeactivateModal}
             onReactivateSupplier={handleReactivate}
+            onOpenCatalog={handleOpenCatalog}
             mutatingSupplierId={mutatingSupplierId}
           />
           {data && data.meta && (

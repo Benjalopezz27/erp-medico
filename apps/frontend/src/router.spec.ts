@@ -12,6 +12,7 @@ import {
   validateStockMovementsSearchParams,
   validateQuarantineSearchParams,
   validateSuppliersSearchParams,
+  validateSupplierCatalogSearchParams,
 } from './router';
 
 const session = (role: UserRole): IAuthSession => ({
@@ -283,6 +284,39 @@ describe('validateSuppliersSearchParams', () => {
     expect(result.search).toBe('Droguería');
     expect(result.isActive).toBe(true);
     expect(result.sortBy).toBe('businessName');
+    expect(result.sortOrder).toBe('ASC');
+  });
+});
+
+describe('validateSupplierCatalogSearchParams', () => {
+  it('defaults invalid search params to page 1 and limit 10', () => {
+    const result = validateSupplierCatalogSearchParams({
+      page: -5,
+      limit: 999,
+      sortBy: 'invalid_col',
+      sortOrder: 'random',
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(10);
+    expect(result.sortBy).toBeUndefined();
+    expect(result.sortOrder).toBeUndefined();
+    expect(result.search).toBeUndefined();
+  });
+
+  it('correctly parses valid catalog search params', () => {
+    const result = validateSupplierCatalogSearchParams({
+      page: 3,
+      limit: 50,
+      search: '  MED-99  ',
+      sortBy: 'supplierExternalCode',
+      sortOrder: 'ASC',
+    });
+
+    expect(result.page).toBe(3);
+    expect(result.limit).toBe(50);
+    expect(result.search).toBe('MED-99');
+    expect(result.sortBy).toBe('supplierExternalCode');
     expect(result.sortOrder).toBe('ASC');
   });
 });
