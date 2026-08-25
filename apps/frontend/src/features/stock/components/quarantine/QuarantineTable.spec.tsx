@@ -1,10 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { QuarantineTable } from './QuarantineTable';
-import {
-  QuarantineStatus,
-  type IQuarantineStock,
-} from '../../types/quarantine.types';
+import { QuarantineStatus, type IQuarantineStock } from '../../types/quarantine.types';
 
 describe('QuarantineTable Component', () => {
   const mockItemPending: IQuarantineStock = {

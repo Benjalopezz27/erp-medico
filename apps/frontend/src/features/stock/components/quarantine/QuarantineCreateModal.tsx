@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  ShieldAlert,
-  Loader2,
-  AlertCircle,
-  Search,
-  Check,
-} from 'lucide-react';
+import { ShieldAlert, Loader2, AlertCircle, Search, Check } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { useProductSearchQuery } from '@/features/products/hooks/use-product-search-query';
@@ -28,10 +22,9 @@ export const QuarantineCreateModal: React.FC<QuarantineCreateModalProps> = ({
   const [reason, setReason] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
 
-  const { data: searchResults = [], isLoading: isSearching } = useProductSearchQuery(
-    searchTerm,
-    { enabled: !selectedProduct && searchTerm.trim().length >= 2 },
-  );
+  const { data: searchResults = [], isLoading: isSearching } = useProductSearchQuery(searchTerm, {
+    enabled: !selectedProduct && searchTerm.trim().length >= 2,
+  });
 
   const { mutate: executeCreate, isPending } = useCreateQuarantineMutation();
 
@@ -119,8 +112,8 @@ export const QuarantineCreateModal: React.FC<QuarantineCreateModalProps> = ({
               <div>
                 <p className="font-semibold text-sm text-foreground">{selectedProduct.name}</p>
                 <p className="text-xs text-muted-foreground font-mono">
-                  {selectedProduct.internalCode} • Unidad:{' '}
-                  {selectedProduct.baseUnit?.name} ({selectedProduct.baseUnit?.symbol})
+                  {selectedProduct.internalCode} • Unidad: {selectedProduct.baseUnit?.name} (
+                  {selectedProduct.baseUnit?.symbol})
                 </p>
               </div>
               <Button

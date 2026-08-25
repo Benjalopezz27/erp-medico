@@ -7,7 +7,11 @@ import {
   UserRole,
 } from '@erp/shared-types';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
-import { CreateQuarantineDto, QueryQuarantineDto, ResolveQuarantineDto } from './dto';
+import {
+  CreateQuarantineDto,
+  QueryQuarantineDto,
+  ResolveQuarantineDto,
+} from './dto';
 
 describe('QuarantineController Unit Tests', () => {
   let controller: QuarantineController;
@@ -34,7 +38,11 @@ describe('QuarantineController Unit Tests', () => {
     reason: 'Cajas rotas',
     status: QuarantineStatus.EN_CUARENTENA,
     entryActorId: 'user-admin-1',
-    entryActor: { id: 'user-admin-1', name: 'Admin User', email: 'admin@erp.com' },
+    entryActor: {
+      id: 'user-admin-1',
+      name: 'Admin User',
+      email: 'admin@erp.com',
+    },
     entryMovementId: 'mov-1',
     resolvedByActorId: null,
     resolvedByActor: null,
@@ -121,9 +129,17 @@ describe('QuarantineController Unit Tests', () => {
       };
       service.resolve.mockResolvedValueOnce(resolvedItem);
 
-      const result = await controller.resolve('quar-uuid-1', dto, mockAdminUser);
+      const result = await controller.resolve(
+        'quar-uuid-1',
+        dto,
+        mockAdminUser,
+      );
 
-      expect(service.resolve).toHaveBeenCalledWith('quar-uuid-1', dto, 'user-admin-1');
+      expect(service.resolve).toHaveBeenCalledWith(
+        'quar-uuid-1',
+        dto,
+        'user-admin-1',
+      );
       expect(result).toEqual(resolvedItem);
     });
   });

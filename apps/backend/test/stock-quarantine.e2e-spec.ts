@@ -4,7 +4,6 @@ import { DataSource } from 'typeorm';
 import * as request from 'supertest';
 import dataSource from '../src/database/data-source';
 import { AppModule } from '../src/app.module';
-import { StockService } from '../src/modules/stock/stock.service';
 import {
   ProductStatus,
   StockMovementType,
@@ -19,13 +18,11 @@ import { Product } from '../src/modules/products/entities/product.entity';
 import { Stock } from '../src/modules/stock/entities/stock.entity';
 import { AuditLog } from '../src/modules/audit/entities/audit-log.entity';
 import { StockMovement } from '../src/modules/stock/entities/stock-movement.entity';
-import { QuarantineStock } from '../src/modules/quarantine/entities/quarantine-stock.entity';
 import { runInitialSeed } from '../src/database/seeds/initial.seed';
 
 describe('Stock Quarantine API (E2E)', () => {
   let app: INestApplication;
   let ds: DataSource;
-  let stockService: StockService;
   let adminToken: string;
   let sellerToken: string;
   let adminUser: User;
@@ -72,8 +69,6 @@ describe('Stock Quarantine API (E2E)', () => {
       }),
     );
     await app.init();
-
-    stockService = app.get<StockService>(StockService);
 
     // Login Admin
     const adminLoginRes = await request(app.getHttpServer())
@@ -182,7 +177,9 @@ describe('Stock Quarantine API (E2E)', () => {
 
     it('PATCH /api/v1/quarantine/:id/resolve returns 403 for VENDEDOR', async () => {
       await request(app.getHttpServer())
-        .patch('/api/v1/quarantine/00000000-0000-0000-0000-000000000000/resolve')
+        .patch(
+          '/api/v1/quarantine/00000000-0000-0000-0000-000000000000/resolve',
+        )
         .set('Authorization', `Bearer ${sellerToken}`)
         .send({
           resolution: QuarantineResolution.MERMA,
@@ -277,7 +274,9 @@ describe('Stock Quarantine API (E2E)', () => {
       expect(res.body.items).toBeInstanceOf(Array);
       expect(res.body.items.length).toBeGreaterThanOrEqual(1);
       expect(res.body.meta.total).toBeGreaterThanOrEqual(1);
-      expect(res.body.items[0].product.name).toBe('Amoxicilina 500mg Cuarentena');
+      expect(res.body.items[0].product.name).toBe(
+        'Amoxicilina 500mg Cuarentena',
+      );
     });
 
     it('filters quarantine entries by status and search text', async () => {
@@ -322,7 +321,9 @@ describe('Stock Quarantine API (E2E)', () => {
         .expect(200);
 
       expect(res.body.status).toBe(QuarantineStatus.MERMA_CONFIRMADA);
-      expect(res.body.resolutionNotes).toBe('Destrucción de mercadería autorizada');
+      expect(res.body.resolutionNotes).toBe(
+        'Destrucción de mercadería autorizada',
+      );
       expect(res.body.resolvedByActor.name).toBe(adminUser.name);
       expect(res.body.resolutionMovementId).toBeNull();
 

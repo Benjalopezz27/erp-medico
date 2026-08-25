@@ -249,4 +249,3 @@ describe('validateQuarantineSearchParams', () => {
     expect(result.status).toBe('EN_CUARENTENA');
   });
 });
-

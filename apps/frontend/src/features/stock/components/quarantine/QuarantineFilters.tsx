@@ -33,9 +33,7 @@ export const QuarantineFilters: React.FC<QuarantineFiltersProps> = ({
     return () => clearTimeout(handler);
   }, [searchTerm]);
 
-  const hasActiveFilters = Boolean(
-    filters.search || filters.status || filters.productId,
-  );
+  const hasActiveFilters = Boolean(filters.search || filters.status || filters.productId);
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-3">

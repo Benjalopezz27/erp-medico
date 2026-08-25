@@ -73,16 +73,17 @@ Mostrar el monorepo corriendo localmente: health endpoint en Postman, layout ske
 **Épica:** [#65](https://github.com/Benjalopezz27/erp-medico/issues/65)<br>
 **Estimación adicional:** 6.5–10 días distribuidos entre los Sprints 2 y 10.
 
-Este track evita concentrar el primer despliegue real, TLS, observabilidad y backups en el QA final. GitHub Actions construye imágenes inmutables una sola vez; staging valida esos mismos digests y producción los promueve sin recompilar en el VPS.
+Este track evita concentrar el primer despliegue real, TLS, observabilidad y backups en el QA final. GitHub Actions valida imágenes inmutables; Railway Hobby construye los mismos Dockerfiles desde el repositorio privado después de CI verde. La estrategia productiva se confirma con métricas de staging.
 
-| Etapa                      | Issue                                                        | Momento objetivo            | Gate principal                                                  |
-| -------------------------- | ------------------------------------------------------------ | --------------------------- | --------------------------------------------------------------- |
-| Artefactos productivos     | [#66](https://github.com/Benjalopezz27/erp-medico/issues/66) | Antes/durante Sprint 2      | Decisiones de registry y topología; sin gasto externo           |
-| Staging y CD               | [#67](https://github.com/Benjalopezz27/erp-medico/issues/67) | Sprint 2                    | VPS, presupuesto, DNS, SSH y política de datos aprobados        |
-| Seguridad y observabilidad | [#68](https://github.com/Benjalopezz27/erp-medico/issues/68) | Sprint 3                    | Herramienta, costo, responsables y retención aprobados          |
-| Homologación ARCA          | [#69](https://github.com/Benjalopezz27/erp-medico/issues/69) | Sprint 7, antes de Sprint 8 | Certificado, CUIT, punto de venta y custodio confirmados        |
-| Backup y rehearsal         | [#70](https://github.com/Benjalopezz27/erp-medico/issues/70) | Sprint 9                    | Storage, cifrado, retención y RPO/RTO aprobados                 |
-| Producción y Go-Live       | [#71](https://github.com/Benjalopezz27/erp-medico/issues/71) | Sprint 10                   | Infraestructura, ventana, responsables y aceptación del cliente |
+| Etapa                      | Issue                                                          | Momento objetivo                  | Gate principal                                                  |
+| -------------------------- | -------------------------------------------------------------- | --------------------------------- | --------------------------------------------------------------- |
+| Artefactos productivos     | [#66](https://github.com/Benjalopezz27/erp-medico/issues/66)   | Antes/durante Sprint 2            | Decisiones de registry y topología; sin gasto externo           |
+| Staging y CD               | [#67](https://github.com/Benjalopezz27/erp-medico/issues/67)   | Sprint 2                          | Railway Hobby y preparación técnica aprobados                   |
+| Provisionamiento Railway   | [#114](https://github.com/Benjalopezz27/erp-medico/issues/114) | Cuando el propietario lo habilite | Cuenta, facturación, secrets y primer despliegue                |
+| Seguridad y observabilidad | [#68](https://github.com/Benjalopezz27/erp-medico/issues/68)   | Sprint 3                          | Herramienta, costo, responsables y retención aprobados          |
+| Homologación ARCA          | [#69](https://github.com/Benjalopezz27/erp-medico/issues/69)   | Sprint 7, antes de Sprint 8       | Certificado, CUIT, punto de venta y custodio confirmados        |
+| Backup y rehearsal         | [#70](https://github.com/Benjalopezz27/erp-medico/issues/70)   | Sprint 9                          | Storage, cifrado, retención y RPO/RTO aprobados                 |
+| Producción y Go-Live       | [#71](https://github.com/Benjalopezz27/erp-medico/issues/71)   | Sprint 10                         | Infraestructura, ventana, responsables y aceptación del cliente |
 
 No se contrata infraestructura, modifica DNS, carga información real ni instala certificados externos sin aprobación explícita del gate correspondiente. Los secretos nunca se documentan en GitHub ni se versionan.
 
@@ -185,7 +186,7 @@ Login como VENDEDOR y ADMINISTRADOR, navegación al catálogo, crear un producto
 
 El sistema tiene un ledger de stock inmutable, el backend rechaza cualquier operación que genere stock negativo con un lock a nivel DB, y el Administrador puede gestionar ajustes manuales y la cuarentena.
 
-**DevOps paralelo:** completar [#66](https://github.com/Benjalopezz27/erp-medico/issues/66) y [#67](https://github.com/Benjalopezz27/erp-medico/issues/67). El cierre operativo requiere que un SHA de `dev` con CI verde pueda desplegarse en staging sin recompilar en el VPS. #67 no puede provisionarse sin aprobar costo, dominio/DNS, accesos SSH y política de datos de prueba.
+**DevOps paralelo:** completar [#66](https://github.com/Benjalopezz27/erp-medico/issues/66) y la preparación técnica de [#67](https://github.com/Benjalopezz27/erp-medico/issues/67). El cierre operativo queda en [#114](https://github.com/Benjalopezz27/erp-medico/issues/114): Railway despliega `dev` solo después de CI verde, con frontend público, backend/PostgreSQL privados y datos sintéticos.
 
 ---
 
@@ -872,7 +873,7 @@ Cada reporte sigue el mismo patrón:
 7. **[Release]** Publicar `v1.0.0` únicamente después de la aceptación del Go-Live
 8. **[Docs]** Entregar runbooks de deploy, incidentes, backup, restore y operación
 
-El Go-Live requiere aprobación de VPS/costo, dominio/DNS, accesos, ventana y responsables, certificado ARCA productivo, backups, datos iniciales, criterios de éxito/rollback y aceptación del cliente. Sin todos los gates no se despliega ni se cargan datos reales.
+El Go-Live requiere aprobar el plan y costo real de Railway, dominio/DNS de producción, accesos, ventana y responsables, certificado ARCA productivo, backups, datos iniciales, criterios de éxito/rollback y aceptación del cliente. Sin todos los gates no se despliega ni se cargan datos reales.
 
 ---
 

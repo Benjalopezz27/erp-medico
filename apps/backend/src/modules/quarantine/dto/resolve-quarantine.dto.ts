@@ -16,8 +16,7 @@ export class ResolveQuarantineDto {
     example: QuarantineResolution.REINGRESO,
   })
   @IsEnum(QuarantineResolution, {
-    message:
-      'La resolución debe ser MERMA, DEVOLUCION_PROVEEDOR o REINGRESO.',
+    message: 'La resolución debe ser MERMA, DEVOLUCION_PROVEEDOR o REINGRESO.',
   })
   resolution: QuarantineResolution;
 
@@ -28,9 +27,12 @@ export class ResolveQuarantineDto {
     maxLength: 1000,
   })
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
-  @IsString({ message: 'Las notas de resolución deben ser una cadena de texto.' })
+  @IsString({
+    message: 'Las notas de resolución deben ser una cadena de texto.',
+  })
   @IsNotEmpty({
-    message: 'Las notas de resolución son obligatorias y no pueden estar vacías.',
+    message:
+      'Las notas de resolución son obligatorias y no pueden estar vacías.',
   })
   @MinLength(3, {
     message: 'Las notas de resolución deben tener al menos 3 caracteres.',
