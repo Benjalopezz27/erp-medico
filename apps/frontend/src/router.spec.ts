@@ -10,6 +10,7 @@ import {
   validateProductSearchParams,
   validateStockSearchParams,
   validateStockMovementsSearchParams,
+  validateQuarantineSearchParams,
 } from './router';
 
 const session = (role: UserRole): IAuthSession => ({
@@ -214,3 +215,38 @@ describe('validateStockMovementsSearchParams', () => {
     expect(result.to).toBe('2026-08-31T23:59:59.999Z');
   });
 });
+
+describe('validateQuarantineSearchParams', () => {
+  it('defaults invalid search params to page 1 and limit 10', () => {
+    const result = validateQuarantineSearchParams({
+      page: -5,
+      limit: 999,
+      status: 'INVALID_STATUS',
+      productId: 'invalid-uuid',
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(10);
+    expect(result.status).toBeUndefined();
+    expect(result.productId).toBeUndefined();
+    expect(result.search).toBeUndefined();
+  });
+
+  it('correctly parses valid quarantine search params', () => {
+    const validProductId = '123e4567-e89b-12d3-a456-426614174000';
+    const result = validateQuarantineSearchParams({
+      page: 2,
+      limit: 25,
+      search: '  Amoxicilina  ',
+      productId: validProductId,
+      status: 'EN_CUARENTENA',
+    });
+
+    expect(result.page).toBe(2);
+    expect(result.limit).toBe(25);
+    expect(result.search).toBe('Amoxicilina');
+    expect(result.productId).toBe(validProductId);
+    expect(result.status).toBe('EN_CUARENTENA');
+  });
+});
+

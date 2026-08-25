@@ -115,12 +115,47 @@ export function requireRole(allowedRole: UserRole): void {
 import { StockOverviewPage } from '@/pages/stock/StockOverviewPage';
 import { StockDetailPage } from '@/pages/stock/StockDetailPage';
 import { StockBulkLoadPage } from '@/pages/stock/StockBulkLoadPage';
+import { StockQuarantinePage } from '@/pages/stock/StockQuarantinePage';
 import {
   StockStatus,
   StockMovementType,
+  QuarantineStatus,
   type IStockSearchParams,
   type IStockMovementsSearchParams,
+  type IQuarantineSearchParams,
 } from '@/features/stock/types/stock.types';
+
+export function validateQuarantineSearchParams(
+  search: Record<string, unknown>,
+): IQuarantineSearchParams {
+  const page = Number(search.page);
+  const limit = Number(search.limit);
+  const validLimits = [10, 25, 50, 100];
+
+  const rawStatus = search.status as string | undefined;
+  const status =
+    rawStatus && Object.values(QuarantineStatus).includes(rawStatus as QuarantineStatus)
+      ? (rawStatus as QuarantineStatus)
+      : undefined;
+
+  const rawProduct = typeof search.productId === 'string' ? search.productId.trim() : undefined;
+  const productId =
+    rawProduct &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawProduct)
+      ? rawProduct
+      : undefined;
+
+  const rawSearch = typeof search.search === 'string' ? search.search.trim() : undefined;
+  const searchParam = rawSearch && rawSearch.length > 0 ? rawSearch : undefined;
+
+  return {
+    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    limit: validLimits.includes(limit) ? limit : 10,
+    productId,
+    search: searchParam,
+    status,
+  };
+}
 
 export function validateStockSearchParams(search: Record<string, unknown>): IStockSearchParams {
   const page = Number(search.page);
@@ -247,14 +282,9 @@ const stockBulkLoadRoute = createRoute({
 const stockQuarantineRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/stock/quarantine',
+  validateSearch: validateQuarantineSearchParams,
   beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
-  component: () => (
-    <PlaceholderPage
-      title="Cuarentena de Stock"
-      description="Gestión y resolución de mercadería en cuarentena"
-      sprint="Sprint 2 — US-07"
-    />
-  ),
+  component: () => <StockQuarantinePage />,
 });
 
 // Stock overview and detail routes

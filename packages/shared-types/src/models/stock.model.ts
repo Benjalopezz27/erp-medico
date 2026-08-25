@@ -29,16 +29,48 @@ export interface IStockMovement {
   createdAt: Date | string;
 }
 
+export interface IQuarantineStockProduct {
+  id: string;
+  internalCode: string;
+  name: string;
+  baseUnit: {
+    id: string;
+    name: string;
+    symbol: string;
+  };
+}
+
+export interface IQuarantineStockActor {
+  id: string;
+  name: string;
+  email: string;
+}
+
 export interface IQuarantineStock {
   id: string;
   productId: string;
-  quantity: number;
+  product: IQuarantineStockProduct;
+  quantityBase: number;
   reason: string;
   status: QuarantineStatus;
+  entryActorId: string;
+  entryActor: IQuarantineStockActor;
+  entryMovementId: string;
+  resolvedByActorId?: string | null;
+  resolvedByActor?: IQuarantineStockActor | null;
   resolutionNotes?: string | null;
+  resolutionMovementId?: string | null;
   resolvedAt?: Date | string | null;
-  userId: string;
   createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+export interface IQuarantineSearchParams {
+  page?: number;
+  limit?: number;
+  productId?: string;
+  search?: string;
+  status?: QuarantineStatus;
 }
 
 export interface IStockPaginationMeta {

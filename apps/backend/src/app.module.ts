@@ -9,6 +9,7 @@ import { CategoriesModule } from './modules/categories/categories.module';
 import { UnitsModule } from './modules/units/units.module';
 import { ProductsModule } from './modules/products/products.module';
 import { StockModule } from './modules/stock/stock.module';
+import { QuarantineModule } from './modules/quarantine/quarantine.module';
 import { SuppliersModule } from './modules/suppliers/suppliers.module';
 import { ImporterModule } from './modules/importer/importer.module';
 import { PurchasesModule } from './modules/purchases/purchases.module';
@@ -39,6 +40,7 @@ import { HealthModule } from './modules/health/health.module';
     UnitsModule,
     ProductsModule,
     StockModule,
+    QuarantineModule,
     SuppliersModule,
     ImporterModule,
     PurchasesModule,
