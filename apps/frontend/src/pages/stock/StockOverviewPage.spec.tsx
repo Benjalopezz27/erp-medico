@@ -112,6 +112,32 @@ describe('StockOverviewPage Component', () => {
     expect(mockNavigate).toHaveBeenCalledWith({ to: '/stock/bulk-load' });
   });
 
+  it('navigates to /stock/quarantine when clicking Cuarentena button', () => {
+    vi.mocked(stockHook.useStockQuery).mockReturnValue({
+      data: {
+        items: [],
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+      },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    renderWithProviders(<StockOverviewPage />);
+
+    const quarantineBtn = screen.getByRole('button', { name: /cuarentena/i });
+    fireEvent.click(quarantineBtn);
+
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/stock/quarantine' });
+  });
+
   it('hides Carga Inicial Masiva button when user is VENDEDOR', () => {
     useAuthStore.setState({
       user: {
