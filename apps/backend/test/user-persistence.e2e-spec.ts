@@ -27,6 +27,13 @@ describe('User Persistence & Seed Engine (E2E)', () => {
   });
 
   it('verifies migration up/down/up cycle cleanly', async () => {
+    // Revert supplier products table migration (1700000000011)
+    await ds.undoLastMigration();
+    const afterDropSupplierProducts = await ds.query(
+      "SELECT to_regclass('public.supplier_products') as tablename",
+    );
+    expect(afterDropSupplierProducts[0].tablename).toBeNull();
+
     // Revert suppliers table migration (1700000000010)
     await ds.undoLastMigration();
     const afterDropSuppliers = await ds.query(
@@ -155,6 +162,12 @@ describe('User Persistence & Seed Engine (E2E)', () => {
       "SELECT to_regclass('public.suppliers') as tablename",
     );
     expect(afterRecreateSuppliers[0].tablename).toBe('suppliers');
+    const afterRecreateSupplierProducts = await ds.query(
+      "SELECT to_regclass('public.supplier_products') as tablename",
+    );
+    expect(afterRecreateSupplierProducts[0].tablename).toBe(
+      'supplier_products',
+    );
   });
 
   it('creates exactly 2 users on first seed run and hashes passwords with cost 12', async () => {

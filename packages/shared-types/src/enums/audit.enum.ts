@@ -4,4 +4,5 @@ export enum AuditAction {
   ROLE_CHANGE = 'ROLE_CHANGE',
   ACTIVATE = 'ACTIVATE',
   DEACTIVATE = 'DEACTIVATE',
+  DELETE = 'DELETE',
 }

@@ -1,4 +1,5 @@
 import { TaxCondition } from '../enums/financial.enum';
+import { IUnitSummary } from './catalog.model';
 
 export interface ISupplier {
   id: string;
@@ -26,18 +27,43 @@ export interface ISupplierSearchParams {
   sortOrder?: 'ASC' | 'DESC';
 }
 
+export interface ISupplierProductProductSummary {
+  id: string;
+  internalCode: string;
+  name: string;
+  baseUnit: IUnitSummary;
+}
+
 export interface ISupplierProduct {
   id: string;
   supplierId: string;
   productId: string;
   supplierExternalCode: string;
   supplierDescription?: string | null;
-  purchaseUnitId?: string | null;
+  purchaseUnitId: string;
   conversionFactorToBase: number;
   usualCostNet?: number | null;
   isPrimarySupplier: boolean;
+  product?: ISupplierProductProductSummary;
+  purchaseUnit?: IUnitSummary;
   createdAt: Date | string;
   updatedAt: Date | string;
+}
+
+export type SupplierProductSortField =
+  | 'supplierExternalCode'
+  | 'productInternalCode'
+  | 'productName'
+  | 'isPrimarySupplier'
+  | 'createdAt'
+  | 'updatedAt';
+
+export interface ISupplierProductSearchParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortBy?: SupplierProductSortField;
+  sortOrder?: 'ASC' | 'DESC';
 }
 
 export interface ISupplierImportTemplate {
