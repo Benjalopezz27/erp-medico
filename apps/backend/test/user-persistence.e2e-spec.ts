@@ -27,6 +27,13 @@ describe('User Persistence & Seed Engine (E2E)', () => {
   });
 
   it('verifies migration up/down/up cycle cleanly', async () => {
+    // Revert suppliers table migration (1700000000010)
+    await ds.undoLastMigration();
+    const afterDropSuppliers = await ds.query(
+      "SELECT to_regclass('public.suppliers') as tablename",
+    );
+    expect(afterDropSuppliers[0].tablename).toBeNull();
+
     // Revert quarantine stock table migration (1700000000009)
     await ds.undoLastMigration();
     const afterDropQuarantine = await ds.query(
@@ -144,6 +151,10 @@ describe('User Persistence & Seed Engine (E2E)', () => {
       "SELECT to_regclass('public.quarantine_stocks') as tablename",
     );
     expect(afterRecreateQuarantine[0].tablename).toBe('quarantine_stocks');
+    const afterRecreateSuppliers = await ds.query(
+      "SELECT to_regclass('public.suppliers') as tablename",
+    );
+    expect(afterRecreateSuppliers[0].tablename).toBe('suppliers');
   });
 
   it('creates exactly 2 users on first seed run and hashes passwords with cost 12', async () => {

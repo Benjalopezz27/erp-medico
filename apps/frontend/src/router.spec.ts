@@ -11,6 +11,7 @@ import {
   validateStockSearchParams,
   validateStockMovementsSearchParams,
   validateQuarantineSearchParams,
+  validateSuppliersSearchParams,
 } from './router';
 
 const session = (role: UserRole): IAuthSession => ({
@@ -247,5 +248,41 @@ describe('validateQuarantineSearchParams', () => {
     expect(result.search).toBe('Amoxicilina');
     expect(result.productId).toBe(validProductId);
     expect(result.status).toBe('EN_CUARENTENA');
+  });
+});
+
+describe('validateSuppliersSearchParams', () => {
+  it('defaults invalid search params to page 1 and limit 10', () => {
+    const result = validateSuppliersSearchParams({
+      page: -1,
+      limit: 1000,
+      sortBy: 'invalid_field',
+      sortOrder: 'INVALID',
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(10);
+    expect(result.sortBy).toBeUndefined();
+    expect(result.sortOrder).toBeUndefined();
+    expect(result.search).toBeUndefined();
+    expect(result.isActive).toBeUndefined();
+  });
+
+  it('correctly parses valid suppliers search params', () => {
+    const result = validateSuppliersSearchParams({
+      page: 2,
+      limit: 25,
+      search: '  Droguería  ',
+      isActive: 'true',
+      sortBy: 'businessName',
+      sortOrder: 'ASC',
+    });
+
+    expect(result.page).toBe(2);
+    expect(result.limit).toBe(25);
+    expect(result.search).toBe('Droguería');
+    expect(result.isActive).toBe(true);
+    expect(result.sortBy).toBe('businessName');
+    expect(result.sortOrder).toBe('ASC');
   });
 });
