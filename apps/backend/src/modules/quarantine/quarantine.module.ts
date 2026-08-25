@@ -11,12 +11,7 @@ import { QuarantineService } from './quarantine.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      QuarantineStock,
-      Product,
-      User,
-      StockMovement,
-    ]),
+    TypeOrmModule.forFeature([QuarantineStock, Product, User, StockMovement]),
     StockModule,
     AuditModule,
   ],

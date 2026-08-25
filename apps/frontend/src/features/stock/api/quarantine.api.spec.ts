@@ -24,7 +24,14 @@ describe('quarantine.api Client Functions', () => {
     const mockResponse = {
       data: {
         items: [],
-        meta: { total: 0, page: 1, limit: 10, totalPages: 1, hasNextPage: false, hasPreviousPage: false },
+        meta: {
+          total: 0,
+          page: 1,
+          limit: 10,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
       },
     };
     vi.mocked(apiClient.get).mockResolvedValueOnce(mockResponse);
@@ -75,10 +82,7 @@ describe('quarantine.api Client Functions', () => {
 
     const result = await resolveQuarantineApi('quar-uuid-1', payload);
 
-    expect(apiClient.patch).toHaveBeenCalledWith(
-      '/quarantine/quar-uuid-1/resolve',
-      payload,
-    );
+    expect(apiClient.patch).toHaveBeenCalledWith('/quarantine/quar-uuid-1/resolve', payload);
     expect(result).toEqual(mockResponse.data);
   });
 });

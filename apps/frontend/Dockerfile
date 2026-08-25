@@ -4,8 +4,9 @@
 FROM node:24.19.0-alpine3.24@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS builder
 
 ARG VITE_API_URL=/api/v1
+ARG RAILWAY_GIT_COMMIT_SHA=development
 ARG APP_VERSION=0.1.0
-ARG APP_COMMIT_SHA=development
+ARG APP_COMMIT_SHA=${RAILWAY_GIT_COMMIT_SHA}
 
 RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
@@ -45,7 +46,12 @@ LABEL org.opencontainers.image.title="ERP Distribuidora Médica - Frontend SPA" 
       org.opencontainers.image.vendor="Benjamin Lopez"
 
 COPY apps/frontend/nginx.conf /etc/nginx/nginx.conf
+COPY apps/frontend/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=builder /workspace/apps/frontend/dist /usr/share/nginx/html
+
+ENV BACKEND_HOST=backend \
+    BACKEND_PORT=3000 \
+    NGINX_ENVSUBST_FILTER='^(BACKEND_HOST|BACKEND_PORT)$'
 
 USER 101
 

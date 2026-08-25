@@ -35,7 +35,7 @@ Welcome to the central documentation hub for the ERP System.
 5. [Technical Stack & Architecture (v1.0)](tech_stack.md)
    - **Operational Context**: 4 users on a single shared workstation — sequential access, no real concurrency.
    - **Stack Decisions**: NestJS + TypeORM + PostgreSQL + BullMQ/Redis + Vite/React 19 SPA + shadcn/ui + pnpm monorepo.
-   - **Architecture Diagram**: Single-VPS deployment, NestJS modules per bounded context, Hetzner CX21 hosting.
+   - **Architecture Diagram**: Railway services for frontend, backend and PostgreSQL, with NestJS modules per bounded context.
    - **ARCA Integration Flow**: Full BullMQ retry flow with idempotency keys and post-CAE duplicate prevention.
    - **Anti-Patterns**: Justified rejection of Prisma, Next.js, Microservices, Kubernetes, and GraphQL for this scale.
 
@@ -54,7 +54,7 @@ Welcome to the central documentation hub for the ERP System.
    - **Branch model**: `main` (production) · `dev` (staging/integration) · `feat/sN-usXX-*` · `fix/*` · `hotfix/*`.
    - **Conventional Commits**: typed commits with US scope (`feat(us25): ...`) for full traceability.
    - **Self-review checklist**: replaces peer review for single-developer workflow.
-   - **GitHub Actions**: CI (lint + test + build on PR) and CD (SSH deploy to Hetzner on merge to `main`).
+   - **GitHub Actions**: CI (lint + test + build), container evidence in GHCR, and Railway deployments gated by CI.
    - **Versioning**: `v0.x` pre-release per milestone, `v1.0.0` at go-live.
 
 9. [Decimal and Rounding Policy](decimal_policy.md)

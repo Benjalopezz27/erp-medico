@@ -37,9 +37,7 @@ describe('QuarantineCreateModal Component', () => {
   });
 
   it('renders nothing when closed', () => {
-    const { container } = render(
-      <QuarantineCreateModal isOpen={false} onClose={onClose} />,
-    );
+    const { container } = render(<QuarantineCreateModal isOpen={false} onClose={onClose} />);
     expect(container.firstChild).toBeNull();
   });
 
@@ -48,9 +46,7 @@ describe('QuarantineCreateModal Component', () => {
 
     // Try submit empty
     fireEvent.submit(screen.getByTestId('quarantine-create-form'));
-    expect(
-      screen.getByText('Debes seleccionar un producto del catálogo.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Debes seleccionar un producto del catálogo.')).toBeInTheDocument();
 
     // Select product
     const option = screen.getByTestId('quarantine-product-option-p1');
@@ -58,9 +54,7 @@ describe('QuarantineCreateModal Component', () => {
 
     // Try submit without quantity
     fireEvent.submit(screen.getByTestId('quarantine-create-form'));
-    expect(
-      screen.getByText('Ingresa una cantidad válida mayor a 0.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Ingresa una cantidad válida mayor a 0.')).toBeInTheDocument();
 
     // Enter valid quantity but no reason
     fireEvent.change(screen.getByTestId('quarantine-quantity-input'), {

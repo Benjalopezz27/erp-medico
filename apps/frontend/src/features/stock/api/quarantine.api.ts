@@ -14,13 +14,10 @@ export async function getQuarantineListApi(
   params?: IQuarantineSearchParams,
   signal?: AbortSignal,
 ): Promise<PaginatedStockResponse<IQuarantineStock>> {
-  const response = await apiClient.get<PaginatedStockResponse<IQuarantineStock>>(
-    '/quarantine',
-    {
-      params,
-      signal,
-    },
-  );
+  const response = await apiClient.get<PaginatedStockResponse<IQuarantineStock>>('/quarantine', {
+    params,
+    signal,
+  });
   return response.data;
 }
 
@@ -30,10 +27,7 @@ export async function getQuarantineListApi(
 export async function createQuarantineEntryApi(
   payload: CreateQuarantinePayload,
 ): Promise<IQuarantineStock> {
-  const response = await apiClient.post<IQuarantineStock>(
-    '/quarantine',
-    payload,
-  );
+  const response = await apiClient.post<IQuarantineStock>('/quarantine', payload);
   return response.data;
 }
 
@@ -44,9 +38,6 @@ export async function resolveQuarantineApi(
   id: string,
   payload: ResolveQuarantinePayload,
 ): Promise<IQuarantineStock> {
-  const response = await apiClient.patch<IQuarantineStock>(
-    `/quarantine/${id}/resolve`,
-    payload,
-  );
+  const response = await apiClient.patch<IQuarantineStock>(`/quarantine/${id}/resolve`, payload);
   return response.data;
 }

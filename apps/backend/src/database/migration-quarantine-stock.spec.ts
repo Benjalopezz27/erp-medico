@@ -30,7 +30,9 @@ describe('CreateQuarantineStockTable1700000000009 Migration', () => {
     expect(mockQueryRunner.createForeignKey).toHaveBeenCalledTimes(5);
     expect(mockQueryRunner.createUniqueConstraint).toHaveBeenCalledTimes(1);
     expect(mockQueryRunner.query).toHaveBeenCalledWith(
-      expect.stringContaining('CREATE UNIQUE INDEX uq_quarantine_stocks_resolution_movement'),
+      expect.stringContaining(
+        'CREATE UNIQUE INDEX uq_quarantine_stocks_resolution_movement',
+      ),
     );
     expect(mockQueryRunner.createIndex).toHaveBeenCalledTimes(4);
   });

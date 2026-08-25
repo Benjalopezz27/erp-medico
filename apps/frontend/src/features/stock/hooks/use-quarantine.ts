@@ -31,8 +31,7 @@ export function useCreateQuarantineMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: CreateQuarantinePayload) =>
-      createQuarantineEntryApi(payload),
+    mutationFn: (payload: CreateQuarantinePayload) => createQuarantineEntryApi(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: quarantineKeys.all });
       queryClient.invalidateQueries({ queryKey: stockKeys.all });
@@ -50,13 +49,8 @@ export function useResolveQuarantineMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      id,
-      payload,
-    }: {
-      id: string;
-      payload: ResolveQuarantinePayload;
-    }) => resolveQuarantineApi(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: ResolveQuarantinePayload }) =>
+      resolveQuarantineApi(id, payload),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: quarantineKeys.all });
       if (variables.payload.resolution === QuarantineResolution.REINGRESO) {

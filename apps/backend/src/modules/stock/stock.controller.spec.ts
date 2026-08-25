@@ -10,6 +10,7 @@ import {
   UserRole,
 } from '@erp/shared-types';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { CreateStockAdjustmentDto } from './dto/create-stock-adjustment.dto';
 
 describe('StockController', () => {
   let controller: StockController;
@@ -225,9 +226,9 @@ describe('StockController', () => {
 
   describe('createAdjustment', () => {
     it('delegates to stockAdjustmentsService.createAdjustment with actor', async () => {
-      const dto = {
+      const dto: CreateStockAdjustmentDto = {
         productId: '123e4567-e89b-12d3-a456-426614174000',
-        movementType: StockMovementType.AJUSTE_ENTRADA as const,
+        movementType: StockMovementType.AJUSTE_ENTRADA,
         quantityBase: 10,
         reason: 'Ajuste manual',
         documentReference: 'DOC-1',

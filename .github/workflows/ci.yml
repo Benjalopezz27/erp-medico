@@ -89,6 +89,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build shared workspace types
+        run: pnpm --filter @erp/shared-types run build
+
       - name: Run Backend Unit Tests
         run: pnpm --filter @erp/backend run test:cov
         env:
@@ -173,4 +176,3 @@ jobs:
 
       - name: Build monorepo packages
         run: pnpm -r run build
-

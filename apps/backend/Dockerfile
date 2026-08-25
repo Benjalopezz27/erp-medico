@@ -43,8 +43,9 @@ RUN pnpm --filter @erp/backend --prod deploy /prod/backend
 # ==============================================================================
 FROM node:24.19.0-alpine3.24@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS runner
 
+ARG RAILWAY_GIT_COMMIT_SHA=development
 ARG APP_VERSION=0.1.0
-ARG APP_COMMIT_SHA=development
+ARG APP_COMMIT_SHA=${RAILWAY_GIT_COMMIT_SHA}
 
 LABEL org.opencontainers.image.title="ERP Distribuidora Médica - Backend API" \
       org.opencontainers.image.description="NestJS Production API container for ERP Distribuidora Médica" \
@@ -70,7 +71,8 @@ COPY --from=builder --chown=appuser:appgroup /workspace/packages/shared-types/di
 ENV NODE_ENV=production \
     PORT=3000 \
     APP_VERSION=${APP_VERSION} \
-    APP_COMMIT_SHA=${APP_COMMIT_SHA}
+    APP_COMMIT_SHA=${APP_COMMIT_SHA} \
+    RAILWAY_GIT_COMMIT_SHA=${RAILWAY_GIT_COMMIT_SHA}
 
 USER appuser:appgroup
 

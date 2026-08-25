@@ -6,9 +6,7 @@ import {
   IQuarantineStockActor,
 } from '@erp/shared-types';
 
-export class QuarantineProductSummaryResponseDto
-  implements IQuarantineStockProduct
-{
+export class QuarantineProductSummaryResponseDto implements IQuarantineStockProduct {
   @ApiProperty({ example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11' })
   id: string;
 

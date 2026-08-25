@@ -19,8 +19,9 @@ export const StockQuarantinePage: React.FC = () => {
   const searchParams = useSearch({ strict: false }) as IQuarantineSearchParams;
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedItemForResolve, setSelectedItemForResolve] =
-    useState<IQuarantineStock | null>(null);
+  const [selectedItemForResolve, setSelectedItemForResolve] = useState<IQuarantineStock | null>(
+    null,
+  );
 
   const currentFilters: IQuarantineSearchParams = {
     page: Number(searchParams?.page) || 1,
@@ -30,8 +31,7 @@ export const StockQuarantinePage: React.FC = () => {
     status: searchParams?.status || undefined,
   };
 
-  const { data, isLoading, isError, error, refetch } =
-    useQuarantineListQuery(currentFilters);
+  const { data, isLoading, isError, error, refetch } = useQuarantineListQuery(currentFilters);
 
   const updateSearch = (newParams: Partial<IQuarantineSearchParams>) => {
     navigate({

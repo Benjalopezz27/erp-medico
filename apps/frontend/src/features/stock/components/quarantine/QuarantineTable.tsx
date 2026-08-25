@@ -1,17 +1,8 @@
 import React from 'react';
-import {
-  ShieldAlert,
-  Loader2,
-  AlertCircle,
-  RotateCcw,
-  CheckSquare,
-} from 'lucide-react';
+import { ShieldAlert, Loader2, AlertCircle, RotateCcw, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuarantineStatusBadge } from './QuarantineStatusBadge';
-import {
-  QuarantineStatus,
-  type IQuarantineStock,
-} from '../../types/quarantine.types';
+import { QuarantineStatus, type IQuarantineStock } from '../../types/quarantine.types';
 
 interface QuarantineTableProps {
   items: IQuarantineStock[];
@@ -80,9 +71,7 @@ export const QuarantineTable: React.FC<QuarantineTableProps> = ({
         <div className="p-3 bg-muted rounded-full mb-3 text-muted-foreground">
           <ShieldAlert className="w-6 h-6" />
         </div>
-        <h3 className="text-sm font-semibold text-foreground">
-          No hay registros de cuarentena
-        </h3>
+        <h3 className="text-sm font-semibold text-foreground">No hay registros de cuarentena</h3>
         <p className="text-xs text-muted-foreground mt-1 max-w-sm">
           No se encontraron productos retenidos o apartados con los filtros seleccionados.
         </p>
@@ -235,8 +224,8 @@ export const QuarantineTable: React.FC<QuarantineTableProps> = ({
       </div>
 
       <div className="px-5 py-2.5 bg-muted/20 border-t border-border text-[11px] text-muted-foreground">
-        * El stock en cuarentena no computa para la venta disponible. Al resolver como Reingreso,
-        se registrará un movimiento AJUSTE_ENTRADA.
+        * El stock en cuarentena no computa para la venta disponible. Al resolver como Reingreso, se
+        registrará un movimiento AJUSTE_ENTRADA.
       </div>
     </div>
   );

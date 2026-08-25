@@ -8,9 +8,7 @@ import {
   TableUnique,
 } from 'typeorm';
 
-export class CreateQuarantineStockTable1700000000009
-  implements MigrationInterface
-{
+export class CreateQuarantineStockTable1700000000009 implements MigrationInterface {
   name = 'CreateQuarantineStockTable1700000000009';
 
   public async up(queryRunner: QueryRunner): Promise<void> {

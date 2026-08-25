@@ -32,7 +32,7 @@ main
 
 ### `main`
 
-- **Propósito:** Producción. Lo que está desplegado en Hetzner.
+- **Propósito:** Producción. Lo que está desplegado en el ambiente productivo de Railway.
 - **Regla:** Solo recibe merges desde `dev` al finalizar un **milestone de pago** (cada 25% del proyecto) o releases intermedios acordados con el cliente.
 - **Protección:** Branch protection rule en GitHub:
   - Require PR before merging
@@ -363,26 +363,26 @@ jobs:
 
 ### CD — plan progresivo [#65](https://github.com/Benjalopezz27/erp-medico/issues/65)
 
-CD todavía no está implementado. Se entregará mediante [#66](https://github.com/Benjalopezz27/erp-medico/issues/66), [#67](https://github.com/Benjalopezz27/erp-medico/issues/67) y [#71](https://github.com/Benjalopezz27/erp-medico/issues/71).
+CD se prepara mediante [#66](https://github.com/Benjalopezz27/erp-medico/issues/66) y [#67](https://github.com/Benjalopezz27/erp-medico/issues/67). El provisionamiento y primer despliegue Railway se controlan en [#114](https://github.com/Benjalopezz27/erp-medico/issues/114), y producción se entrega mediante [#71](https://github.com/Benjalopezz27/erp-medico/issues/71).
 
 Flujo objetivo:
 
 ```text
 CI verde
-  → build multi-stage una sola vez
-  → push backend/frontend a GHCR con commit SHA y digest
-  → deploy del digest en staging
-  → migraciones one-shot + smoke tests
+  → build, scan y smoke de imágenes multi-stage
+  → evidencia inmutable en GHCR con commit SHA y digest
+  → Railway construye los mismos Dockerfiles desde el commit aprobado
+  → migración pre-deploy + health checks + smoke tests
   → aprobación manual de producción
-  → promoción del mismo digest, sin rebuild
+  → promoción controlada de la revisión aprobada
   → migraciones + smoke tests + monitoreo o rollback
 ```
 
 Reglas:
 
-- El VPS no ejecuta `git pull`, `pnpm install` ni builds.
-- `staging` y `production` usan GitHub Environments y secrets independientes.
-- Los deployments tienen concurrency control y registran SHA/digest.
+- Railway no recibe claves SSH ni acceso al equipo del desarrollador.
+- `staging` y `production` usan ambientes, redes, bases y secrets independientes.
+- `Wait for CI` impide desplegar una revisión con checks fallidos y cada deployment registra su SHA.
 - Producción requiere aprobación manual, backup previo y criterio de rollback.
 - Ningún workflow contrata infraestructura, modifica DNS o carga certificados sin resolver los gates externos de su issue.
 

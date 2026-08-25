@@ -30,7 +30,8 @@ export class CreateQuarantineDto {
     message: 'La cantidad debe ser un número positivo mayor a cero.',
   })
   @Max(9999999999.99, {
-    message: 'La cantidad no puede superar el límite permitido de 9.999.999.999,99 unidades.',
+    message:
+      'La cantidad no puede superar el límite permitido de 9.999.999.999,99 unidades.',
   })
   quantityBase: number;
 
