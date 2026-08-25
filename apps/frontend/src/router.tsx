@@ -124,6 +124,49 @@ import {
   type IStockMovementsSearchParams,
   type IQuarantineSearchParams,
 } from '@/features/stock/types/stock.types';
+import { SuppliersPage } from '@/pages/suppliers/SuppliersPage';
+import type {
+  ISupplierSearchParams,
+  SupplierSortField,
+} from '@/features/suppliers/types/suppliers.types';
+
+export function validateSuppliersSearchParams(
+  search: Record<string, unknown>,
+): ISupplierSearchParams {
+  const page = Number(search.page);
+  const limit = Number(search.limit);
+  const validLimits = [10, 25, 50];
+
+  const rawIsActive = search.isActive;
+  let isActive: boolean | undefined;
+  if (rawIsActive === true || rawIsActive === 'true') isActive = true;
+  else if (rawIsActive === false || rawIsActive === 'false') isActive = false;
+
+  const rawSortBy = search.sortBy as SupplierSortField | undefined;
+  const validSortFields: SupplierSortField[] = [
+    'businessName',
+    'cuit',
+    'taxCondition',
+    'createdAt',
+    'updatedAt',
+  ];
+  const sortBy = rawSortBy && validSortFields.includes(rawSortBy) ? rawSortBy : undefined;
+
+  const rawSortOrder = search.sortOrder as 'ASC' | 'DESC' | undefined;
+  const sortOrder = rawSortOrder === 'ASC' || rawSortOrder === 'DESC' ? rawSortOrder : undefined;
+
+  const rawSearch = typeof search.search === 'string' ? search.search.trim() : undefined;
+  const searchParam = rawSearch && rawSearch.length > 0 ? rawSearch : undefined;
+
+  return {
+    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    limit: validLimits.includes(limit) ? limit : 10,
+    search: searchParam,
+    isActive,
+    sortBy,
+    sortOrder,
+  };
+}
 
 export function validateQuarantineSearchParams(
   search: Record<string, unknown>,
@@ -342,14 +385,9 @@ const customersRoute = createRoute({
 const suppliersRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/suppliers',
+  validateSearch: validateSuppliersSearchParams,
   beforeLoad: () => requireRoutePermission('/suppliers'),
-  component: () => (
-    <PlaceholderPage
-      title="Proveedores y Catálogos"
-      description="Diccionario de códigos de producto y asistente de importación Excel"
-      sprint="Sprint 3 — US-11"
-    />
-  ),
+  component: () => <SuppliersPage />,
 });
 
 const receivablesRoute = createRoute({
