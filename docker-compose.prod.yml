@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_NAME:-erp_medico}
       POSTGRES_USER: ${DB_USER:-erp_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-erp_password_prod}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -58,14 +58,16 @@ services:
         max-file: '3'
 
   migration:
-    image: ${BACKEND_IMAGE:-erp-medico-backend:latest}
+    profiles:
+      - migration
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required}
     pull_policy: never
     environment:
       NODE_ENV: production
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${DB_USER:-erp_user}
-      DB_PASSWORD: ${DB_PASSWORD:-erp_password_prod}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       DB_NAME: ${DB_NAME:-erp_medico}
     command: ['node', 'dist/database/run-migrations.js']
     depends_on:
@@ -80,7 +82,7 @@ services:
         max-file: '3'
 
   backend:
-    image: ${BACKEND_IMAGE:-erp-medico-backend:latest}
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required}
     pull_policy: never
     restart: unless-stopped
     environment:
@@ -89,11 +91,11 @@ services:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${DB_USER:-erp_user}
-      DB_PASSWORD: ${DB_PASSWORD:-erp_password_prod}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
       DB_NAME: ${DB_NAME:-erp_medico}
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      JWT_SECRET: ${JWT_SECRET:-test_jwt_secret_minimum_32_characters_long!}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-8h}
       ARCA_ENV: disabled
     depends_on:
@@ -101,8 +103,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      migration:
-        condition: service_completed_successfully
     networks:
       - app
     deploy:
@@ -119,11 +119,11 @@ services:
         max-file: '3'
 
   frontend:
-    image: ${FRONTEND_IMAGE:-erp-medico-frontend:latest}
+    image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE is required}
     pull_policy: never
     restart: unless-stopped
     ports:
-      - '${FRONTEND_PORT:-8080}:8080'
+      - '127.0.0.1:${FRONTEND_PORT:-8080}:8080'
     depends_on:
       backend:
         condition: service_healthy

@@ -29,7 +29,10 @@ export class HealthService {
       environment: process.env.NODE_ENV || 'development',
       version:
         process.env.APP_VERSION || process.env.npm_package_version || '0.1.0',
-      commitSha: process.env.APP_COMMIT_SHA || 'development',
+      commitSha:
+        process.env.APP_COMMIT_SHA ||
+        process.env.RAILWAY_GIT_COMMIT_SHA ||
+        'development',
       services: {
         database: dbStatus,
       },
