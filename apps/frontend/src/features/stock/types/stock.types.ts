@@ -6,6 +6,8 @@ import {
   StockBulkFileErrorCode,
   StockImportBatchResult,
   StockBulkLoadRowStatus,
+  QuarantineStatus,
+  QuarantineResolution,
   IStockPaginationMeta,
   PaginatedStockResponse,
   IStockOverviewItem,
@@ -28,6 +30,10 @@ import {
   IStockBulkLoadPreviewResponse,
   IStockBulkLoadConfirmResponse,
   IStockBulkLoadTemplateQuery,
+  IQuarantineStock,
+  IQuarantineStockProduct,
+  IQuarantineStockActor,
+  IQuarantineSearchParams,
 } from '@erp/shared-types';
 
 export {
@@ -38,6 +44,8 @@ export {
   StockBulkFileErrorCode,
   StockImportBatchResult,
   StockBulkLoadRowStatus,
+  QuarantineStatus,
+  QuarantineResolution,
 };
 
 export type {
@@ -63,6 +71,10 @@ export type {
   IStockBulkLoadPreviewResponse,
   IStockBulkLoadConfirmResponse,
   IStockBulkLoadTemplateQuery,
+  IQuarantineStock,
+  IQuarantineStockProduct,
+  IQuarantineStockActor,
+  IQuarantineSearchParams,
 };
 
 export interface StockEvolutionParams {

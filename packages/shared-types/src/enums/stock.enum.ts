@@ -14,6 +14,12 @@ export enum QuarantineStatus {
   REINGRESADO_STOCK = 'REINGRESADO_STOCK',
 }
 
+export enum QuarantineResolution {
+  MERMA = 'MERMA',
+  DEVOLUCION_PROVEEDOR = 'DEVOLUCION_PROVEEDOR',
+  REINGRESO = 'REINGRESO',
+}
+
 export enum StockStatus {
   CRITICAL = 'CRITICAL',
   LOW = 'LOW',
