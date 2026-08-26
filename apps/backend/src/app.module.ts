@@ -1,6 +1,11 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { DatabaseModule } from './database/database.module';
+
+import { RequestContextMiddleware } from './common/middleware/request-context.middleware';
+import { HttpLoggingInterceptor } from './common/interceptors/http-logging.interceptor';
 
 import { AuthModule } from './modules/auth/auth.module';
 import { AuditModule } from './modules/audit/audit.module';
@@ -32,6 +37,13 @@ import { HealthModule } from './modules/health/health.module';
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: Number(process.env.THROTTLE_TTL_MS) || 60000,
+        limit: Number(process.env.THROTTLE_LIMIT_GLOBAL) || 120,
+      },
+    ]),
     DatabaseModule,
     AuditModule,
     AuthModule,
@@ -57,5 +69,19 @@ import { HealthModule } from './modules/health/health.module';
     SystemConfigModule,
     HealthModule,
   ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpLoggingInterceptor,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(RequestContextMiddleware).forRoutes('*');
+  }
+}
