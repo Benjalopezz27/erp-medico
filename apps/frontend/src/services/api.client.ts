@@ -65,6 +65,14 @@ apiClient.interceptors.response.use(
     // Unregister controller upon failure
     error.config?._releasePrivateRequest?.();
 
+    // Attach requestId to normalized Axios error
+    const requestId =
+      (error.response?.data as Record<string, any>)?.requestId ||
+      (error.response?.headers as Record<string, any>)?.['x-request-id'];
+    if (requestId) {
+      (error as any).requestId = requestId;
+    }
+
     // Handle 401 Unauthorized -> Terminate session acyclically
     if (error.response?.status === 401) {
       void sessionTerminator.terminate('unauthorized_401');

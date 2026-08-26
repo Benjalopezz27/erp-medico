@@ -1,9 +1,10 @@
 # Railway operations runbook
 
-This runbook starts after the repository owner provisions Railway. It does not
-authorize deployment from this repository by itself.
+This runbook starts after the repository owner provisions Railway. It provides operational instructions for deployment, health check diagnostics, structured log tracing, rate limiting triage, and incident response.
 
-## First deployment
+---
+
+## 1. First deployment
 
 1. Confirm CI is green for the selected `dev` commit.
 2. Confirm backend, frontend, and PostgreSQL belong to the `staging` environment.
@@ -11,43 +12,128 @@ authorize deployment from this repository by itself.
 4. Review staged Railway configuration and variables without exposing values.
 5. Deploy PostgreSQL, then backend, then frontend.
 6. Confirm the backend pre-deploy migration exits successfully.
-7. Confirm both application health checks pass.
+7. Confirm both application health checks pass (`/api/v1/health/ready` or `/api/v1/health`).
 8. Run the `Verify Railway Staging` GitHub workflow with the exact commit SHA.
-9. Record the deployment URL, SHA, timestamp, and smoke result in the operations
-   issue. Do not record secrets.
+9. Record the deployment URL, SHA, timestamp, and smoke result in the operations issue. Do not record secrets.
 
-## Failed deployment
+---
 
-- A failed migration must leave the new backend deployment inactive. Inspect the
-  pre-deploy logs and fix the migration; never bypass it by starting the API
-  manually.
-- A failed health check must leave the prior healthy deployment serving traffic.
-  Review `PORT`, database references, application logs, and the health response.
-- A frontend `502` for `/api/v1` usually means `BACKEND_HOST` is incorrect or the
-  backend is unhealthy inside the same Railway environment.
+## 2. Observability & Structured Log Tracing
 
-## Rollback drill
+The backend emits newline-delimited JSON (NDJSON) logs directly to stdout/stderr. Every log record includes:
+
+- `timestamp`: ISO 8601 UTC timestamp
+- `level`: `info`, `warn`, `error`, `debug`
+- `context`: NestJS logger context (e.g. `HTTP`, `AuthService`, `HealthService`)
+- `message`: Sanitized message or object (`[REDACTED]` for any credential/key)
+- `requestId`: Distributed trace UUID from `X-Request-ID`
+- `userId`: Authenticated user ID (if available)
+- `environment`, `version`, `commitSha`
+
+### Searching Logs by Request ID
+
+When a user or frontend reports an error:
+
+1. Obtain the `requestId` from the HTTP error response payload or `X-Request-ID` response header.
+2. In Railway Dashboard -> Backend -> **Deploy Logs**, filter for the `requestId`:
+   ```bash
+   grep "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+   ```
+3. Locate the corresponding `HTTP_REQUEST` or `HTTP_REQUEST_ERROR` entry with `statusCode` and `durationMs`.
+
+---
+
+## 3. Health Check Diagnostics & Triage
+
+The backend exposes decoupled health probes:
+
+- `GET /api/v1/health/live`: Liveness check. Returns HTTP 200 if the Node.js event loop is running. Does not query the database.
+- `GET /api/v1/health/ready`: Readiness check. Queries `SELECT 1` against PostgreSQL. Returns HTTP 200 when ready, or HTTP 503 when degraded.
+- `GET /api/v1/health`: Backward-compatible alias for readiness.
+
+### Diagnosing Readiness Failure (HTTP 503)
+
+If `/api/v1/health/ready` returns 503:
+
+1. The response JSON will indicate `"status": "degraded"` and `"services": { "database": "down" }`.
+2. Check PostgreSQL service status in Railway.
+3. Check Railway backend logs for `[HealthService] Database health check failed`.
+4. Verify Railway database environment variables (`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`).
+
+### Diagnosing Liveness Failure (Process Not Responding)
+
+If `/api/v1/health/live` times out or fails:
+
+1. The Node.js process is likely blocked, out of memory (OOMKilled), or crashed.
+2. Check Railway metrics for CPU/RAM saturation.
+3. Review standard error logs in Railway for unhandled fatal errors or memory crashes.
+
+---
+
+## 4. Rate Limiting (HTTP 429) Investigation
+
+The API enforces in-memory rate limiting via `@nestjs/throttler`:
+
+- Global limit: 120 requests per 60 seconds per IP.
+- Login endpoint (`POST /api/v1/auth/login`): 5 attempts per 60 seconds per IP.
+- Health checks (`/api/v1/health/*`): `@SkipThrottle()` (exempt from throttling).
+
+### Investigating 429 Too Many Requests
+
+1. If legitimate users experience 429s, inspect `TRUST_PROXY_HOPS` in `.env.railway.backend`.
+   - Behind Railway Ingress + Nginx, ensure `TRUST_PROXY_HOPS=2` so client IP is extracted from `X-Forwarded-For` rather than sharing Nginx internal IP.
+2. Note: Because rate limiting is in-memory for the single-container stack, rate limiter counters reset to zero upon any container restart.
+3. If horizontal scaling is added in the future, migrate storage to Redis to coordinate limits across replicas.
+
+---
+
+## 5. Failed deployment
+
+- A failed migration must leave the new backend deployment inactive. Inspect the pre-deploy logs and fix the migration; never bypass it by starting the API manually.
+- A failed health check must leave the prior healthy deployment serving traffic. Review `PORT`, database references, application logs, and the health response.
+- A frontend `502` for `/api/v1` usually means `BACKEND_HOST` is incorrect or the backend is unhealthy inside the same Railway environment.
+
+---
+
+## 6. Rollback drill
 
 1. Select the previous known-good deployment in Railway.
 2. Use Railway's rollback action and wait for its health check.
 3. Run the external smoke workflow against the rolled-back commit SHA.
 4. Record the result in the operations issue.
 
-An application rollback does not undo a database migration. Migrations must remain
-backward compatible with the prior application until a release is proven stable.
-For destructive schema work, use an expand-and-contract migration sequence.
+An application rollback does not undo a database migration. Migrations must remain backward compatible with the prior application until a release is proven stable. For destructive schema work, use an expand-and-contract migration sequence.
 
-## Cost controls
+---
 
-- Enable serverless sleeping for staging frontend and backend if cold starts are
-  acceptable.
+## 7. Cost controls
+
+- Enable serverless sleeping for staging frontend and backend if cold starts are acceptable.
 - Set a billing email alert before enabling the services.
-- A hard usage limit takes workloads offline. Use it only with a deliberate amount
-  and never treat it as an availability feature.
+- A hard usage limit takes workloads offline. Use it only with a deliberate amount and never treat it as an availability feature.
 - Review estimated usage after one week before provisioning production.
 
-## Production preparation
+---
 
-Production is outside issue #67. When scheduled, create an isolated `production`
-environment tracking `main`, generate new secrets, provision a separate database,
-disable serverless sleeping, and attach the purchased domain only to the frontend.
+## 8. Incident Checklist & Compromised Secret Rotation
+
+If a secret or credential is suspected to be compromised:
+
+1. **JWT Secret**: Update `JWT_SECRET` in Railway dashboard and redeploy. All active sessions will be invalidated immediately.
+2. **Database Password**: Update PostgreSQL password, update backend `DB_PASSWORD`, and redeploy backend.
+3. **Audit Snapshot Integrity**: Confirm that audit logs did not store compromised keys (verified by automated `stripSensitiveKeys`).
+
+---
+
+## 9. Phase B: External Monitoring & Alerting (Deferred to #114)
+
+When the repository owner provisions Railway staging in **Issue #114**, the following will be validated:
+
+1. External uptime monitor configured against `https://<staging-url>/api/v1/health/ready`.
+2. Notification channel (Slack webhook, Telegram, or email).
+3. Controlled staging drill:
+   - Query `/api/v1/health/ready` (expect 200).
+   - Temporarily pause database or test non-prod service.
+   - Verify external alert is received in the approved channel.
+   - Restore service and verify recovery notification.
+   - Document timings in the operations issue and close #68.
