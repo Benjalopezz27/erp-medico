@@ -10,10 +10,15 @@ import {
 import { SuppliersService } from '../suppliers/suppliers.service';
 import { UploadFileBodyDto } from './dto/upload-file-body.dto';
 import { SecureSpreadsheetParser } from '../../shared/parsers/secure-spreadsheet-parser';
+import { SupplierImportTemplatesService } from './services/supplier-import-templates.service';
+import { SupplierImportTemplateMapper } from './mappers/supplier-import-template.mapper';
 
 @Injectable()
 export class ImporterService {
-  constructor(private readonly suppliersService: SuppliersService) {}
+  constructor(
+    private readonly suppliersService: SuppliersService,
+    private readonly templatesService: SupplierImportTemplatesService,
+  ) {}
 
   getStatus(): { module: string; status: string } {
     return { module: 'importer', status: 'initialized' };
@@ -63,6 +68,12 @@ export class ImporterService {
       { formulaPolicy: 'reject' },
     );
 
+    // Auto-detect matching template if one exists for this supplier and fingerprint
+    const matchingTemplate = await this.templatesService.findByFingerprint(
+      supplier.id,
+      parsed.headerFingerprint,
+    );
+
     return {
       supplier: {
         id: supplier.id,
@@ -83,6 +94,9 @@ export class ImporterService {
         rowNumber: row.rowNumber,
         cells: row.cells.map((cell) => (cell === null ? null : String(cell))),
       })),
+      detectedTemplate: matchingTemplate
+        ? SupplierImportTemplateMapper.toSummary(matchingTemplate)
+        : null,
     };
   }
 }

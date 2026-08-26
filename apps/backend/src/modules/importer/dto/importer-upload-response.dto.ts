@@ -3,6 +3,7 @@ import type {
   IImporterSampleRow,
   IImporterSupplierSummary,
   IImporterUploadResponse,
+  ISupplierImportTemplateSummary,
 } from '@erp/shared-types';
 
 export class ImporterSupplierSummaryDto implements IImporterSupplierSummary {
@@ -67,4 +68,12 @@ export class ImporterUploadResponseDto implements IImporterUploadResponse {
 
   @ApiProperty({ type: [ImporterSampleRowDto] })
   sampleRows: ImporterSampleRowDto[];
+
+  @ApiProperty({
+    type: Object,
+    required: false,
+    nullable: true,
+    description: 'Plantilla de mapeo auto-detectada si coincide el fingerprint',
+  })
+  detectedTemplate?: ISupplierImportTemplateSummary | null;
 }

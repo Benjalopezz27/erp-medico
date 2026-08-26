@@ -8,12 +8,23 @@ import { SupplierSelector } from '@/features/importer/components/SupplierSelecto
 import { FileUploader } from '@/features/importer/components/FileUploader';
 import { FileUploadSummary } from '@/features/importer/components/FileUploadSummary';
 import { SampleTable } from '@/features/importer/components/SampleTable';
+import { ColumnMappingForm } from '@/features/importer/components/mapping/ColumnMappingForm';
 import { useImporterUploadMutation } from '@/features/importer/hooks/use-importer-upload';
 import { parseImporterApiError } from '@/features/importer/utils/importer.errors';
 import type {
   IImporterUploadResponse,
+  ISupplierImportMapping,
+  ISupplierImportTemplateSummary,
   ImporterStep,
 } from '@/features/importer/types/importer.types';
+
+const defaultEmptyMapping: ISupplierImportMapping = {
+  supplierSku: '',
+  usualCostNet: '',
+  supplierDescription: null,
+  rawQuantity: null,
+  purchaseUnit: null,
+};
 
 export function ImporterWizardPage() {
   const navigate = useNavigate();
@@ -25,6 +36,13 @@ export function ImporterWizardPage() {
   const [replacementMode, setReplacementMode] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Step 2 Mapping & Template state
+  const [mapping, setMapping] = useState<ISupplierImportMapping>(defaultEmptyMapping);
+  const [appliedTemplate, setAppliedTemplate] = useState<ISupplierImportTemplateSummary | null>(
+    null,
+  );
+
   const uploadSequenceRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -36,6 +54,8 @@ export function ImporterWizardPage() {
     setSelectedSupplier(supplier);
     setAcceptedFile(null);
     setAcceptedPreview(null);
+    setMapping(defaultEmptyMapping);
+    setAppliedTemplate(null);
     setReplacementMode(false);
     setUploadError(null);
     setIsUploading(false);
@@ -61,6 +81,15 @@ export function ImporterWizardPage() {
       setAcceptedFile(candidateFile);
       setAcceptedPreview(response);
       setReplacementMode(false);
+
+      // Auto-populate template and mapping if detected
+      if (response.detectedTemplate) {
+        setAppliedTemplate(response.detectedTemplate);
+        setMapping(response.detectedTemplate.mapping);
+      } else {
+        setAppliedTemplate(null);
+        setMapping(defaultEmptyMapping);
+      }
     } catch (error) {
       if (sequence !== uploadSequenceRef.current || controller.signal.aborted) return;
       setUploadError(parseImporterApiError(error));
@@ -97,7 +126,7 @@ export function ImporterWizardPage() {
 
       <ImporterStepIndicator currentStep={step} />
 
-      {step === 'UPLOAD' ? (
+      {step === 'UPLOAD' && (
         <>
           <section className="rounded-xl border border-border bg-card p-5 shadow-sm">
             <SupplierSelector
@@ -149,21 +178,47 @@ export function ImporterWizardPage() {
             </Button>
           </div>
         </>
-      ) : (
+      )}
+
+      {step === 'MAP' && acceptedPreview && selectedSupplier && (
+        <ColumnMappingForm
+          supplierId={selectedSupplier.id}
+          uploadResponse={acceptedPreview}
+          mapping={mapping}
+          appliedTemplate={appliedTemplate}
+          onMappingChange={setMapping}
+          onAppliedTemplateChange={setAppliedTemplate}
+          onBack={() => setStep('UPLOAD')}
+          onContinue={() => setStep('PREVIEW')}
+        />
+      )}
+
+      {step === 'PREVIEW' && (
         <section className="rounded-xl border border-border bg-card p-8 text-center shadow-sm">
-          <h2 className="text-lg font-semibold">Archivo listo para mapear</h2>
+          <h2 className="text-lg font-semibold">Paso 3: Vista Previa y Validación (Issue #112)</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Se conservaron el proveedor y el archivo validado. La configuración de columnas se
-            implementará en la issue #111.
+            El mapeo de columnas ha sido guardado en memoria del wizard. La vista previa tabulada y
+            validación de filas se implementarán en la issue #112.
           </p>
-          <Button
-            type="button"
-            variant="outline"
-            className="mt-5"
-            onClick={() => setStep('UPLOAD')}
-          >
-            Volver a la subida
-          </Button>
+          <div className="flex justify-center gap-3 mt-6">
+            <Button type="button" variant="outline" onClick={() => setStep('MAP')}>
+              Volver al mapeo
+            </Button>
+          </div>
+        </section>
+      )}
+
+      {step === 'CONFIRM' && (
+        <section className="rounded-xl border border-border bg-card p-8 text-center shadow-sm">
+          <h2 className="text-lg font-semibold">Paso 4: Confirmación (Issue #113)</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            La confirmación y procesamiento final de precios se implementará en la issue #113.
+          </p>
+          <div className="flex justify-center gap-3 mt-6">
+            <Button type="button" variant="outline" onClick={() => setStep('PREVIEW')}>
+              Volver a vista previa
+            </Button>
+          </div>
         </section>
       )}
     </div>

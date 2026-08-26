@@ -27,6 +27,13 @@ describe('User Persistence & Seed Engine (E2E)', () => {
   });
 
   it('verifies migration up/down/up cycle cleanly', async () => {
+    // Revert supplier import templates table migration (1700000000012)
+    await ds.undoLastMigration();
+    const afterDropTemplates = await ds.query(
+      "SELECT to_regclass('public.supplier_import_templates') as tablename",
+    );
+    expect(afterDropTemplates[0].tablename).toBeNull();
+
     // Revert supplier products table migration (1700000000011)
     await ds.undoLastMigration();
     const afterDropSupplierProducts = await ds.query(
@@ -167,6 +174,12 @@ describe('User Persistence & Seed Engine (E2E)', () => {
     );
     expect(afterRecreateSupplierProducts[0].tablename).toBe(
       'supplier_products',
+    );
+    const afterRecreateSupplierImportTemplates = await ds.query(
+      "SELECT to_regclass('public.supplier_import_templates') as tablename",
+    );
+    expect(afterRecreateSupplierImportTemplates[0].tablename).toBe(
+      'supplier_import_templates',
     );
   });
 

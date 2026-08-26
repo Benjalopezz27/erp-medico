@@ -32,6 +32,24 @@ const messages: Record<ImporterErrorCode, string> = {
     'El proveedor seleccionado no existe o fue eliminado.',
   [ImporterErrorCode.IMPORTER_SUPPLIER_INACTIVE]:
     'El proveedor seleccionado se encuentra inactivo.',
+
+  // S3-US13-B Template & Mapping
+  [ImporterErrorCode.IMPORTER_TEMPLATE_NOT_FOUND]:
+    'La plantilla solicitada no existe o fue eliminada.',
+  [ImporterErrorCode.IMPORTER_TEMPLATE_NAME_DUPLICATE]:
+    'Ya existe una plantilla con ese nombre para este proveedor.',
+  [ImporterErrorCode.IMPORTER_TEMPLATE_FINGERPRINT_DUPLICATE]:
+    'Ya existe una plantilla guardada para este formato de archivo en este proveedor.',
+  [ImporterErrorCode.IMPORTER_INVALID_MAPPING]:
+    'La configuración de mapeo de columnas es inválida.',
+  [ImporterErrorCode.IMPORTER_MAPPING_MISSING_REQUIRED_FIELD]:
+    'Faltan campos obligatorios por mapear (SKU de proveedor y Costo neto).',
+  [ImporterErrorCode.IMPORTER_MAPPING_HEADER_NOT_FOUND]:
+    'Una o más columnas asignadas no existen en el archivo.',
+  [ImporterErrorCode.IMPORTER_MAPPING_DUPLICATE_COLUMN]:
+    'Una misma columna del archivo no puede asignarse a más de un campo del sistema.',
+  [ImporterErrorCode.IMPORTER_FINGERPRINT_MISMATCH]:
+    'La estructura del archivo no coincide con el formato esperado de la plantilla.',
 };
 
 export function parseImporterApiError(error: unknown): string {
