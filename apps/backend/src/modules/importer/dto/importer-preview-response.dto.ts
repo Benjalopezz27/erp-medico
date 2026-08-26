@@ -7,6 +7,7 @@ import {
   IImporterErrorRow,
   IImporterRowError,
   IImporterProductReference,
+  IImporterErrorRowAssociation,
   ImporterRowErrorCode,
   ImporterSemanticField,
 } from '@erp/shared-types';
@@ -149,6 +150,29 @@ export class ImporterUnknownRowDto implements IImporterUnknownRow {
   normalizedUnit?: string | null;
 }
 
+export class ImporterErrorRowAssociationDto implements IImporterErrorRowAssociation {
+  @ApiProperty({ example: 'sp-uuid-1' })
+  id: string;
+
+  @ApiProperty({ example: 'DIP-100' })
+  supplierExternalCode: string;
+
+  @ApiProperty({
+    example: { id: 'u-caja-uuid', name: 'Caja', symbol: 'CJA' },
+  })
+  purchaseUnit: {
+    id: string;
+    name: string;
+    symbol: string;
+  };
+
+  @ApiProperty({ example: '100.0000' })
+  conversionFactorToBase: string;
+
+  @ApiProperty({ type: ImporterProductReferenceDto })
+  product: ImporterProductReferenceDto;
+}
+
 export class ImporterErrorRowDto implements IImporterErrorRow {
   @ApiProperty({ example: 4 })
   rowNumber: number;
@@ -170,6 +194,9 @@ export class ImporterErrorRowDto implements IImporterErrorRow {
 
   @ApiPropertyOptional({ example: null })
   rawPurchaseUnit?: string | null;
+
+  @ApiPropertyOptional({ type: ImporterErrorRowAssociationDto, nullable: true })
+  association?: ImporterErrorRowAssociationDto | null;
 
   @ApiProperty({ type: [ImporterRowErrorDto] })
   errors: ImporterRowErrorDto[];
