@@ -9,7 +9,7 @@ vi.mock('@/services/api.client', () => ({
 describe('postImporterUploadApi', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('sends supplier and file as FormData without forcing a multipart header', async () => {
+  it('clears the JSON default so the browser can set the multipart boundary', async () => {
     const response = { fileChecksum: 'checksum' };
     vi.mocked(apiClient.post).mockResolvedValueOnce({ data: response });
     const file = new File(['SKU,Costo\n001,10'], 'lista.csv', { type: 'text/csv' });
@@ -25,7 +25,9 @@ describe('postImporterUploadApi', () => {
     const uploadedFile = (body as FormData).get('file') as File;
     expect(uploadedFile.name).toBe(file.name);
     expect(uploadedFile.type).toBe(file.type);
-    expect(config).toEqual({ signal: controller.signal });
-    expect(config?.headers).toBeUndefined();
+    expect(config).toEqual({
+      signal: controller.signal,
+      headers: { 'Content-Type': undefined },
+    });
   });
 });
