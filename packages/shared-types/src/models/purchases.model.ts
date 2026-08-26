@@ -1,26 +1,92 @@
 import { PurchaseOrderStatus, SupplierInvoiceStatus } from '../enums/purchases.enum';
 
-export interface IPurchaseOrderItem {
-  id: string;
-  purchaseOrderId: string;
-  productId: string;
-  quantityOrdered: number;
-  quantityReceived: number;
-  unitPriceNet: number;
-  subtotalNet: number;
+export interface IPurchaseOrderItemPayload {
+  supplierProductId: string;
+  orderedQty: string | number;
+  expectedCostUnitNet?: string | number | null;
 }
 
-export interface IPurchaseOrder {
+export interface ICreatePurchaseOrderPayload {
+  supplierId: string;
+  expectedDeliveryDate?: string | null;
+  notes?: string | null;
+  items: IPurchaseOrderItemPayload[];
+}
+
+export interface IUpdatePurchaseOrderPayload {
+  supplierId?: string;
+  expectedDeliveryDate?: string | null;
+  notes?: string | null;
+  items?: IPurchaseOrderItemPayload[];
+}
+
+export interface ICancelPurchaseOrderPayload {
+  cancelReason?: string | null;
+}
+
+export interface IPurchaseOrderItemDetail {
+  id: string;
+  itemIndex: number;
+  supplierProductId: string;
+  productId: string;
+  purchaseUnitId: string;
+  supplierSku: string;
+  productCode: string;
+  productName: string;
+  purchaseUnitName: string;
+  purchaseUnitSymbol: string;
+  conversionFactor: string;
+  orderedQty: string;
+  receivedQty: string;
+  pendingQty: string;
+  expectedCostUnitNet: string;
+  subtotalNet: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IPurchaseOrderSummary {
   id: string;
   orderNumber: string;
-  supplierId: string;
+  supplier: {
+    id: string;
+    businessName: string;
+    cuit: string;
+  };
   status: PurchaseOrderStatus;
-  totalNet: number;
-  notes?: string | null;
-  items?: IPurchaseOrderItem[];
-  createdAt: Date | string;
-  updatedAt: Date | string;
+  expectedDeliveryDate: string | null;
+  notes: string | null;
+  totalNet: string;
+  itemsCount: number;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  emittedAt: string | null;
+  cancelledAt: string | null;
+  cancelReason: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
+
+export interface IPurchaseOrderDetail extends IPurchaseOrderSummary {
+  items: IPurchaseOrderItemDetail[];
+}
+
+export interface IPurchaseOrderSearchParams {
+  page?: number;
+  limit?: number;
+  supplierId?: string;
+  status?: PurchaseOrderStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+}
+
+// Backward-compatible alias for preliminary models
+export type IPurchaseOrderItem = IPurchaseOrderItemDetail;
+export type IPurchaseOrder = IPurchaseOrderDetail;
 
 export interface IGoodsReceiptItem {
   id: string;
