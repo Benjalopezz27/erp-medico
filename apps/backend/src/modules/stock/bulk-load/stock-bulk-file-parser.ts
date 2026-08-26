@@ -1,556 +1,129 @@
 import {
   BadRequestException,
+  HttpException,
   PayloadTooLargeException,
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
-import { parse as parseCsvSync } from 'csv-parse/sync';
-import * as ExcelJS from 'exceljs';
-import * as crypto from 'crypto';
 import {
+  ImporterErrorCode,
   StockBulkFileErrorCode,
   IStockBulkLoadRawRow,
 } from '@erp/shared-types';
+import {
+  SecureSpreadsheetParser,
+  SECURE_SPREADSHEET_MAX_DATA_ROWS,
+  SECURE_SPREADSHEET_MAX_FILE_SIZE,
+  SECURE_SPREADSHEET_MAX_UNCOMPRESSED_XLSX_SIZE,
+  SECURE_SPREADSHEET_MAX_ZIP_ENTRIES,
+} from '../../../shared/parsers/secure-spreadsheet-parser';
 
-export interface HeaderMap {
-  internalCodeIndex: number;
-  quantityBaseIndex: number;
-  productNameIndex?: number;
-  baseUnitIndex?: number;
-  totalHeaderColumns: number;
-}
+export const BULK_LOAD_MAX_FILE_SIZE = SECURE_SPREADSHEET_MAX_FILE_SIZE;
+export const BULK_LOAD_MAX_DATA_ROWS = SECURE_SPREADSHEET_MAX_DATA_ROWS;
+export const BULK_LOAD_MAX_UNCOMPRESSED_XLSX_SIZE =
+  SECURE_SPREADSHEET_MAX_UNCOMPRESSED_XLSX_SIZE;
+export const BULK_LOAD_MAX_ZIP_ENTRIES = SECURE_SPREADSHEET_MAX_ZIP_ENTRIES;
 
 export interface ParsedBulkFileResult {
   fileChecksum: string;
   rawRows: IStockBulkLoadRawRow[];
 }
 
-export const BULK_LOAD_MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MiB
-export const BULK_LOAD_MAX_DATA_ROWS = 1000;
-export const BULK_LOAD_MAX_UNCOMPRESSED_XLSX_SIZE = 25 * 1024 * 1024; // 25 MiB
-export const BULK_LOAD_MAX_ZIP_ENTRIES = 50;
+interface StockHeaderMap {
+  internalCode: number;
+  quantityBase: number;
+  productName?: number;
+  baseUnit?: number;
+}
 
+/** Stock-specific adapter over the reusable secure spreadsheet parser. */
 export class StockBulkFileParser {
-  /**
-   * Parses CSV or XLSX buffer into normalized raw row items with strict security bounds.
-   */
   static async parse(
     fileBuffer: Buffer,
     originalFilename?: string,
     mimetype?: string,
   ): Promise<ParsedBulkFileResult> {
-    if (!fileBuffer || fileBuffer.length === 0) {
-      throw new BadRequestException({
-        code: StockBulkFileErrorCode.BULK_LOAD_MISSING_FILE,
-        message: 'El archivo está vacío o no fue proporcionado.',
-      });
-    }
-
-    if (fileBuffer.length > BULK_LOAD_MAX_FILE_SIZE) {
-      throw new PayloadTooLargeException({
-        code: StockBulkFileErrorCode.BULK_LOAD_FILE_TOO_LARGE,
-        message: 'El archivo supera el tamaño máximo permitido de 2 MiB.',
-      });
-    }
-
-    const fileChecksum = crypto
-      .createHash('sha256')
-      .update(fileBuffer)
-      .digest('hex');
-
-    const extension = (originalFilename || '').split('.').pop()?.toLowerCase();
-
-    const isZip =
-      fileBuffer.length >= 4 &&
-      fileBuffer[0] === 0x50 &&
-      fileBuffer[1] === 0x4b &&
-      fileBuffer[2] === 0x03 &&
-      fileBuffer[3] === 0x04;
-
-    if (extension === 'xlsx' || isZip) {
-      const rawRows = await this.parseXlsx(fileBuffer);
-      return { fileChecksum, rawRows };
-    }
-
-    if (
-      extension === 'csv' ||
-      mimetype === 'text/csv' ||
-      mimetype === 'text/plain' ||
-      mimetype === 'application/vnd.ms-excel' ||
-      mimetype === 'application/octet-stream'
-    ) {
-      const rawRows = this.parseCsv(fileBuffer);
-      return { fileChecksum, rawRows };
-    }
-
-    throw new UnsupportedMediaTypeException({
-      code: StockBulkFileErrorCode.BULK_LOAD_UNSUPPORTED_TYPE,
-      message:
-        'Formato de archivo no soportado. Sólo se admiten archivos .csv y .xlsx.',
-    });
-  }
-
-  /**
-   * Parses CSV buffer with BOM stripping, flexible header mapping, and strict row width enforcement.
-   */
-  private static parseCsv(fileBuffer: Buffer): IStockBulkLoadRawRow[] {
-    let content = fileBuffer.toString('utf8');
-
-    // Strip UTF-8 BOM if present
-    if (content.charCodeAt(0) === 0xfeff) {
-      content = content.slice(1);
-    }
-
-    let records: string[][];
     try {
-      records = parseCsvSync(content, {
-        relax_column_count: true,
-        skip_empty_lines: true,
-        trim: true,
-      });
-    } catch {
-      throw new BadRequestException({
-        code: StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
-        message: 'El archivo CSV tiene una estructura inválida o corrupta.',
-      });
-    }
-
-    if (!records || records.length === 0) {
-      throw new BadRequestException({
-        code: StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
-        message: 'El archivo CSV está vacío.',
-      });
-    }
-
-    const headerRow = records[0];
-    const headerMap = this.validateAndBuildHeaderMap(headerRow);
-
-    const dataRows = records.slice(1);
-
-    if (dataRows.length > BULK_LOAD_MAX_DATA_ROWS) {
-      throw new BadRequestException({
-        code: StockBulkFileErrorCode.BULK_LOAD_ROW_LIMIT_EXCEEDED,
-        message: `El archivo supera el límite máximo de ${BULK_LOAD_MAX_DATA_ROWS} filas de datos.`,
-      });
-    }
-
-    const rawRows: IStockBulkLoadRawRow[] = [];
-
-    for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i];
-      const rowNumber = i + 2; // 1-indexed including header row
-
-      // Ignore fully empty physical rows
-      if (
-        !row ||
-        row.length === 0 ||
-        row.every((cell) => !cell || cell.trim() === '')
-      ) {
-        continue;
-      }
-
-      // Enforce row cell count not exceeding declared header columns
-      if (row.length > headerMap.totalHeaderColumns) {
-        throw new BadRequestException({
-          code: StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
-          message: `La fila ${rowNumber} contiene más celdas (${row.length}) que las columnas declaradas en los encabezados (${headerMap.totalHeaderColumns}).`,
-        });
-      }
-
-      const rawInternalCode =
-        row[headerMap.internalCodeIndex] !== undefined
-          ? String(row[headerMap.internalCodeIndex]).trim()
-          : '';
-
-      const rawQtyStr =
-        row[headerMap.quantityBaseIndex] !== undefined
-          ? String(row[headerMap.quantityBaseIndex]).trim()
-          : '';
-
-      const rawProductName =
-        headerMap.productNameIndex !== undefined &&
-        row[headerMap.productNameIndex] !== undefined
-          ? String(row[headerMap.productNameIndex]).trim()
-          : undefined;
-
-      const rawBaseUnit =
-        headerMap.baseUnitIndex !== undefined &&
-        row[headerMap.baseUnitIndex] !== undefined
-          ? String(row[headerMap.baseUnitIndex]).trim()
-          : undefined;
-
-      // Check formula in CSV: values starting with '=' or '@' across all mapped cells
-      const hasFormula =
-        rawInternalCode.startsWith('=') ||
-        rawInternalCode.startsWith('@') ||
-        rawQtyStr.startsWith('=') ||
-        rawQtyStr.startsWith('@') ||
-        (rawProductName
-          ? rawProductName.startsWith('=') || rawProductName.startsWith('@')
-          : false) ||
-        (rawBaseUnit
-          ? rawBaseUnit.startsWith('=') || rawBaseUnit.startsWith('@')
-          : false);
-
-      // Preserve leading sign for negative/positive numbers without formula flag
-      let cleanedQty: string | null = rawQtyStr;
-      if (rawQtyStr.startsWith('+')) {
-        cleanedQty = rawQtyStr.slice(1).trim();
-      }
-      if (cleanedQty === '') {
-        cleanedQty = null;
-      }
-
-      rawRows.push({
-        rowNumber,
-        rawInternalCode,
-        rawQuantity: cleanedQty,
-        rawProductName,
-        rawBaseUnit,
-        hasFormula,
-      });
-    }
-
-    return rawRows;
-  }
-
-  /**
-   * Pre-inspects ZIP structure and parses XLSX with ExcelJS and flexible header mapping.
-   */
-  private static async parseXlsx(
-    fileBuffer: Buffer,
-  ): Promise<IStockBulkLoadRawRow[]> {
-    this.inspectZipBuffer(fileBuffer);
-
-    const workbook = new ExcelJS.Workbook();
-    try {
-      await workbook.xlsx.load(fileBuffer as unknown as ExcelJS.Buffer);
-    } catch {
-      throw new BadRequestException({
-        code: StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
-        message: 'El archivo XLSX tiene una estructura inválida o corrupta.',
-      });
-    }
-
-    // Filter worksheets with actual row content
-    const worksheetsWithData = workbook.worksheets.filter(
-      (ws) => ws.actualRowCount > 0,
-    );
-
-    if (worksheetsWithData.length === 0) {
-      throw new BadRequestException({
-        code: StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
-        message: 'El archivo Excel no contiene hojas con datos.',
-      });
-    }
-
-    if (worksheetsWithData.length > 1) {
-      throw new BadRequestException({
-        code: StockBulkFileErrorCode.BULK_LOAD_MULTIPLE_SHEETS,
-        message:
-          'El archivo Excel contiene más de una hoja con datos. Debe contener exactamente una hoja.',
-      });
-    }
-
-    const worksheet = worksheetsWithData[0];
-    const { lastContentRow, dataRowCount } =
-      this.getWorksheetContentBounds(worksheet);
-
-    if (lastContentRow < 1) {
-      throw new BadRequestException({
-        code: StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
-        message: 'El archivo Excel está vacío.',
-      });
-    }
-
-    // Extract headers preserving exact column indices
-    const headerRow = worksheet.getRow(1);
-    const headers: string[] = [];
-    const maxCol = this.findLastNonEmptyCellIndex(headerRow);
-
-    for (let c = 1; c <= maxCol; c++) {
-      const cellVal = headerRow.getCell(c).value;
-      headers.push(
-        cellVal !== null && cellVal !== undefined ? String(cellVal) : '',
+      const parsed = await SecureSpreadsheetParser.parse(
+        fileBuffer,
+        originalFilename,
+        mimetype,
+        { maxColumns: 4, formulaPolicy: 'flag' },
       );
-    }
+      const headerMap = this.buildHeaderMap(
+        parsed.normalizedHeaders,
+        parsed.headers,
+      );
 
-    const headerMap = this.validateAndBuildHeaderMap(headers);
+      const rawRows = parsed.rows.map((row): IStockBulkLoadRawRow => {
+        const codeValue = row.cells[headerMap.internalCode];
+        const quantityValue = row.cells[headerMap.quantityBase];
+        const nameValue =
+          headerMap.productName === undefined
+            ? undefined
+            : row.cells[headerMap.productName];
+        const unitValue =
+          headerMap.baseUnit === undefined
+            ? undefined
+            : row.cells[headerMap.baseUnit];
 
-    if (dataRowCount > BULK_LOAD_MAX_DATA_ROWS) {
-      throw new BadRequestException({
-        code: StockBulkFileErrorCode.BULK_LOAD_ROW_LIMIT_EXCEEDED,
-        message: `El archivo supera el límite máximo de ${BULK_LOAD_MAX_DATA_ROWS} filas de datos.`,
-      });
-    }
-
-    const rawRows: IStockBulkLoadRawRow[] = [];
-
-    for (let r = 2; r <= lastContentRow; r++) {
-      const row = worksheet.getRow(r);
-
-      // Check if any non-empty cell exists beyond declared header columns
-      const rowCellCount = row.cellCount;
-      if (rowCellCount > headerMap.totalHeaderColumns) {
-        for (
-          let extraCol = headerMap.totalHeaderColumns + 1;
-          extraCol <= rowCellCount;
-          extraCol++
-        ) {
-          const extraCell = row.getCell(extraCol);
-          if (
-            extraCell.value !== null &&
-            extraCell.value !== undefined &&
-            String(extraCell.value).trim() !== ''
-          ) {
-            throw new BadRequestException({
-              code: StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
-              message: `La fila ${r} contiene contenido en columnas adicionales no declaradas.`,
-            });
-          }
+        let rawQuantity: string | number | null =
+          quantityValue === null
+            ? null
+            : typeof quantityValue === 'boolean'
+              ? String(quantityValue)
+              : quantityValue;
+        if (typeof rawQuantity === 'string' && rawQuantity.startsWith('+')) {
+          rawQuantity = rawQuantity.slice(1).trim() || null;
         }
-      }
 
-      const cellCode = row.getCell(headerMap.internalCodeIndex + 1);
-      const cellQty = row.getCell(headerMap.quantityBaseIndex + 1);
-      const cellName =
-        headerMap.productNameIndex !== undefined
-          ? row.getCell(headerMap.productNameIndex + 1)
-          : null;
-      const cellUnit =
-        headerMap.baseUnitIndex !== undefined
-          ? row.getCell(headerMap.baseUnitIndex + 1)
-          : null;
-
-      const isCodeEmpty =
-        cellCode.value === null ||
-        cellCode.value === undefined ||
-        String(cellCode.value).trim() === '';
-      const isQtyEmpty =
-        cellQty.value === null ||
-        cellQty.value === undefined ||
-        String(cellQty.value).trim() === '';
-      const isNameEmpty =
-        !cellName ||
-        cellName.value === null ||
-        cellName.value === undefined ||
-        String(cellName.value).trim() === '';
-      const isUnitEmpty =
-        !cellUnit ||
-        cellUnit.value === null ||
-        cellUnit.value === undefined ||
-        String(cellUnit.value).trim() === '';
-
-      // Skip fully empty row
-      if (isCodeEmpty && isQtyEmpty && isNameEmpty && isUnitEmpty) {
-        continue;
-      }
-
-      const hasFormula =
-        cellCode.type === ExcelJS.ValueType.Formula ||
-        Boolean(cellCode.formula) ||
-        cellQty.type === ExcelJS.ValueType.Formula ||
-        Boolean(cellQty.formula) ||
-        (cellName
-          ? cellName.type === ExcelJS.ValueType.Formula ||
-            Boolean(cellName.formula)
-          : false) ||
-        (cellUnit
-          ? cellUnit.type === ExcelJS.ValueType.Formula ||
-            Boolean(cellUnit.formula)
-          : false) ||
-        String(cellCode.value ?? '').startsWith('=') ||
-        String(cellQty.value ?? '').startsWith('=') ||
-        String(cellName?.value ?? '').startsWith('=') ||
-        String(cellUnit?.value ?? '').startsWith('=');
-
-      let rawInternalCode = '';
-      if (cellCode.value !== null && cellCode.value !== undefined) {
-        rawInternalCode = String(cellCode.value).trim();
-      }
-
-      let rawQuantity: string | number | null = null;
-      if (cellQty.value !== null && cellQty.value !== undefined) {
-        if (typeof cellQty.value === 'number') {
-          rawQuantity = cellQty.value;
-        } else {
-          const str = String(cellQty.value).trim();
-          rawQuantity = str === '' ? null : str;
-        }
-      }
-
-      const rawProductName =
-        cellName && cellName.value !== null && cellName.value !== undefined
-          ? String(cellName.value).trim()
-          : undefined;
-
-      const rawBaseUnit =
-        cellUnit && cellUnit.value !== null && cellUnit.value !== undefined
-          ? String(cellUnit.value).trim()
-          : undefined;
-
-      rawRows.push({
-        rowNumber: r,
-        rawInternalCode,
-        rawQuantity,
-        rawProductName,
-        rawBaseUnit,
-        hasFormula,
+        return {
+          rowNumber: row.rowNumber,
+          rawInternalCode: codeValue === null ? '' : String(codeValue).trim(),
+          rawQuantity,
+          rawProductName:
+            nameValue === null || nameValue === undefined
+              ? undefined
+              : String(nameValue).trim(),
+          rawBaseUnit:
+            unitValue === null || unitValue === undefined
+              ? undefined
+              : String(unitValue).trim(),
+          hasFormula: row.hasFormula,
+        };
       });
-    }
 
-    return rawRows;
-  }
-
-  /**
-   * Returns the last column containing a real value. Excel and compatible editors
-   * frequently persist styles for trailing empty cells, which increases `cellCount`
-   * even though those cells are not part of the uploaded data contract.
-   */
-  private static findLastNonEmptyCellIndex(row: ExcelJS.Row): number {
-    for (let column = row.cellCount; column >= 1; column--) {
-      const value = row.getCell(column).value;
-      if (
-        value !== null &&
-        value !== undefined &&
-        String(value).trim() !== ''
-      ) {
-        return column;
-      }
-    }
-
-    return 0;
-  }
-
-  /**
-   * Counts and bounds only rows containing values. Style-only rows must not make a
-   * valid template look like a 1,000-row import or trigger the row limit.
-   */
-  private static getWorksheetContentBounds(worksheet: ExcelJS.Worksheet): {
-    lastContentRow: number;
-    dataRowCount: number;
-  } {
-    let lastContentRow = 0;
-    let dataRowCount = 0;
-
-    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-      if (this.findLastNonEmptyCellIndex(row) === 0) {
-        return;
-      }
-
-      lastContentRow = Math.max(lastContentRow, rowNumber);
-      if (rowNumber > 1) {
-        dataRowCount++;
-      }
-    });
-
-    return { lastContentRow, dataRowCount };
-  }
-
-  /**
-   * Inspects ZIP local file headers for zip-bomb defense (uncompressed size and entry limits).
-   */
-  private static inspectZipBuffer(buffer: Buffer): void {
-    let offset = 0;
-    let entryCount = 0;
-    let totalUncompressedSize = 0;
-
-    // Scan Local File Headers (Magic: 0x04034b50)
-    while (offset < buffer.length - 30) {
-      const signature = buffer.readUInt32LE(offset);
-      if (signature !== 0x04034b50) {
-        break;
-      }
-
-      entryCount++;
-      if (entryCount > BULK_LOAD_MAX_ZIP_ENTRIES) {
-        throw new BadRequestException({
-          code: StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
-          message:
-            'El archivo XLSX contiene demasiadas entradas internas o es inválido.',
-        });
-      }
-
-      const uncompressedSize = buffer.readUInt32LE(offset + 22);
-      totalUncompressedSize += uncompressedSize;
-
-      if (totalUncompressedSize > BULK_LOAD_MAX_UNCOMPRESSED_XLSX_SIZE) {
-        throw new BadRequestException({
-          code: StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
-          message:
-            'El archivo comprimido supera el límite de expansión permitido (25 MiB).',
-        });
-      }
-
-      const fileNameLength = buffer.readUInt16LE(offset + 26);
-      const extraFieldLength = buffer.readUInt16LE(offset + 28);
-      const compressedSize = buffer.readUInt32LE(offset + 18);
-
-      offset += 30 + fileNameLength + extraFieldLength + compressedSize;
+      return { fileChecksum: parsed.fileChecksum, rawRows };
+    } catch (error) {
+      this.rethrowLegacyError(error);
     }
   }
 
-  /**
-   * Validates header array index-by-index without shifting, rejecting empty, duplicate, or unknown headers.
-   */
-  private static validateAndBuildHeaderMap(
-    headers: (string | null | undefined)[],
-  ): HeaderMap {
-    if (!headers || headers.length === 0) {
-      throw new BadRequestException({
-        code: StockBulkFileErrorCode.BULK_LOAD_MISSING_HEADERS,
-        message: 'El archivo no contiene encabezados.',
-      });
-    }
-
-    let internalCodeIndex = -1;
-    let quantityBaseIndex = -1;
-    let productNameIndex: number | undefined = undefined;
-    let baseUnitIndex: number | undefined = undefined;
-
-    const seenHeaders = new Set<string>();
-
-    for (let i = 0; i < headers.length; i++) {
-      const headerCell = headers[i];
-
-      if (
-        headerCell === null ||
-        headerCell === undefined ||
-        headerCell.trim() === ''
-      ) {
-        throw new BadRequestException({
-          code: StockBulkFileErrorCode.BULK_LOAD_MISSING_HEADERS,
-          message:
-            'El archivo contiene columnas sin encabezado o encabezados vacíos.',
-        });
-      }
-
-      const normalized = headerCell.trim().toLowerCase();
-
-      if (seenHeaders.has(normalized)) {
-        throw new BadRequestException({
-          code: StockBulkFileErrorCode.BULK_LOAD_DUPLICATE_HEADER,
-          message: `El encabezado "${headerCell}" aparece duplicado en el archivo.`,
-        });
-      }
-      seenHeaders.add(normalized);
-
-      if (normalized === 'internalcode') {
-        internalCodeIndex = i;
-      } else if (normalized === 'quantitybase') {
-        quantityBaseIndex = i;
-      } else if (normalized === 'productname') {
-        productNameIndex = i;
-      } else if (normalized === 'baseunit') {
-        baseUnitIndex = i;
-      } else {
+  private static buildHeaderMap(
+    normalized: string[],
+    original: string[],
+  ): StockHeaderMap {
+    const allowed = new Set([
+      'internalcode',
+      'quantitybase',
+      'productname',
+      'baseunit',
+    ]);
+    for (let index = 0; index < normalized.length; index++) {
+      const compact = normalized[index].replace(/\s/g, '');
+      if (!allowed.has(compact)) {
         throw new BadRequestException({
           code: StockBulkFileErrorCode.BULK_LOAD_UNKNOWN_HEADER,
-          message: `El encabezado "${headerCell}" no es reconocido. Encabezados permitidos: internalCode, quantityBase, productName, baseUnit.`,
+          message: `El encabezado "${original[index]}" no es reconocido. Encabezados permitidos: internalCode, quantityBase, productName, baseUnit.`,
         });
       }
     }
 
-    if (internalCodeIndex === -1 || quantityBaseIndex === -1) {
+    const compactHeaders = normalized.map((header) =>
+      header.replace(/\s/g, ''),
+    );
+    const internalCode = compactHeaders.indexOf('internalcode');
+    const quantityBase = compactHeaders.indexOf('quantitybase');
+    if (internalCode < 0 || quantityBase < 0) {
       throw new BadRequestException({
         code: StockBulkFileErrorCode.BULK_LOAD_MISSING_HEADERS,
         message:
@@ -558,12 +131,66 @@ export class StockBulkFileParser {
       });
     }
 
+    const productName = compactHeaders.indexOf('productname');
+    const baseUnit = compactHeaders.indexOf('baseunit');
     return {
-      internalCodeIndex,
-      quantityBaseIndex,
-      productNameIndex,
-      baseUnitIndex,
-      totalHeaderColumns: headers.length,
+      internalCode,
+      quantityBase,
+      productName: productName < 0 ? undefined : productName,
+      baseUnit: baseUnit < 0 ? undefined : baseUnit,
     };
+  }
+
+  private static rethrowLegacyError(error: unknown): never {
+    if (!(error instanceof HttpException)) throw error;
+    const response = error.getResponse();
+    const body =
+      typeof response === 'object' && response !== null
+        ? (response as Record<string, unknown>)
+        : {};
+    const code = body.code as ImporterErrorCode | undefined;
+    const message =
+      typeof body.message === 'string' ? body.message : error.message;
+
+    if (error instanceof PayloadTooLargeException) {
+      throw new PayloadTooLargeException({
+        code: StockBulkFileErrorCode.BULK_LOAD_FILE_TOO_LARGE,
+        message,
+      });
+    }
+    if (error instanceof UnsupportedMediaTypeException) {
+      if (code === ImporterErrorCode.IMPORTER_FORMAT_NOT_SUPPORTED) {
+        throw new UnsupportedMediaTypeException({
+          code: StockBulkFileErrorCode.BULK_LOAD_UNSUPPORTED_TYPE,
+          message,
+        });
+      }
+
+      throw new BadRequestException({
+        code: StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
+        message,
+      });
+    }
+
+    const mappedCode: Partial<
+      Record<ImporterErrorCode, StockBulkFileErrorCode>
+    > = {
+      [ImporterErrorCode.IMPORTER_FILE_EMPTY]:
+        StockBulkFileErrorCode.BULK_LOAD_MISSING_FILE,
+      [ImporterErrorCode.IMPORTER_ROW_LIMIT_EXCEEDED]:
+        StockBulkFileErrorCode.BULK_LOAD_ROW_LIMIT_EXCEEDED,
+      [ImporterErrorCode.IMPORTER_HEADER_EMPTY]:
+        StockBulkFileErrorCode.BULK_LOAD_MISSING_HEADERS,
+      [ImporterErrorCode.IMPORTER_HEADER_DUPLICATE]:
+        StockBulkFileErrorCode.BULK_LOAD_DUPLICATE_HEADER,
+      [ImporterErrorCode.IMPORTER_MULTIPLE_SHEETS]:
+        StockBulkFileErrorCode.BULK_LOAD_MULTIPLE_SHEETS,
+    };
+    throw new BadRequestException({
+      code:
+        (code && mappedCode[code]) ||
+        StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
+      message,
+    });
   }
 }
