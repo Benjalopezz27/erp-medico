@@ -33,7 +33,7 @@ RUN echo "{\"version\":\"${APP_VERSION}\",\"commitSha\":\"${APP_COMMIT_SHA}\"}" 
 # ==============================================================================
 # Stage 2: Serve SPA with unprivileged Nginx
 # ==============================================================================
-FROM nginxinc/nginx-unprivileged:1.30.4-alpine3.24-slim@sha256:e88d990b349df8cf4aa82f16642d7a23375016638c9ace4e5c6ca25028e62e65 AS runner
+FROM nginxinc/nginx-unprivileged:1.31.3-alpine3.24-slim@sha256:d61d7ef52430df468e74ed6ee6e914429b80e20ba988e3176278a73165f876cf AS runner
 
 ARG APP_VERSION=0.1.0
 ARG APP_COMMIT_SHA=development
