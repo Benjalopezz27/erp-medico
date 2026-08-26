@@ -159,8 +159,15 @@ export class StockBulkFileParser {
       });
     }
     if (error instanceof UnsupportedMediaTypeException) {
-      throw new UnsupportedMediaTypeException({
-        code: StockBulkFileErrorCode.BULK_LOAD_UNSUPPORTED_TYPE,
+      if (code === ImporterErrorCode.IMPORTER_FORMAT_NOT_SUPPORTED) {
+        throw new UnsupportedMediaTypeException({
+          code: StockBulkFileErrorCode.BULK_LOAD_UNSUPPORTED_TYPE,
+          message,
+        });
+      }
+
+      throw new BadRequestException({
+        code: StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
         message,
       });
     }
