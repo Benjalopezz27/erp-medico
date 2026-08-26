@@ -57,10 +57,67 @@ const preview = {
   sampleRows: [{ rowNumber: 2, cells: ['001', '1250'] }],
 };
 
+const previewMutateAsync = vi.fn();
+
+vi.mock('@/features/importer/hooks/use-importer-preview', () => ({
+  useImporterPreviewMutation: () => ({
+    mutateAsync: previewMutateAsync,
+    isPending: false,
+  }),
+}));
+
+const mockPreviewStepResponse = {
+  supplier: {
+    id: '56ab5c44-90a6-4e22-a940-3bb67939dc1f',
+    businessName: 'Proveedor Médico',
+    cuit: '30712345678',
+  },
+  fileChecksum: 'a'.repeat(64),
+  headerFingerprint: 'b'.repeat(64),
+  mappingChecksum: 'c'.repeat(64),
+  contentChecksum: 'd'.repeat(64),
+  summary: {
+    totalRows: 1,
+    validRows: 1,
+    unknownRows: 0,
+    errorRows: 0,
+    canContinue: true,
+  },
+  validRows: [
+    {
+      rowNumber: 2,
+      rawSku: '001',
+      normalizedSku: '001',
+      supplierDescription: null,
+      usualCostNet: '1250.0000',
+      rawQuantity: null,
+      quantityCanonical: null,
+      rawPurchaseUnit: null,
+      normalizedUnit: null,
+      supplierProduct: {
+        id: 'sp-1',
+        isPrimarySupplier: true,
+        purchaseUnit: { id: 'u-1', name: 'Unidad', symbol: 'U' },
+        conversionFactorToBase: '1.0000',
+      },
+      product: {
+        id: 'p-1',
+        internalCode: 'P0001',
+        name: 'Ibuprofeno',
+        baseUnit: { id: 'u-1', name: 'Unidad', symbol: 'U' },
+      },
+    },
+  ],
+  unknownRows: [],
+  errorRows: [],
+};
+
 describe('ImporterWizardPage', () => {
   beforeEach(() => {
     mutateAsync.mockReset();
     mutateAsync.mockResolvedValue(preview);
+    previewMutateAsync.mockReset();
+    previewMutateAsync.mockResolvedValue(mockPreviewStepResponse);
   });
 
   it('selects a supplier, uploads a file and retains the validated preview', async () => {
@@ -143,7 +200,7 @@ describe('ImporterWizardPage', () => {
     expect(screen.getByText('001')).toBeInTheDocument();
   });
 
-  it('auto-applies detectedTemplate when returned from upload response', async () => {
+  it('auto-applies detectedTemplate, advances to Step 3 (PREVIEW), and displays preview summary cards and tables', async () => {
     const previewWithTemplate = {
       ...preview,
       detectedTemplate: {
@@ -182,12 +239,26 @@ describe('ImporterWizardPage', () => {
     await screen.findByText('Plantilla Oficial Droguería');
     expect(screen.getByText(/PLANTILLA APLICADA/i)).toBeInTheDocument();
 
-    // Since required fields are mapped by template, continue to preview is enabled
+    // Advance to Step 3
     const continueBtn = screen.getByRole('button', { name: /continuar a vista previa/i });
     expect(continueBtn).toBeEnabled();
     fireEvent.click(continueBtn);
 
-    // Verify Step 3 placeholder is shown
-    await screen.findByText(/Paso 3: Vista Previa y Validación/i);
+    // Verify Step 3 preview cards and valid rows are rendered
+    await screen.findByText('Filas Válidas');
+    expect(screen.getByText('Vista previa validada exitosamente')).toBeInTheDocument();
+    expect(previewMutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        supplierId: preview.supplier.id,
+        expectedFileChecksum: preview.fileChecksum,
+        mapping: {
+          supplierSku: 'sku',
+          usualCostNet: 'costo',
+          supplierDescription: null,
+          rawQuantity: null,
+          purchaseUnit: null,
+        },
+      }),
+    );
   });
 });
