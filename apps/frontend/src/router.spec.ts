@@ -13,7 +13,9 @@ import {
   validateQuarantineSearchParams,
   validateSuppliersSearchParams,
   validateSupplierCatalogSearchParams,
+  validatePurchaseOrderSearchParams,
 } from './router';
+import { PurchaseOrderStatus } from '@/features/purchase-orders/types/purchase-orders.types';
 
 const session = (role: UserRole): IAuthSession => ({
   accessToken: 'token',
@@ -324,5 +326,57 @@ describe('validateSupplierCatalogSearchParams', () => {
     expect(result.search).toBe('MED-99');
     expect(result.sortBy).toBe('supplierExternalCode');
     expect(result.sortOrder).toBe('ASC');
+  });
+});
+
+describe('validatePurchaseOrderSearchParams', () => {
+  it('defaults invalid search params to page 1 and limit 10', () => {
+    const result = validatePurchaseOrderSearchParams({
+      page: -5,
+      limit: 999,
+      status: 'INVALID_STATUS',
+      supplierId: 'not-a-uuid',
+      dateFrom: 'invalid-date',
+      dateTo: '2026-02-31', // Nonexistent calendar date
+      search: '   ',
+    });
+
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(10);
+    expect(result.status).toBeUndefined();
+    expect(result.supplierId).toBeUndefined();
+    expect(result.dateFrom).toBeUndefined();
+    expect(result.dateTo).toBeUndefined();
+    expect(result.search).toBeUndefined();
+  });
+
+  it('correctly parses valid purchase order search params', () => {
+    const result = validatePurchaseOrderSearchParams({
+      page: 2,
+      limit: 20,
+      search: '  OC-0001  ',
+      supplierId: '4659b877-d975-4d1e-bcf4-94c80efa2c4c',
+      status: PurchaseOrderStatus.EMITIDA,
+      dateFrom: '2026-08-01',
+      dateTo: '2026-08-31',
+    });
+
+    expect(result.page).toBe(2);
+    expect(result.limit).toBe(20);
+    expect(result.search).toBe('OC-0001');
+    expect(result.supplierId).toBe('4659b877-d975-4d1e-bcf4-94c80efa2c4c');
+    expect(result.status).toBe(PurchaseOrderStatus.EMITIDA);
+    expect(result.dateFrom).toBe('2026-08-01');
+    expect(result.dateTo).toBe('2026-08-31');
+  });
+
+  it('clears dates when dateFrom is after dateTo', () => {
+    const result = validatePurchaseOrderSearchParams({
+      dateFrom: '2026-08-31',
+      dateTo: '2026-08-01',
+    });
+
+    expect(result.dateFrom).toBeUndefined();
+    expect(result.dateTo).toBeUndefined();
   });
 });
