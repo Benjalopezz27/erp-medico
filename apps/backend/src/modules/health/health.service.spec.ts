@@ -29,8 +29,8 @@ describe('HealthService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should return status "ok" and database "up" when database is reachable', async () => {
-    const result = await service.check();
+  it('should return status "ok" and database "up" when database is reachable for readiness', async () => {
+    const result = await service.checkReadiness();
 
     expect(result.status).toBe('ok');
     expect(result.services.database).toBe('up');
@@ -42,6 +42,14 @@ describe('HealthService', () => {
     expect(dataSource.query).toHaveBeenCalledWith('SELECT 1');
   });
 
+  it('should return status "ok" without querying database for liveness', () => {
+    const result = service.checkLiveness();
+
+    expect(result.status).toBe('ok');
+    expect(result).not.toHaveProperty('services');
+    expect(dataSource.query).not.toHaveBeenCalled();
+  });
+
   it('should use APP_VERSION and APP_COMMIT_SHA environment variables when set', async () => {
     const originalVersion = process.env.APP_VERSION;
     const originalSha = process.env.APP_COMMIT_SHA;
@@ -49,7 +57,7 @@ describe('HealthService', () => {
     process.env.APP_VERSION = '1.2.3';
     process.env.APP_COMMIT_SHA = 'abcdef123456';
 
-    const result = await service.check();
+    const result = await service.checkReadiness();
 
     expect(result.version).toBe('1.2.3');
     expect(result.commitSha).toBe('abcdef123456');
@@ -73,7 +81,7 @@ describe('HealthService', () => {
     delete process.env.APP_COMMIT_SHA;
     process.env.RAILWAY_GIT_COMMIT_SHA = 'railway-sha-123';
 
-    const result = await service.check();
+    const result = await service.checkReadiness();
 
     expect(result.commitSha).toBe('railway-sha-123');
 
@@ -89,12 +97,12 @@ describe('HealthService', () => {
     }
   });
 
-  it('should return status "degraded" and database "down" when database query fails', async () => {
+  it('should return status "degraded" and database "down" when database query fails in readiness', async () => {
     (dataSource.query as jest.Mock).mockRejectedValueOnce(
       new Error('DB Connection Timeout'),
     );
 
-    const result = await service.check();
+    const result = await service.checkReadiness();
 
     expect(result.status).toBe('degraded');
     expect(result.services.database).toBe('down');

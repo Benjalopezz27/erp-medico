@@ -32,6 +32,15 @@ describe('HealthController', () => {
           provide: HealthService,
           useValue: {
             check: jest.fn().mockResolvedValue(mockHealthResponse),
+            checkReadiness: jest.fn().mockResolvedValue(mockHealthResponse),
+            checkLiveness: jest.fn().mockReturnValue({
+              status: 'ok',
+              timestamp: '2026-08-17T16:40:00.000Z',
+              uptime: 100,
+              environment: 'test',
+              version: '0.1.0',
+              commitSha: 'test-sha-123',
+            }),
           },
         },
       ],
@@ -45,7 +54,21 @@ describe('HealthController', () => {
     expect(controller).toBeDefined();
   });
 
-  it('should return health check response from HealthService with status ok', async () => {
+  it('should return liveness response synchronously without querying DB', () => {
+    const result = controller.checkLiveness();
+    expect(result.status).toBe('ok');
+    expect(service.checkLiveness).toHaveBeenCalledTimes(1);
+  });
+
+  it('should return readiness response with status ok', async () => {
+    const mockRes = createMockResponse();
+    const result = await controller.checkReadiness(mockRes as Response);
+    expect(result).toEqual(mockHealthResponse);
+    expect(service.checkReadiness).toHaveBeenCalledTimes(1);
+    expect(mockRes.status).not.toHaveBeenCalled();
+  });
+
+  it('should return health check response from HealthService with status ok on legacy endpoint', async () => {
     const mockRes = createMockResponse();
     const result = await controller.check(mockRes as Response);
     expect(result).toEqual(mockHealthResponse);
@@ -53,16 +76,18 @@ describe('HealthController', () => {
     expect(mockRes.status).not.toHaveBeenCalled();
   });
 
-  it('should set HTTP 503 when health status is degraded', async () => {
+  it('should set HTTP 503 when health status is degraded on readiness check', async () => {
     const degradedResponse: HealthCheckResponse = {
       ...mockHealthResponse,
       status: 'degraded',
       services: { database: 'down' },
     };
-    (service.check as jest.Mock).mockResolvedValueOnce(degradedResponse);
+    (service.checkReadiness as jest.Mock).mockResolvedValueOnce(
+      degradedResponse,
+    );
 
     const mockRes = createMockResponse();
-    const result = await controller.check(mockRes as Response);
+    const result = await controller.checkReadiness(mockRes as Response);
 
     expect(result.status).toBe('degraded');
     expect(mockRes.status).toHaveBeenCalledWith(HttpStatus.SERVICE_UNAVAILABLE);
