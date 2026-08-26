@@ -16,6 +16,7 @@ export const SECURE_SPREADSHEET_MAX_UNCOMPRESSED_XLSX_SIZE = 25 * 1024 * 1024;
 export const SECURE_SPREADSHEET_MAX_ZIP_ENTRIES = 50;
 
 export type SpreadsheetFormulaPolicy = 'reject' | 'flag';
+export type SpreadsheetCellErrorPolicy = 'reject' | 'flag';
 export type ParsedCellValue = string | number | boolean | null;
 
 export interface SecureParserOptions {
@@ -25,12 +26,15 @@ export interface SecureParserOptions {
   maxUncompressedXlsxBytes?: number;
   maxZipEntries?: number;
   formulaPolicy?: SpreadsheetFormulaPolicy;
+  cellErrorPolicy?: SpreadsheetCellErrorPolicy;
 }
 
 export interface ParsedRawRow {
   rowNumber: number;
   cells: ParsedCellValue[];
   hasFormula: boolean;
+  hasCellError?: boolean;
+  cellErrors?: string[];
 }
 
 export interface SecureParsedResult {
@@ -52,6 +56,7 @@ interface ResolvedParserOptions {
   maxUncompressedXlsxBytes: number;
   maxZipEntries: number;
   formulaPolicy: SpreadsheetFormulaPolicy;
+  cellErrorPolicy: SpreadsheetCellErrorPolicy;
 }
 
 interface ParsedSheetData {
@@ -158,6 +163,7 @@ export class SecureSpreadsheetParser {
       maxZipEntries:
         options.maxZipEntries ?? SECURE_SPREADSHEET_MAX_ZIP_ENTRIES,
       formulaPolicy: options.formulaPolicy ?? 'reject',
+      cellErrorPolicy: options.cellErrorPolicy ?? 'reject',
     };
   }
 
@@ -361,6 +367,7 @@ export class SecureSpreadsheetParser {
         bounds: this.getWorksheetContentBounds(worksheet),
       }))
       .filter(({ bounds }) => bounds.lastContentRow > 0);
+
     if (sheetsWithContent.length === 0)
       this.throwCorrupt('El archivo XLSX no contiene hojas con datos.');
     if (sheetsWithContent.length > 1) {
@@ -382,6 +389,7 @@ export class SecureSpreadsheetParser {
         1,
         column,
         options.formulaPolicy,
+        options.cellErrorPolicy,
         true,
       );
       headers.push(
@@ -401,18 +409,32 @@ export class SecureSpreadsheetParser {
       }
       const cells: ParsedCellValue[] = [];
       let hasFormula = false;
+      let hasCellError = false;
+      const cellErrors: string[] = [];
+
       for (let column = 1; column <= totalColumns; column++) {
         const converted = this.convertXlsxCell(
           row.getCell(column),
           rowNumber,
           column,
           options.formulaPolicy,
+          options.cellErrorPolicy,
           false,
         );
         cells.push(converted.value);
         hasFormula ||= converted.hasFormula;
+        if (converted.hasCellError) {
+          hasCellError = true;
+          if (converted.cellError) cellErrors.push(converted.cellError);
+        }
       }
-      rows.push({ rowNumber, cells, hasFormula });
+      rows.push({
+        rowNumber,
+        cells,
+        hasFormula,
+        hasCellError,
+        cellErrors: cellErrors.length > 0 ? cellErrors : undefined,
+      });
     }
 
     this.rejectHeaderFormula(headers);
@@ -424,8 +446,14 @@ export class SecureSpreadsheetParser {
     row: number,
     column: number,
     formulaPolicy: SpreadsheetFormulaPolicy,
+    cellErrorPolicy: SpreadsheetCellErrorPolicy,
     isHeader: boolean,
-  ): { value: ParsedCellValue; hasFormula: boolean } {
+  ): {
+    value: ParsedCellValue;
+    hasFormula: boolean;
+    hasCellError: boolean;
+    cellError?: string;
+  } {
     const raw = cell.value;
     const formula =
       cell.type === ExcelJS.ValueType.Formula ||
@@ -437,47 +465,67 @@ export class SecureSpreadsheetParser {
         typeof raw === 'object' && raw !== null && 'result' in raw
           ? raw.result
           : null;
+      const scalar = this.scalarToValue(result, row, column, cellErrorPolicy);
       return {
-        value: this.scalarToValue(result, row, column),
+        value: scalar.value,
         hasFormula: true,
+        hasCellError: scalar.hasCellError,
+        cellError: scalar.cellError,
       };
     }
-    return { value: this.scalarToValue(raw, row, column), hasFormula: false };
+    const scalar = this.scalarToValue(raw, row, column, cellErrorPolicy);
+    return {
+      value: scalar.value,
+      hasFormula: false,
+      hasCellError: scalar.hasCellError,
+      cellError: scalar.cellError,
+    };
   }
 
   private static scalarToValue(
     value: ExcelJS.CellValue | unknown,
     row: number,
     column: number,
-  ): ParsedCellValue {
-    if (value === null || value === undefined) return null;
-    if (typeof value === 'string') return value.trim() || null;
+    cellErrorPolicy: SpreadsheetCellErrorPolicy,
+  ): { value: ParsedCellValue; hasCellError: boolean; cellError?: string } {
+    if (value === null || value === undefined)
+      return { value: null, hasCellError: false };
+    if (typeof value === 'string')
+      return { value: value.trim() || null, hasCellError: false };
     if (typeof value === 'number') {
       if (!Number.isFinite(value))
         this.throwCorrupt(
           `La celda ${row}:${column} contiene un número inválido.`,
         );
-      return value;
+      return { value, hasCellError: false };
     }
-    if (typeof value === 'boolean') return value;
-    if (value instanceof Date) return value.toISOString();
+    if (typeof value === 'boolean') return { value, hasCellError: false };
+    if (value instanceof Date)
+      return { value: value.toISOString(), hasCellError: false };
     if (typeof value === 'object') {
       if ('error' in value) {
-        throw new BadRequestException({
-          code: ImporterErrorCode.IMPORTER_EXCEL_ERROR_CELL,
-          message: `La celda en fila ${row}, columna ${column} contiene un error de Excel (${String(value.error)}).`,
-        });
+        if (cellErrorPolicy === 'reject') {
+          throw new BadRequestException({
+            code: ImporterErrorCode.IMPORTER_EXCEL_ERROR_CELL,
+            message: `La celda en fila ${row}, columna ${column} contiene un error de Excel (${String((value as any).error)}).`,
+          });
+        }
+        return {
+          value: null,
+          hasCellError: true,
+          cellError: String((value as any).error),
+        };
       }
-      if ('richText' in value && Array.isArray(value.richText)) {
-        const text = value.richText
+      if ('richText' in value && Array.isArray((value as any).richText)) {
+        const text = (value as any).richText
           .map((part: { text?: string }) => part.text ?? '')
           .join('')
           .trim();
-        return text || null;
+        return { value: text || null, hasCellError: false };
       }
       if ('text' in value) {
-        const text = String(value.text ?? '').trim();
-        return text || null;
+        const text = String((value as any).text ?? '').trim();
+        return { value: text || null, hasCellError: false };
       }
     }
     this.throwCorrupt(

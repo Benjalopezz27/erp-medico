@@ -62,3 +62,125 @@ export interface IImporterUploadResponse {
   sampleRows: IImporterSampleRow[];
   detectedTemplate?: ISupplierImportTemplateSummary | null;
 }
+
+// S3-US14-A Preview & Resolution Models
+export type ImporterSemanticField =
+  'supplierSku' | 'usualCostNet' | 'supplierDescription' | 'rawQuantity' | 'purchaseUnit' | 'row';
+
+export interface IImporterRowError {
+  rowNumber: number;
+  field: ImporterSemanticField;
+  code: import('../enums/importer.enum').ImporterRowErrorCode;
+  message: string;
+  rawValue?: string | number | boolean | null;
+}
+
+export interface IImporterProductReference {
+  id: string;
+  internalCode: string;
+  name: string;
+  baseUnit: {
+    id: string;
+    name: string;
+    symbol: string;
+  };
+}
+
+export interface IImporterValidRow {
+  rowNumber: number;
+  rawSku: string;
+  normalizedSku: string;
+  supplierDescription?: string | null;
+  usualCostNet: string; // Canonical 4-decimal string e.g. "1250.5000"
+  rawQuantity?: string | null;
+  quantityCanonical?: string | null;
+  rawPurchaseUnit?: string | null;
+  normalizedUnit?: string | null;
+  supplierProduct: {
+    id: string;
+    isPrimarySupplier: boolean;
+    purchaseUnit: {
+      id: string;
+      name: string;
+      symbol: string;
+    };
+    conversionFactorToBase: string;
+  };
+  product: IImporterProductReference;
+}
+
+export interface IImporterUnknownRow {
+  rowNumber: number;
+  rawSku: string;
+  normalizedSku: string;
+  supplierDescription?: string | null;
+  usualCostNet: string; // Canonical 4-decimal string e.g. "1250.5000"
+  rawQuantity?: string | null;
+  quantityCanonical?: string | null;
+  rawPurchaseUnit?: string | null;
+  normalizedUnit?: string | null;
+}
+
+export interface IImporterErrorRow {
+  rowNumber: number;
+  rawSku?: string | null;
+  normalizedSku?: string | null;
+  rawCost?: string | null;
+  rawDescription?: string | null;
+  rawQuantity?: string | null;
+  rawPurchaseUnit?: string | null;
+  errors: IImporterRowError[];
+}
+
+export interface IImporterPreviewSummary {
+  totalRows: number;
+  validRows: number;
+  unknownRows: number;
+  errorRows: number;
+  canContinue: boolean;
+}
+
+export interface IImporterPreviewResponse {
+  supplier: IImporterSupplierSummary;
+  fileChecksum: string;
+  headerFingerprint: string;
+  mappingChecksum: string;
+  contentChecksum: string;
+  summary: IImporterPreviewSummary;
+  validRows: IImporterValidRow[];
+  unknownRows: IImporterUnknownRow[];
+  errorRows: IImporterErrorRow[];
+}
+
+export interface IResolveUnknownSkuPayload {
+  supplierId: string;
+  supplierSku: string;
+  productId: string;
+  purchaseUnitId: string;
+  conversionFactorToBase: number | string;
+  supplierDescription?: string | null;
+  usualCostNet?: number | string | null;
+}
+
+export type ImporterCanonicalRowTuple = [
+  number, // rowNumber
+  'valid' | 'unknown' | 'error', // status
+  string, // normalizedSku
+  string | null, // costCanonical (e.g. '1250.5000')
+  string | null, // quantityCanonical (e.g. '10.0000')
+  string | null, // normalizedUnit (e.g. 'caja')
+  string | null, // supplierProductId (UUID or null)
+  string | null, // productId (UUID or null)
+  string | null, // purchaseUnitId (UUID or null)
+  string | null, // conversionFactor (e.g. '1.0000' or null)
+  string[], // sortedErrorCodes (e.g. ['ROW_COST_NEGATIVE'])
+];
+
+export interface IImporterCanonicalContentPayload {
+  version: 1;
+  supplierId: string;
+  fileChecksum: string;
+  headerFingerprint: string;
+  mappingChecksum: string;
+  rows: ImporterCanonicalRowTuple[];
+}
