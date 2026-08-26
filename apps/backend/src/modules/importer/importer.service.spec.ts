@@ -31,16 +31,20 @@ function file(contents = 'SKU,Costo\n001,1250\n'): Express.Multer.File {
 
 describe('ImporterService', () => {
   const findOne = jest.fn();
-  const service = new ImporterService({
-    findOne,
-  } as unknown as SuppliersService);
+  const findByFingerprint = jest.fn();
+  const service = new ImporterService(
+    { findOne } as unknown as SuppliersService,
+    { findByFingerprint } as any,
+  );
 
   beforeEach(() => {
     findOne.mockReset();
     findOne.mockResolvedValue(supplier);
+    findByFingerprint.mockReset();
+    findByFingerprint.mockResolvedValue(null);
   });
 
-  it('returns a bounded read-only upload response', async () => {
+  it('returns a bounded read-only upload response with detectedTemplate null when no match exists', async () => {
     const result = await service.uploadFile(
       { supplierId: supplier.id },
       file(),
@@ -55,7 +59,29 @@ describe('ImporterService', () => {
       { rowNumber: 2, cells: ['001', '1250'] },
     ]);
     expect(result.fileChecksum).toMatch(/^[a-f0-9]{64}$/);
+    expect(result.detectedTemplate).toBeNull();
     expect(findOne).toHaveBeenCalledTimes(1);
+    expect(findByFingerprint).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns detectedTemplate when an exact matching template is found', async () => {
+    findByFingerprint.mockResolvedValueOnce({
+      id: 'template-uuid-1',
+      name: 'Plantilla Guardada 3M',
+      headerFingerprint: 'fprint',
+      mapping: { supplierSku: 'sku', usualCostNet: 'costo' },
+    });
+
+    const result = await service.uploadFile(
+      { supplierId: supplier.id },
+      file(),
+    );
+    expect(result.detectedTemplate).toEqual({
+      id: 'template-uuid-1',
+      name: 'Plantilla Guardada 3M',
+      headerFingerprint: 'fprint',
+      mapping: { supplierSku: 'sku', usualCostNet: 'costo' },
+    });
   });
 
   it('returns stable missing, not-found and inactive errors', async () => {
