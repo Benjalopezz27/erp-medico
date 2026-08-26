@@ -5,7 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, EntityManager } from 'typeorm';
 import * as crypto from 'crypto';
 import {
   ImporterErrorCode,
@@ -43,15 +43,25 @@ export class ImporterPreviewService {
 
   /**
    * Generates a stateless full-file preview with tri-state row classification and cryptographic checksums.
+   * Can be executed within a transaction manager and optionally acquire pessimistic write locks.
    */
   async generatePreview(
     fileBuffer: Buffer,
     originalFilename: string,
     mimetype: string,
     dto: ImporterPreviewMultipartDto,
+    manager?: EntityManager,
+    acquireLocks: boolean = false,
   ): Promise<IImporterPreviewResponse> {
+    const supplierRepo = manager
+      ? manager.getRepository(Supplier)
+      : this.supplierRepo;
+    const supplierProductRepo = manager
+      ? manager.getRepository(SupplierProduct)
+      : this.supplierProductRepo;
+
     // 1. Verify Supplier existence and active status
-    const supplier = await this.supplierRepo.findOne({
+    const supplier = await supplierRepo.findOne({
       where: { id: dto.supplierId },
     });
     if (!supplier) {
@@ -291,12 +301,16 @@ export class ImporterPreviewService {
         syntaxErrors.push(costParsed.error);
       }
 
-      const rawDesc =
-        descIdx !== undefined &&
-        row.cells[descIdx] !== null &&
-        row.cells[descIdx] !== undefined
-          ? String(row.cells[descIdx]).trim() || null
-          : null;
+      const rawDescCell = descIdx !== undefined ? row.cells[descIdx] : null;
+      const descValidation = this.rowValidator.validateDescription(
+        rawDescCell,
+        row.rowNumber,
+        Boolean(normalizedMapping.supplierDescription),
+      );
+      if (descValidation.error) {
+        syntaxErrors.push(descValidation.error);
+      }
+      const rawDesc = descValidation.rawDescription;
 
       const rawQty = qtyIdx !== undefined ? row.cells[qtyIdx] : null;
       const qtyParsed = this.rowValidator.parseQuantity(
@@ -349,16 +363,22 @@ export class ImporterPreviewService {
     // 8. Safe batch query against SupplierProduct catalog (skips query if set is empty)
     const associationsMap = new Map<string, SupplierProduct>();
     if (skusToQuerySet.size > 0) {
-      const associations = await this.supplierProductRepo
+      let qb = supplierProductRepo
         .createQueryBuilder('sp')
-        .leftJoinAndSelect('sp.product', 'product')
-        .leftJoinAndSelect('product.baseUnit', 'productBaseUnit')
-        .leftJoinAndSelect('sp.purchaseUnit', 'purchaseUnit')
+        .innerJoinAndSelect('sp.product', 'product')
+        .innerJoinAndSelect('product.baseUnit', 'productBaseUnit')
+        .innerJoinAndSelect('sp.purchaseUnit', 'purchaseUnit')
         .where('sp.supplierId = :supplierId', { supplierId: supplier.id })
         .andWhere('UPPER(TRIM(sp.supplierExternalCode)) IN (:...skus)', {
           skus: Array.from(skusToQuerySet),
         })
-        .getMany();
+        .orderBy('sp.id', 'ASC');
+
+      if (acquireLocks) {
+        qb = qb.setLock('pessimistic_write');
+      }
+
+      const associations = await qb.getMany();
 
       for (const sp of associations) {
         associationsMap.set(
@@ -446,6 +466,30 @@ export class ImporterPreviewService {
             row.rawUnit !== null && row.rawUnit !== undefined
               ? String(row.rawUnit)
               : null,
+          association: association
+            ? {
+                id: association.id,
+                supplierExternalCode: association.supplierExternalCode,
+                purchaseUnit: {
+                  id: association.purchaseUnit.id,
+                  name: association.purchaseUnit.name,
+                  symbol: association.purchaseUnit.symbol,
+                },
+                conversionFactorToBase: String(
+                  association.conversionFactorToBase,
+                ),
+                product: {
+                  id: association.product.id,
+                  internalCode: association.product.internalCode,
+                  name: association.product.name,
+                  baseUnit: {
+                    id: association.product.baseUnit.id,
+                    name: association.product.baseUnit.name,
+                    symbol: association.product.baseUnit.symbol,
+                  },
+                },
+              }
+            : null,
           errors: rowErrors,
         });
       } else if (association) {

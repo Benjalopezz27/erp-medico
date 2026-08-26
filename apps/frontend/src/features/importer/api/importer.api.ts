@@ -102,3 +102,47 @@ export async function postResolveUnknownSkuApi(payload: IResolveUnknownSkuPayloa
   const response = await apiClient.post('/importer/resolve-unknown', payload);
   return response.data;
 }
+
+export async function postImporterConfirmApi(
+  file: File,
+  payload: {
+    supplierId: string;
+    expectedFileChecksum: string;
+    expectedMappingChecksum: string;
+    expectedContentChecksum: string;
+    mapping: ISupplierImportMapping;
+    templateId?: string | null;
+  },
+  signal?: AbortSignal,
+): Promise<import('../types/importer.types').IImporterConfirmResponse> {
+  const formData = new FormData();
+  formData.append('supplierId', payload.supplierId);
+  formData.append('expectedFileChecksum', payload.expectedFileChecksum);
+  formData.append('expectedMappingChecksum', payload.expectedMappingChecksum);
+  formData.append('expectedContentChecksum', payload.expectedContentChecksum);
+  formData.append('mapping', JSON.stringify(payload.mapping));
+  if (payload.templateId) {
+    formData.append('templateId', payload.templateId);
+  }
+  formData.append('file', file, file.name);
+
+  const response = await apiClient.post<import('../types/importer.types').IImporterConfirmResponse>(
+    '/importer/confirm',
+    formData,
+    {
+      signal,
+      headers: { 'Content-Type': undefined },
+    },
+  );
+  return response.data;
+}
+
+export async function getImporterBatchApi(
+  batchId: string,
+  signal?: AbortSignal,
+): Promise<import('../types/importer.types').IImporterBatchDetailResponse> {
+  const response = await apiClient.get<
+    import('../types/importer.types').IImporterBatchDetailResponse
+  >(`/importer/batches/${batchId}`, { signal });
+  return response.data;
+}

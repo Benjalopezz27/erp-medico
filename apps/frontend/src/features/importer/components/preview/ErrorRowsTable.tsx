@@ -1,12 +1,14 @@
 import React from 'react';
-import { AlertOctagon, CheckCircle2 } from 'lucide-react';
+import { AlertOctagon, CheckCircle2, Pencil } from 'lucide-react';
+import { ImporterRowErrorCode } from '@erp/shared-types';
 import type { IImporterErrorRow } from '../../types/importer.types';
 
 interface ErrorRowsTableProps {
   rows: IImporterErrorRow[];
+  onEditAssociation?: (row: IImporterErrorRow) => void;
 }
 
-export const ErrorRowsTable: React.FC<ErrorRowsTableProps> = ({ rows }) => {
+export const ErrorRowsTable: React.FC<ErrorRowsTableProps> = ({ rows, onEditAssociation }) => {
   if (rows.length === 0) {
     return (
       <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-8 text-center">
@@ -47,6 +49,7 @@ export const ErrorRowsTable: React.FC<ErrorRowsTableProps> = ({ rows }) => {
               <th className="py-3 px-4 text-center">Cant.</th>
               <th className="py-3 px-4 text-center">Unidad</th>
               <th className="py-3 px-4">Errores Detectados</th>
+              <th className="py-3 px-4 text-right">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-sans">
@@ -94,6 +97,23 @@ export const ErrorRowsTable: React.FC<ErrorRowsTableProps> = ({ rows }) => {
                       </div>
                     ))}
                   </div>
+                </td>
+                <td className="py-3 px-4 text-right">
+                  {row.association &&
+                  row.errors.some(
+                    (error) => error.code === ImporterRowErrorCode.ROW_UNIT_INCOMPATIBLE,
+                  ) ? (
+                    <button
+                      type="button"
+                      onClick={() => onEditAssociation?.(row)}
+                      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/50"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Corregir asociación
+                    </button>
+                  ) : (
+                    <span className="text-xs text-slate-400">—</span>
+                  )}
                 </td>
               </tr>
             ))}

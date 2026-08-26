@@ -14,6 +14,10 @@ export type {
   IImporterPreviewSummary,
   IImporterPreviewResponse,
   IResolveUnknownSkuPayload,
+  IImporterConfirmPayload,
+  IImporterConfirmResponse,
+  IImporterBatchItemSummary,
+  IImporterBatchDetailResponse,
 } from '@erp/shared-types';
 
 export type ImporterStep = 'UPLOAD' | 'MAP' | 'PREVIEW' | 'CONFIRM';

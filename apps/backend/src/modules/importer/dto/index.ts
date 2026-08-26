@@ -8,3 +8,5 @@ export * from './supplier-import-template-response.dto';
 export * from './importer-preview-multipart.dto';
 export * from './resolve-unknown-sku.dto';
 export * from './importer-preview-response.dto';
+export * from './importer-confirm-multipart.dto';
+export * from './importer-confirm-response.dto';

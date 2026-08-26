@@ -13,7 +13,12 @@ import { ValidRowsTable } from './ValidRowsTable';
 import { UnknownRowsTable } from './UnknownRowsTable';
 import { ErrorRowsTable } from './ErrorRowsTable';
 import { ResolveUnknownDrawer } from './ResolveUnknownDrawer';
-import type { IImporterPreviewResponse, IImporterUnknownRow } from '../../types/importer.types';
+import { EditAssociationDrawer } from './EditAssociationDrawer';
+import type {
+  IImporterErrorRow,
+  IImporterPreviewResponse,
+  IImporterUnknownRow,
+} from '../../types/importer.types';
 
 interface PreviewStepContainerProps {
   supplierId: string;
@@ -39,6 +44,9 @@ export const PreviewStepContainer: React.FC<PreviewStepContainerProps> = ({
   const [activeTab, setActiveTab] = useState<'valid' | 'unknown' | 'error'>('valid');
   const [resolvingRow, setResolvingRow] = useState<IImporterUnknownRow | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [editingAssociationRow, setEditingAssociationRow] = useState<IImporterErrorRow | null>(
+    null,
+  );
   const [successToast, setSuccessToast] = useState<string | null>(null);
 
   // Automatically select the most relevant tab when preview data loads
@@ -74,6 +82,11 @@ export const PreviewStepContainer: React.FC<PreviewStepContainerProps> = ({
 
   const handleResolved = async (sku: string) => {
     setSuccessToast(`SKU "${sku}" asociado exitosamente al catálogo.`);
+    await onRefreshPreview();
+  };
+
+  const handleAssociationUpdated = async (sku: string) => {
+    setSuccessToast(`La asociación del SKU "${sku}" se actualizó correctamente.`);
     await onRefreshPreview();
   };
 
@@ -207,7 +220,9 @@ export const PreviewStepContainer: React.FC<PreviewStepContainerProps> = ({
         {activeTab === 'unknown' && (
           <UnknownRowsTable rows={unknownRows} onResolveRow={handleOpenResolve} />
         )}
-        {activeTab === 'error' && <ErrorRowsTable rows={errorRows} />}
+        {activeTab === 'error' && (
+          <ErrorRowsTable rows={errorRows} onEditAssociation={setEditingAssociationRow} />
+        )}
       </div>
 
       {/* Resolve Drawer Modal */}
@@ -218,6 +233,15 @@ export const PreviewStepContainer: React.FC<PreviewStepContainerProps> = ({
         row={resolvingRow}
         onClose={handleCloseResolve}
         onResolved={handleResolved}
+      />
+
+      <EditAssociationDrawer
+        isOpen={editingAssociationRow !== null}
+        supplierId={supplierId}
+        supplierName={supplierName}
+        row={editingAssociationRow}
+        onClose={() => setEditingAssociationRow(null)}
+        onUpdated={handleAssociationUpdated}
       />
 
       {/* Navigation Buttons */}

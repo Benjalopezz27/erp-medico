@@ -10,6 +10,7 @@ import { FileUploadSummary } from '@/features/importer/components/FileUploadSumm
 import { SampleTable } from '@/features/importer/components/SampleTable';
 import { ColumnMappingForm } from '@/features/importer/components/mapping/ColumnMappingForm';
 import { PreviewStepContainer } from '@/features/importer/components/preview/PreviewStepContainer';
+import { ConfirmStepContainer } from '@/features/importer/components/confirm/ConfirmStepContainer';
 import { useImporterUploadMutation } from '@/features/importer/hooks/use-importer-upload';
 import { useImporterPreviewMutation } from '@/features/importer/hooks/use-importer-preview';
 import { parseImporterApiError } from '@/features/importer/utils/importer.errors';
@@ -243,18 +244,27 @@ export function ImporterWizardPage() {
         />
       )}
 
-      {step === 'CONFIRM' && (
-        <section className="rounded-xl border border-border bg-card p-8 text-center shadow-sm">
-          <h2 className="text-lg font-semibold">Paso 4: Confirmación (Issue #113)</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            La confirmación y procesamiento final de precios se implementará en la issue #113.
-          </p>
-          <div className="flex justify-center gap-3 mt-6">
-            <Button type="button" variant="outline" onClick={() => setStep('PREVIEW')}>
-              Volver a vista previa
-            </Button>
-          </div>
-        </section>
+      {step === 'CONFIRM' && selectedSupplier && acceptedFile && previewResponse && (
+        <ConfirmStepContainer
+          supplier={previewResponse.supplier}
+          file={acceptedFile}
+          mapping={mapping}
+          template={appliedTemplate as any}
+          preview={previewResponse}
+          onBack={() => setStep('PREVIEW')}
+          onReset={() => {
+            setStep('UPLOAD');
+            setSelectedSupplier(null);
+            setAcceptedFile(null);
+            setAcceptedPreview(null);
+            setReplacementMode(false);
+            setUploadError(null);
+            setMapping(defaultEmptyMapping);
+            setAppliedTemplate(null);
+            setPreviewResponse(null);
+            setPreviewError(null);
+          }}
+        />
       )}
     </div>
   );
