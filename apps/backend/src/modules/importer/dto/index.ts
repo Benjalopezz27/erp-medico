@@ -5,3 +5,6 @@ export * from './create-supplier-import-template.dto';
 export * from './update-supplier-import-template.dto';
 export * from './query-supplier-import-template.dto';
 export * from './supplier-import-template-response.dto';
+export * from './importer-preview-multipart.dto';
+export * from './resolve-unknown-sku.dto';
+export * from './importer-preview-response.dto';

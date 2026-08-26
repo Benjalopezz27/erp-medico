@@ -50,6 +50,12 @@ const messages: Record<ImporterErrorCode, string> = {
     'Una misma columna del archivo no puede asignarse a más de un campo del sistema.',
   [ImporterErrorCode.IMPORTER_FINGERPRINT_MISMATCH]:
     'La estructura del archivo no coincide con el formato esperado de la plantilla.',
+
+  // S3-US14-A Preview & Resolution
+  [ImporterErrorCode.IMPORTER_CHECKSUM_MISMATCH]:
+    'El archivo enviado no coincide con el archivo cargado originalmente. Por favor, vuelva a cargar el archivo.',
+  [ImporterErrorCode.IMPORTER_MAPPING_INVALID_JSON]:
+    'El formato de configuración de mapeo de columnas es inválido.',
 };
 
 export function parseImporterApiError(error: unknown): string {

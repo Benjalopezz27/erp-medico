@@ -1,9 +1,12 @@
 import { apiClient } from '@/services/api.client';
 import type {
   IImporterUploadResponse,
+  IImporterPreviewResponse,
+  ISupplierImportMapping,
   ISupplierImportTemplate,
   ICreateSupplierImportTemplatePayload,
   IUpdateSupplierImportTemplatePayload,
+  IResolveUnknownSkuPayload,
 } from '../types/importer.types';
 
 export async function postImporterUploadApi(
@@ -73,4 +76,29 @@ export async function deleteSupplierImportTemplateApi(
   templateId: string,
 ): Promise<void> {
   await apiClient.delete(`/suppliers/${supplierId}/import-templates/${templateId}`);
+}
+
+export async function postImporterPreviewApi(
+  supplierId: string,
+  file: File,
+  expectedFileChecksum: string,
+  mapping: ISupplierImportMapping,
+  signal?: AbortSignal,
+): Promise<IImporterPreviewResponse> {
+  const formData = new FormData();
+  formData.append('supplierId', supplierId);
+  formData.append('expectedFileChecksum', expectedFileChecksum);
+  formData.append('mapping', JSON.stringify(mapping));
+  formData.append('file', file, file.name);
+
+  const response = await apiClient.post<IImporterPreviewResponse>('/importer/preview', formData, {
+    signal,
+    headers: { 'Content-Type': undefined },
+  });
+  return response.data;
+}
+
+export async function postResolveUnknownSkuApi(payload: IResolveUnknownSkuPayload): Promise<any> {
+  const response = await apiClient.post('/importer/resolve-unknown', payload);
+  return response.data;
 }

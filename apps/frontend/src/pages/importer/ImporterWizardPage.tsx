@@ -9,10 +9,13 @@ import { FileUploader } from '@/features/importer/components/FileUploader';
 import { FileUploadSummary } from '@/features/importer/components/FileUploadSummary';
 import { SampleTable } from '@/features/importer/components/SampleTable';
 import { ColumnMappingForm } from '@/features/importer/components/mapping/ColumnMappingForm';
+import { PreviewStepContainer } from '@/features/importer/components/preview/PreviewStepContainer';
 import { useImporterUploadMutation } from '@/features/importer/hooks/use-importer-upload';
+import { useImporterPreviewMutation } from '@/features/importer/hooks/use-importer-preview';
 import { parseImporterApiError } from '@/features/importer/utils/importer.errors';
 import type {
   IImporterUploadResponse,
+  IImporterPreviewResponse,
   ISupplierImportMapping,
   ISupplierImportTemplateSummary,
   ImporterStep,
@@ -29,6 +32,8 @@ const defaultEmptyMapping: ISupplierImportMapping = {
 export function ImporterWizardPage() {
   const navigate = useNavigate();
   const uploadMutation = useImporterUploadMutation();
+  const previewMutation = useImporterPreviewMutation();
+
   const [step, setStep] = useState<ImporterStep>('UPLOAD');
   const [selectedSupplier, setSelectedSupplier] = useState<ISupplier | null>(null);
   const [acceptedFile, setAcceptedFile] = useState<File | null>(null);
@@ -43,6 +48,10 @@ export function ImporterWizardPage() {
     null,
   );
 
+  // Step 3 Preview state
+  const [previewResponse, setPreviewResponse] = useState<IImporterPreviewResponse | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
   const uploadSequenceRef = useRef(0);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -56,6 +65,8 @@ export function ImporterWizardPage() {
     setAcceptedPreview(null);
     setMapping(defaultEmptyMapping);
     setAppliedTemplate(null);
+    setPreviewResponse(null);
+    setPreviewError(null);
     setReplacementMode(false);
     setUploadError(null);
     setIsUploading(false);
@@ -70,6 +81,8 @@ export function ImporterWizardPage() {
     const sequence = ++uploadSequenceRef.current;
     setIsUploading(true);
     setUploadError(null);
+    setPreviewResponse(null);
+    setPreviewError(null);
 
     try {
       const response = await uploadMutation.mutateAsync({
@@ -96,6 +109,27 @@ export function ImporterWizardPage() {
     } finally {
       if (sequence === uploadSequenceRef.current) setIsUploading(false);
     }
+  };
+
+  const handleFetchPreview = async () => {
+    if (!selectedSupplier || !acceptedFile || !acceptedPreview) return;
+    setPreviewError(null);
+    try {
+      const res = await previewMutation.mutateAsync({
+        supplierId: selectedSupplier.id,
+        file: acceptedFile,
+        expectedFileChecksum: acceptedPreview.fileChecksum,
+        mapping,
+      });
+      setPreviewResponse(res);
+    } catch (err) {
+      setPreviewError(parseImporterApiError(err));
+    }
+  };
+
+  const handleProceedToPreview = async () => {
+    setStep('PREVIEW');
+    await handleFetchPreview();
   };
 
   return (
@@ -189,23 +223,24 @@ export function ImporterWizardPage() {
           onMappingChange={setMapping}
           onAppliedTemplateChange={setAppliedTemplate}
           onBack={() => setStep('UPLOAD')}
-          onContinue={() => setStep('PREVIEW')}
+          onContinue={handleProceedToPreview}
         />
       )}
 
-      {step === 'PREVIEW' && (
-        <section className="rounded-xl border border-border bg-card p-8 text-center shadow-sm">
-          <h2 className="text-lg font-semibold">Paso 3: Vista Previa y Validación (Issue #112)</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            El mapeo de columnas ha sido guardado en memoria del wizard. La vista previa tabulada y
-            validación de filas se implementarán en la issue #112.
-          </p>
-          <div className="flex justify-center gap-3 mt-6">
-            <Button type="button" variant="outline" onClick={() => setStep('MAP')}>
-              Volver al mapeo
-            </Button>
-          </div>
-        </section>
+      {step === 'PREVIEW' && selectedSupplier && acceptedFile && acceptedPreview && (
+        <PreviewStepContainer
+          supplierId={selectedSupplier.id}
+          supplierName={selectedSupplier.businessName}
+          previewData={previewResponse}
+          isLoading={previewMutation.isPending}
+          error={previewError}
+          onBack={() => setStep('MAP')}
+          onContinue={(res) => {
+            setPreviewResponse(res);
+            setStep('CONFIRM');
+          }}
+          onRefreshPreview={handleFetchPreview}
+        />
       )}
 
       {step === 'CONFIRM' && (
