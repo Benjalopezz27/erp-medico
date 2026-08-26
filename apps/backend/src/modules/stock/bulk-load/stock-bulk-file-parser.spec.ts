@@ -242,5 +242,12 @@ describe('StockBulkFileParser', () => {
         StockBulkFileParser.parse(buffer, 'document.pdf', 'application/pdf'),
       ).rejects.toThrow(UnsupportedMediaTypeException);
     });
+
+    it('keeps corrupt XLSX files as a legacy 400 validation error', async () => {
+      const buffer = Buffer.from('NOT_VALID_SPREADSHEET');
+      await expect(
+        StockBulkFileParser.parse(buffer, 'corrupt.xlsx'),
+      ).rejects.toThrow(BadRequestException);
+    });
   });
 });

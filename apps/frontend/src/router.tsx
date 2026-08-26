@@ -126,6 +126,7 @@ import {
 } from '@/features/stock/types/stock.types';
 import { SuppliersPage } from '@/pages/suppliers/SuppliersPage';
 import { SupplierCatalogPage } from '@/pages/suppliers/SupplierCatalogPage';
+import { ImporterWizardPage } from '@/pages/importer/ImporterWizardPage';
 import type {
   ISupplierSearchParams,
   SupplierSortField,
@@ -436,6 +437,13 @@ const supplierCatalogRoute = createRoute({
   component: () => <SupplierCatalogPage />,
 });
 
+const importerRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/importer',
+  beforeLoad: () => requireRoutePermission('/importer'),
+  component: () => <ImporterWizardPage />,
+});
+
 const receivablesRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/receivables',
@@ -506,6 +514,7 @@ const routeTree = rootRoute.addChildren([
     customersRoute,
     suppliersRoute,
     supplierCatalogRoute,
+    importerRoute,
     receivablesRoute,
     treasuryRoute,
     reportsRoute,

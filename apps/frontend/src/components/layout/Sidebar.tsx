@@ -15,6 +15,7 @@ import {
   UserCog,
   X,
   HeartPulse,
+  FileUp,
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { useStockAlertsCountQuery } from '@/features/stock/hooks/use-stock-alerts-count-query';
@@ -35,6 +36,7 @@ const navItems: NavItem[] = [
   { name: 'Ventas', href: '/sales', icon: ShoppingCart },
   { name: 'Clientes', href: '/customers', icon: Users },
   { name: 'Proveedores', href: '/suppliers', icon: Factory },
+  { name: 'Importador', href: '/importer', icon: FileUp },
   { name: 'Cta Cte', href: '/receivables', icon: Receipt },
   { name: 'Tesorería', href: '/treasury', icon: Landmark },
   { name: 'Reportes', href: '/reports', icon: FileBarChart2 },

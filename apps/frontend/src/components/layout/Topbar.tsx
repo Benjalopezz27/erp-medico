@@ -18,6 +18,7 @@ const routeTitles: Record<string, string> = {
   '/sales': 'Ventas y Punto de Venta',
   '/customers': 'Clientes',
   '/suppliers': 'Proveedores',
+  '/importer': 'Importador de Proveedores',
   '/receivables': 'Cuentas Corrientes',
   '/treasury': 'Tesorería y Caja',
   '/reports': 'Reportes Operativos',

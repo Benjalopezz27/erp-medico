@@ -6,3 +6,4 @@ export * from './purchases.enum';
 export * from './pricing.enum';
 export * from './sales.enum';
 export * from './financial.enum';
+export * from './importer.enum';
