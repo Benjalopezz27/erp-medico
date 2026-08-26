@@ -5,6 +5,8 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseUUIDPipe,
   Post,
   UploadedFile,
   UseFilters,
@@ -16,6 +18,7 @@ import {
   ApiBody,
   ApiConsumes,
   ApiOperation,
+  ApiParam,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -29,6 +32,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { ImporterService } from './importer.service';
 import { ImporterPreviewService } from './services/importer-preview.service';
+import { ImporterConfirmationService } from './services/importer-confirmation.service';
 import { SupplierProductsService } from '../suppliers/supplier-products/supplier-products.service';
 import {
   UploadFileBodyDto,
@@ -36,6 +40,9 @@ import {
   ImporterPreviewMultipartDto,
   ImporterPreviewResponseDto,
   ResolveUnknownSkuDto,
+  ImporterConfirmMultipartDto,
+  ImporterConfirmResponseDto,
+  ImporterBatchDetailResponseDto,
 } from './dto';
 import { SupplierProductResponseDto } from '../suppliers/supplier-products/dto';
 import { MulterExceptionFilter } from './filters/multer-exception.filter';
@@ -50,6 +57,7 @@ export class ImporterController {
   constructor(
     private readonly importerService: ImporterService,
     private readonly previewService: ImporterPreviewService,
+    private readonly confirmationService: ImporterConfirmationService,
     private readonly supplierProductsService: SupplierProductsService,
   ) {}
 
@@ -200,5 +208,101 @@ export class ImporterController {
       },
       user.id,
     );
+  }
+
+  @Post('confirm')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary:
+      'Confirmar y aplicar atómicamente la importación de lista de precios de un proveedor',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: [
+        'file',
+        'supplierId',
+        'mapping',
+        'expectedFileChecksum',
+        'expectedMappingChecksum',
+        'expectedContentChecksum',
+      ],
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        supplierId: { type: 'string', format: 'uuid' },
+        mapping: { type: 'string' },
+        expectedFileChecksum: { type: 'string' },
+        expectedMappingChecksum: { type: 'string' },
+        expectedContentChecksum: { type: 'string' },
+        templateId: { type: 'string', format: 'uuid' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Lote de importación confirmado y aplicado exitosamente',
+    type: ImporterConfirmResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos del formulario o mapeo inválidos',
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado' })
+  @ApiResponse({ status: 403, description: 'Requiere rol ADMINISTRADOR' })
+  @ApiResponse({ status: 404, description: 'Proveedor no encontrado' })
+  @ApiResponse({
+    status: 409,
+    description:
+      'Conflicto de checksums, preview obsoleta, errores pendientes o lote ya confirmado',
+  })
+  @UseFilters(MulterExceptionFilter)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: SECURE_SPREADSHEET_MAX_FILE_SIZE },
+    }),
+  )
+  confirm(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: ImporterConfirmMultipartDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ImporterConfirmResponseDto> {
+    if (!file) {
+      throw new BadRequestException({
+        code: ImporterErrorCode.IMPORTER_FILE_MISSING,
+        message: 'El archivo es obligatorio para confirmar la importación.',
+      });
+    }
+    return this.confirmationService.confirmImport(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+      body,
+      user.id,
+    );
+  }
+
+  @Get('batches/:batchId')
+  @ApiOperation({
+    summary:
+      'Obtener el detalle y resumen de un lote de importación confirmado',
+  })
+  @ApiParam({ name: 'batchId', type: 'string', format: 'uuid' })
+  @ApiResponse({
+    status: 200,
+    description: 'Detalle del lote de importación recuperado',
+    type: ImporterBatchDetailResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'No autenticado' })
+  @ApiResponse({ status: 403, description: 'Requiere rol ADMINISTRADOR' })
+  @ApiResponse({
+    status: 404,
+    description: 'Lote de importación no encontrado',
+  })
+  getBatch(
+    @Param('batchId', new ParseUUIDPipe({ version: '4' })) batchId: string,
+  ): Promise<ImporterBatchDetailResponseDto> {
+    return this.confirmationService.getBatchById(batchId);
   }
 }

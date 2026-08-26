@@ -56,17 +56,40 @@ const messages: Record<ImporterErrorCode, string> = {
     'El archivo enviado no coincide con el archivo cargado originalmente. Por favor, vuelva a cargar el archivo.',
   [ImporterErrorCode.IMPORTER_MAPPING_INVALID_JSON]:
     'El formato de configuración de mapeo de columnas es inválido.',
+
+  // S3-US14-B Confirmation & Batches
+  [ImporterErrorCode.IMPORTER_CONFIRM_FILE_MISMATCH]:
+    'El archivo enviado no coincide con el archivo validado durante la vista previa.',
+  [ImporterErrorCode.IMPORTER_CONFIRM_MAPPING_MISMATCH]:
+    'El mapeo de columnas enviado no coincide con el validado en la vista previa.',
+  [ImporterErrorCode.IMPORTER_CONFIRM_CONTENT_MISMATCH]:
+    'El contenido del archivo o el catálogo ha cambiado respecto a la vista previa.',
+  [ImporterErrorCode.IMPORTER_CONFIRM_PREVIEW_INVALID]:
+    'La vista previa contiene errores o SKUs desconocidos y no puede confirmarse.',
+  [ImporterErrorCode.IMPORTER_BATCH_ALREADY_CONFIRMED]:
+    'Este lote de importación ya fue confirmado previamente para este proveedor.',
+  [ImporterErrorCode.IMPORTER_BATCH_NOT_FOUND]:
+    'El lote de importación solicitado no existe o fue eliminado.',
 };
 
 export function parseImporterApiError(error: unknown): string {
   if (axios.isCancel(error)) return '';
   if (axios.isAxiosError(error)) {
     const data = error.response?.data as
-      { code?: ImporterErrorCode; message?: string | string[] } | undefined;
+      | { code?: ImporterErrorCode; message?: string | string[]; existingBatchId?: string }
+      | undefined;
     if (data?.code && messages[data.code]) return messages[data.code];
     if (Array.isArray(data?.message)) return data.message.join(' ');
     if (typeof data?.message === 'string') return data.message;
     if (!error.response) return 'No se pudo conectar con el servidor. Intenta nuevamente.';
   }
-  return error instanceof Error ? error.message : 'No se pudo analizar el archivo.';
+  return error instanceof Error ? error.message : 'No se pudo procesar la solicitud.';
+}
+
+export function getExistingBatchIdFromError(error: unknown): string | null {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as { existingBatchId?: string } | undefined;
+    return data?.existingBatchId || null;
+  }
+  return null;
 }

@@ -476,4 +476,38 @@ export class ImporterRowValidatorService {
 
     return { rawPurchaseUnit, normalizedUnit };
   }
+
+  /**
+   * Validates supplier description length (<= 255 chars).
+   */
+  validateDescription(
+    rawValue: unknown,
+    rowNumber: number,
+    isMapped: boolean,
+  ): {
+    rawDescription: string | null;
+    error?: IImporterRowError;
+  } {
+    if (!isMapped || rawValue === null || rawValue === undefined) {
+      return { rawDescription: null };
+    }
+    const str = String(rawValue).trim();
+    if (str === '') {
+      return { rawDescription: null };
+    }
+    if (str.length > 255) {
+      return {
+        rawDescription: str,
+        error: {
+          rowNumber,
+          field: 'supplierDescription',
+          code: ImporterRowErrorCode.ROW_DESCRIPTION_TOO_LONG,
+          message:
+            'La descripción del producto supera el límite de 255 caracteres.',
+          rawValue: str,
+        },
+      };
+    }
+    return { rawDescription: str };
+  }
 }

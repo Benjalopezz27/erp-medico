@@ -260,5 +260,16 @@ describe('ImporterWizardPage', () => {
         },
       }),
     );
+
+    // Advance to Step 4 (CONFIRM)
+    const proceedToConfirmBtn = screen.getByRole('button', {
+      name: /continuar a confirmación/i,
+    });
+    expect(proceedToConfirmBtn).toBeEnabled();
+    fireEvent.click(proceedToConfirmBtn);
+
+    // Verify Step 4 ConfirmStepContainer is rendered
+    await screen.findByText('Paso 4: Confirmación Transaccional');
+    expect(screen.getByRole('button', { name: /confirmar importación/i })).toBeInTheDocument();
   });
 });

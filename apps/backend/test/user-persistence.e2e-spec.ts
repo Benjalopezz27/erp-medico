@@ -27,6 +27,17 @@ describe('User Persistence & Seed Engine (E2E)', () => {
   });
 
   it('verifies migration up/down/up cycle cleanly', async () => {
+    // Revert supplier import batches table migration (1700000000013)
+    await ds.undoLastMigration();
+    const afterDropBatchItems = await ds.query(
+      "SELECT to_regclass('public.supplier_import_batch_items') as tablename",
+    );
+    expect(afterDropBatchItems[0].tablename).toBeNull();
+    const afterDropImportBatches = await ds.query(
+      "SELECT to_regclass('public.supplier_import_batches') as tablename",
+    );
+    expect(afterDropImportBatches[0].tablename).toBeNull();
+
     // Revert supplier import templates table migration (1700000000012)
     await ds.undoLastMigration();
     const afterDropTemplates = await ds.query(

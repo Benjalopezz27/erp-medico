@@ -76,9 +76,12 @@ describe('ImporterPreviewService', () => {
 
   beforeEach(async () => {
     qbMock = {
+      innerJoinAndSelect: jest.fn().mockReturnThis(),
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      setLock: jest.fn().mockReturnThis(),
       getMany: jest.fn().mockResolvedValue([mockSupplierProduct]),
     };
 
@@ -231,6 +234,53 @@ describe('ImporterPreviewService', () => {
     expect(result.errorRows[1].errors[0].code).toBe(
       ImporterRowErrorCode.ROW_SKU_DUPLICATE,
     );
+  });
+
+  it('includes the current association when a row has an incompatible purchase unit', async () => {
+    const incompatibleCsv =
+      'Cod Prov,Descripcion,Costo,Unidad\nMED-001,Ibuprofeno,1250.50,Frasco\n';
+    const incompatibleBuffer = Buffer.from(incompatibleCsv, 'utf8');
+    const dto = {
+      ...validDto,
+      expectedFileChecksum: crypto
+        .createHash('sha256')
+        .update(incompatibleBuffer)
+        .digest('hex'),
+      mapping: JSON.stringify({
+        supplierSku: 'cod prov',
+        usualCostNet: 'costo',
+        supplierDescription: 'descripcion',
+        purchaseUnit: 'unidad',
+      }),
+    };
+
+    const result = await service.generatePreview(
+      incompatibleBuffer,
+      'lista.csv',
+      'text/csv',
+      dto,
+    );
+
+    expect(result.summary.errorRows).toBe(1);
+    expect(result.errorRows[0].errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: ImporterRowErrorCode.ROW_UNIT_INCOMPATIBLE,
+        }),
+      ]),
+    );
+    expect(result.errorRows[0].association).toEqual({
+      id: 'sp-1',
+      supplierExternalCode: 'MED-001',
+      purchaseUnit: { id: 'u-caja', name: 'Caja', symbol: 'CJA' },
+      conversionFactorToBase: '100.0000',
+      product: {
+        id: 'p-1',
+        internalCode: 'P0001',
+        name: 'Ibuprofeno 400',
+        baseUnit: { id: 'u-base', name: 'Comprimido', symbol: 'COMP' },
+      },
+    });
   });
 
   it('skips SQL query when 0 valid syntax SKUs exist', async () => {

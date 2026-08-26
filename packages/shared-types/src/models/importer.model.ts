@@ -121,6 +121,18 @@ export interface IImporterUnknownRow {
   normalizedUnit?: string | null;
 }
 
+export interface IImporterErrorRowAssociation {
+  id: string;
+  supplierExternalCode: string;
+  purchaseUnit: {
+    id: string;
+    name: string;
+    symbol: string;
+  };
+  conversionFactorToBase: string;
+  product: IImporterProductReference;
+}
+
 export interface IImporterErrorRow {
   rowNumber: number;
   rawSku?: string | null;
@@ -129,6 +141,7 @@ export interface IImporterErrorRow {
   rawDescription?: string | null;
   rawQuantity?: string | null;
   rawPurchaseUnit?: string | null;
+  association?: IImporterErrorRowAssociation | null;
   errors: IImporterRowError[];
 }
 
@@ -183,4 +196,47 @@ export interface IImporterCanonicalContentPayload {
   headerFingerprint: string;
   mappingChecksum: string;
   rows: ImporterCanonicalRowTuple[];
+}
+
+// S3-US14-B Confirmation Models
+export interface IImporterConfirmPayload {
+  supplierId: string;
+  expectedFileChecksum: string;
+  expectedMappingChecksum: string;
+  expectedContentChecksum: string;
+  mapping: ISupplierImportMapping;
+  templateId?: string | null;
+}
+
+export interface IImporterConfirmResponse {
+  batchId: string;
+  supplier: IImporterSupplierSummary;
+  fileName: string;
+  fileChecksum: string;
+  mappingChecksum: string;
+  contentChecksum: string;
+  totalRows: number;
+  appliedRows: number;
+  changedRows: number;
+  unchangedRows: number;
+  confirmedAt: string;
+  templateId?: string | null;
+}
+
+export interface IImporterBatchItemSummary {
+  id: string;
+  rowNumber: number;
+  supplierSku: string;
+  productId: string;
+  previousCostNet: string | null;
+  newCostNet: string;
+  costChanged: boolean;
+  previousDescription: string | null;
+  newDescription: string | null;
+  descriptionChanged: boolean;
+}
+
+export interface IImporterBatchDetailResponse {
+  batch: IImporterConfirmResponse;
+  items: IImporterBatchItemSummary[];
 }
