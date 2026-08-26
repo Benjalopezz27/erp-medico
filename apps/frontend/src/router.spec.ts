@@ -60,6 +60,12 @@ describe('authentication route guards', () => {
 
     useAuthStore.getState().setSession(session(UserRole.ADMINISTRADOR));
     expect(redirectDestination(() => requireRoutePermission('/admin/users'))).toBeUndefined();
+
+    useAuthStore.getState().setSession(session(UserRole.VENDEDOR));
+    expect(redirectDestination(() => requireRoutePermission('/importer'))).toBe('/');
+
+    useAuthStore.getState().setSession(session(UserRole.ADMINISTRADOR));
+    expect(redirectDestination(() => requireRoutePermission('/importer'))).toBeUndefined();
   });
 
   it('requireRole redirects non-admin users to /products', () => {
