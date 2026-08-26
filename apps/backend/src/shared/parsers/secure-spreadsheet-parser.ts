@@ -77,6 +77,18 @@ export function normalizeHeader(raw: string): string {
   return raw.normalize('NFKC').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
+export function computeHeaderFingerprint(normalizedHeaders: string[]): string {
+  return crypto
+    .createHash('sha256')
+    .update(
+      Buffer.from(
+        JSON.stringify(normalizedHeaders.map(normalizeHeader)),
+        'utf8',
+      ),
+    )
+    .digest('hex');
+}
+
 export function sanitizeFilename(original?: string): string {
   if (!original) return 'archivo';
   const basename = path.posix
@@ -527,9 +539,7 @@ export class SecureSpreadsheetParser {
     }
     return {
       normalizedHeaders,
-      headerFingerprint: this.sha256(
-        Buffer.from(JSON.stringify(normalizedHeaders), 'utf8'),
-      ),
+      headerFingerprint: computeHeaderFingerprint(normalizedHeaders),
     };
   }
 

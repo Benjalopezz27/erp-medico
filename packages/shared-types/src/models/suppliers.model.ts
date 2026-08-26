@@ -65,12 +65,3 @@ export interface ISupplierProductSearchParams {
   sortBy?: SupplierProductSortField;
   sortOrder?: 'ASC' | 'DESC';
 }
-
-export interface ISupplierImportTemplate {
-  id: string;
-  supplierId: string;
-  templateName: string;
-  columnMappingJSON: string;
-  createdAt: Date | string;
-  updatedAt: Date | string;
-}

@@ -113,4 +113,81 @@ describe('ImporterWizardPage', () => {
     expect(screen.getByText('Muestra del archivo')).toBeInTheDocument();
     expect(screen.getByText('001')).toBeInTheDocument();
   });
+
+  it('navigates to Step 2 (MAP), displays mapping form, and allows returning to Step 1', async () => {
+    const router = createTestRouter(
+      [{ path: '/importer', component: ImporterWizardPage }],
+      '/importer',
+    );
+    const rendered = renderWithRouter({ router });
+    await screen.findByText('Importar archivo de proveedor');
+
+    fireEvent.change(screen.getByLabelText('Seleccionar proveedor'), {
+      target: { value: preview.supplier.id },
+    });
+    const input = rendered.container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['SKU,Costo\n001,1250'], 'lista.csv', { type: 'text/csv' });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await screen.findByText('Muestra del archivo');
+    fireEvent.click(screen.getByRole('button', { name: /continuar al mapeo/i }));
+
+    // Verify Step 2 is active
+    await screen.findByText('Paso 2: Mapeo de Columnas');
+    expect(screen.getByText('SKU de Proveedor')).toBeInTheDocument();
+    expect(screen.getByText('Costo Neto Catálogo')).toBeInTheDocument();
+
+    // Click back to upload
+    fireEvent.click(screen.getByRole('button', { name: /volver a carga/i }));
+    await screen.findByText('Muestra del archivo');
+    expect(screen.getByText('001')).toBeInTheDocument();
+  });
+
+  it('auto-applies detectedTemplate when returned from upload response', async () => {
+    const previewWithTemplate = {
+      ...preview,
+      detectedTemplate: {
+        id: 't-123',
+        name: 'Plantilla Oficial Droguería',
+        headerFingerprint: preview.headerFingerprint,
+        mapping: {
+          supplierSku: 'sku',
+          usualCostNet: 'costo',
+          supplierDescription: null,
+          rawQuantity: null,
+          purchaseUnit: null,
+        },
+      },
+    };
+    mutateAsync.mockResolvedValueOnce(previewWithTemplate);
+
+    const router = createTestRouter(
+      [{ path: '/importer', component: ImporterWizardPage }],
+      '/importer',
+    );
+    const rendered = renderWithRouter({ router });
+    await screen.findByText('Importar archivo de proveedor');
+
+    fireEvent.change(screen.getByLabelText('Seleccionar proveedor'), {
+      target: { value: preview.supplier.id },
+    });
+    const input = rendered.container.querySelector('input[type="file"]') as HTMLInputElement;
+    const file = new File(['SKU,Costo\n001,1250'], 'lista.csv', { type: 'text/csv' });
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await screen.findByText('Muestra del archivo');
+    fireEvent.click(screen.getByRole('button', { name: /continuar al mapeo/i }));
+
+    // Verify template badge is visible
+    await screen.findByText('Plantilla Oficial Droguería');
+    expect(screen.getByText(/PLANTILLA APLICADA/i)).toBeInTheDocument();
+
+    // Since required fields are mapped by template, continue to preview is enabled
+    const continueBtn = screen.getByRole('button', { name: /continuar a vista previa/i });
+    expect(continueBtn).toBeEnabled();
+    fireEvent.click(continueBtn);
+
+    // Verify Step 3 placeholder is shown
+    await screen.findByText(/Paso 3: Vista Previa y Validación/i);
+  });
 });
