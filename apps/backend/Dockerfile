@@ -1,7 +1,7 @@
 # ==============================================================================
 # Stage 1: Base image with pnpm and tini
 # ==============================================================================
-FROM node:24.19.0-alpine3.24@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS base
+FROM node:26.7.0-alpine3.24@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS base
 
 RUN apk add --no-cache tini
 RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
@@ -41,7 +41,7 @@ RUN pnpm --filter @erp/backend --prod deploy /prod/backend
 # ==============================================================================
 # Stage 5: Production runner (minimal, non-root)
 # ==============================================================================
-FROM node:24.19.0-alpine3.24@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS runner
+FROM node:26.7.0-alpine3.24@sha256:aadf416b2cdce311a8811ba3f0608a61b77dbf997500e2eafe781b51f6a0b019 AS runner
 
 ARG RAILWAY_GIT_COMMIT_SHA=development
 ARG APP_VERSION=0.1.0
