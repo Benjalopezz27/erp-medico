@@ -7,15 +7,23 @@ import {
   SupplierInvoiceAdjustmentMode,
   SupplierInvoiceObservationReason,
   SupplierInvoiceStatus,
+  StockMovementType,
   TaxCondition,
 } from '@erp/shared-types';
 import { AppModule } from '../src/app.module';
 import { runInitialSeed } from '../src/database/seeds/initial.seed';
 import { AuditLog } from '../src/modules/audit/entities/audit-log.entity';
+import { AuditService } from '../src/modules/audit/audit.service';
 import { Category } from '../src/modules/categories/entities/category.entity';
 import { Product } from '../src/modules/products/entities/product.entity';
 import { PurchaseOrderItem } from '../src/modules/purchases/entities/purchase-order-item.entity';
 import { Stock } from '../src/modules/stock/entities/stock.entity';
+import { StockMovement } from '../src/modules/stock/entities/stock-movement.entity';
+import { StockService } from '../src/modules/stock/stock.service';
+import { SupplierCostAdjustment } from '../src/modules/purchases/entities/supplier-cost-adjustment.entity';
+import { PriceReview } from '../src/modules/purchases/entities/price-review.entity';
+import { User } from '../src/modules/users/entities/user.entity';
+import Decimal from 'decimal.js';
 import { Supplier } from '../src/modules/suppliers/entities/supplier.entity';
 import { SupplierProduct } from '../src/modules/suppliers/supplier-products/entities/supplier-product.entity';
 import { Unit } from '../src/modules/units/entities/unit.entity';
@@ -455,6 +463,13 @@ describe('Supplier invoices (E2E)', () => {
         SupplierInvoiceObservationReason.COST_VARIATION,
       ]),
     );
+    await request(app.getHttpServer())
+      .patch(`/api/v1/supplier-invoices/${observed.body.id}/confirm`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(409)
+      .expect(({ body }) =>
+        expect(body.code).toBe('SUPPLIER_INVOICE_INVALID_STATUS'),
+      );
 
     const rejected = await request(app.getHttpServer())
       .patch(`/api/v1/supplier-invoices/${observed.body.id}/reject`)
@@ -561,5 +576,288 @@ describe('Supplier invoices (E2E)', () => {
         ),
       )
       .expect(404);
+  });
+
+  it('confirms exactly once, distributes FIFO costs and preserves quantities and active price', async () => {
+    await ds.getRepository(Supplier).update(supplier.id, { isActive: true });
+    await ds.getRepository(Product).update(product.id, {
+      status: ProductStatus.ACTIVE,
+      costNet: '50.0000',
+      suggestedPriceNet: '60.00',
+      activePriceNet: '60.00',
+    });
+    const stockBeforeReceipt = await ds
+      .getRepository(Stock)
+      .findOneByOrFail({ productId: product.id });
+    const previousLayers = new Decimal(stockBeforeReceipt.currentBaseStock);
+    const receipt = await createReceipt(10);
+    const admin = await ds
+      .getRepository(User)
+      .findOneByOrFail({ email: 'admin-invoices@erp.com' });
+    const stockService = app.get(StockService);
+    await stockService.recordMovement({
+      productId: product.id,
+      movementType: StockMovementType.SALIDA_VENTA,
+      quantityBase: previousLayers.plus(30).toNumber(),
+      reason: 'Consumo FIFO previo a confirmación E2E',
+      documentReference: 'SALE-E2E',
+      userId: admin.id,
+    });
+
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/supplier-invoices')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        ...payload(
+          receipt.receiptId,
+          receipt.receiptItemId,
+          'F 0007-00000001',
+          '10.0000',
+        ),
+        items: [
+          {
+            ...payload(
+              receipt.receiptId,
+              receipt.receiptItemId,
+              'unused',
+              '10.0000',
+            ).items[0],
+            unitPriceNet: '510.0000',
+          },
+        ],
+      })
+      .expect(201);
+    expect(created.body.status).toBe(SupplierInvoiceStatus.AUTORIZADA);
+
+    const stockBeforeConfirmation = await ds
+      .getRepository(Stock)
+      .findOneByOrFail({ productId: product.id });
+    const movementCountBefore = await ds.getRepository(StockMovement).count();
+    await request(app.getHttpServer())
+      .patch(`/api/v1/supplier-invoices/${created.body.id}/confirm`)
+      .set('Authorization', `Bearer ${sellerToken}`)
+      .expect(403);
+
+    const [first, retry] = await Promise.all([
+      request(app.getHttpServer())
+        .patch(`/api/v1/supplier-invoices/${created.body.id}/confirm`)
+        .set('Authorization', `Bearer ${adminToken}`),
+      request(app.getHttpServer())
+        .patch(`/api/v1/supplier-invoices/${created.body.id}/confirm`)
+        .set('Authorization', `Bearer ${adminToken}`),
+    ]);
+    expect(first.status).toBe(200);
+    expect(retry.status).toBe(200);
+    for (const response of [first, retry]) {
+      expect(response.body.status).toBe(SupplierInvoiceStatus.CONFIRMADA);
+      expect(response.body.confirmation).toMatchObject({
+        stockRevaluationTotal: '70.0000',
+        cogsAdjustmentTotal: '30.0000',
+      });
+      expect(response.body.confirmation.adjustments[0]).toMatchObject({
+        invoicedQtyBase: '100.00',
+        onHandAllocatedQty: '70.00',
+        consumedAllocatedQty: '30.00',
+        costDifferenceUnitNet: '1.0000',
+      });
+    }
+
+    expect(
+      await ds.getRepository(SupplierCostAdjustment).countBy({
+        supplierInvoiceId: created.body.id,
+      }),
+    ).toBe(1);
+    await expect(
+      ds.query(
+        `UPDATE supplier_cost_adjustments SET stock_revaluation = stock_revaluation WHERE supplier_invoice_id = $1`,
+        [created.body.id],
+      ),
+    ).rejects.toThrow('Supplier cost adjustments are immutable');
+    expect(
+      await ds.getRepository(PriceReview).countBy({
+        supplierInvoiceId: created.body.id,
+      }),
+    ).toBe(1);
+    const productAfter = await ds
+      .getRepository(Product)
+      .findOneByOrFail({ id: product.id });
+    expect(productAfter.costNet).toBe('51.0000');
+    expect(productAfter.suggestedPriceNet).toBe('61.20');
+    expect(productAfter.activePriceNet).toBe('60.00');
+    expect(
+      (await ds.getRepository(Stock).findOneByOrFail({ productId: product.id }))
+        .currentBaseStock,
+    ).toBe(stockBeforeConfirmation.currentBaseStock);
+    expect(await ds.getRepository(StockMovement).count()).toBe(
+      movementCountBefore,
+    );
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/supplier-invoices/${created.body.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200)
+      .expect(({ body }) =>
+        expect(body.confirmation.priceReviews[0]).toMatchObject({
+          status: 'PENDIENTE',
+          previousCostNet: '50.0000',
+          newCostNet: '51.0000',
+          activePriceNetSnapshot: '60.00',
+        }),
+      );
+  });
+
+  it('rolls back confirmation, costs and reviews when transactional audit fails', async () => {
+    const receipt = await createReceipt(1);
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/supplier-invoices')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        ...payload(
+          receipt.receiptId,
+          receipt.receiptItemId,
+          'F 0007-00000002',
+          '1.0000',
+        ),
+        items: [
+          {
+            ...payload(
+              receipt.receiptId,
+              receipt.receiptItemId,
+              'unused',
+              '1.0000',
+            ).items[0],
+            unitPriceNet: '520.0000',
+          },
+        ],
+      })
+      .expect(201);
+    const productBefore = await ds
+      .getRepository(Product)
+      .findOneByOrFail({ id: product.id });
+    const stockBefore = await ds
+      .getRepository(Stock)
+      .findOneByOrFail({ productId: product.id });
+    const movementCountBefore = await ds.getRepository(StockMovement).count();
+    const auditSpy = jest
+      .spyOn(app.get(AuditService), 'record')
+      .mockRejectedValueOnce(new Error('forced audit failure'));
+
+    await request(app.getHttpServer())
+      .patch(`/api/v1/supplier-invoices/${created.body.id}/confirm`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(500);
+    auditSpy.mockRestore();
+
+    const invoiceAfter = await request(app.getHttpServer())
+      .get(`/api/v1/supplier-invoices/${created.body.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(invoiceAfter.body.status).toBe(SupplierInvoiceStatus.AUTORIZADA);
+    expect(invoiceAfter.body.confirmation).toBeNull();
+    expect(
+      await ds.getRepository(SupplierCostAdjustment).countBy({
+        supplierInvoiceId: created.body.id,
+      }),
+    ).toBe(0);
+    expect(
+      await ds.getRepository(PriceReview).countBy({
+        supplierInvoiceId: created.body.id,
+      }),
+    ).toBe(0);
+    const productAfter = await ds
+      .getRepository(Product)
+      .findOneByOrFail({ id: product.id });
+    expect(productAfter.costNet).toBe(productBefore.costNet);
+    expect(productAfter.suggestedPriceNet).toBe(
+      productBefore.suggestedPriceNet,
+    );
+    expect(productAfter.activePriceNet).toBe(productBefore.activePriceNet);
+    expect(
+      (await ds.getRepository(Stock).findOneByOrFail({ productId: product.id }))
+        .currentBaseStock,
+    ).toBe(stockBefore.currentBaseStock);
+    expect(await ds.getRepository(StockMovement).count()).toBe(
+      movementCountBefore,
+    );
+  });
+
+  it('allocates cumulative partial confirmations in confirmation order without overlap', async () => {
+    const receipt = await createReceipt(10);
+    const firstInvoice = await request(app.getHttpServer())
+      .post('/api/v1/supplier-invoices')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        ...payload(
+          receipt.receiptId,
+          receipt.receiptItemId,
+          'F 0007-00000003',
+          '4.0000',
+        ),
+        items: [
+          {
+            ...payload(
+              receipt.receiptId,
+              receipt.receiptItemId,
+              'unused',
+              '4.0000',
+            ).items[0],
+            unitPriceNet: '510.0000',
+          },
+        ],
+      })
+      .expect(201);
+    const secondInvoice = await request(app.getHttpServer())
+      .post('/api/v1/supplier-invoices')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        ...payload(
+          receipt.receiptId,
+          receipt.receiptItemId,
+          'F 0007-00000004',
+          '6.0000',
+        ),
+        items: [
+          {
+            ...payload(
+              receipt.receiptId,
+              receipt.receiptItemId,
+              'unused',
+              '6.0000',
+            ).items[0],
+            unitPriceNet: '520.0000',
+          },
+        ],
+      })
+      .expect(201);
+
+    const confirmedSecond = await request(app.getHttpServer())
+      .patch(`/api/v1/supplier-invoices/${secondInvoice.body.id}/confirm`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    const confirmedFirst = await request(app.getHttpServer())
+      .patch(`/api/v1/supplier-invoices/${firstInvoice.body.id}/confirm`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(confirmedSecond.body.confirmation.adjustments[0]).toMatchObject({
+      invoicedQtyBase: '60.00',
+      layerStartQtyBase: '0.00',
+      layerEndQtyBase: '60.00',
+    });
+    expect(confirmedFirst.body.confirmation.adjustments[0]).toMatchObject({
+      invoicedQtyBase: '40.00',
+      layerStartQtyBase: '60.00',
+      layerEndQtyBase: '100.00',
+    });
+    const adjustments = await ds.getRepository(SupplierCostAdjustment).findBy({
+      goodsReceiptItemId: receipt.receiptItemId,
+    });
+    expect(
+      adjustments
+        .reduce(
+          (total, adjustment) => total.plus(adjustment.invoicedQtyBase),
+          new Decimal(0),
+        )
+        .toFixed(2),
+    ).toBe('100.00');
   });
 });

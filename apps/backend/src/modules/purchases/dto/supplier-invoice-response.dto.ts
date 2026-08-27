@@ -5,7 +5,73 @@ import {
   SupplierInvoiceAdjustmentMode,
   SupplierInvoiceCostStatus,
   SupplierInvoiceObservationReason,
+  PriceReviewStatus,
 } from '@erp/shared-types';
+
+export class SupplierCostAdjustmentResponseDto {
+  @ApiProperty({ format: 'uuid' }) id: string;
+  @ApiProperty({ format: 'uuid' }) supplierInvoiceId: string;
+  @ApiProperty({ format: 'uuid' }) supplierInvoiceItemId: string;
+  @ApiProperty({ format: 'uuid' }) goodsReceiptId: string;
+  @ApiProperty({ format: 'uuid' }) goodsReceiptItemId: string;
+  @ApiProperty({ format: 'uuid' }) productId: string;
+  @ApiProperty() productCode: string;
+  @ApiProperty() productName: string;
+  @ApiProperty({ format: 'uuid' }) stockMovementId: string;
+  @ApiProperty({ example: '10.0000' }) provisionalCostPurchaseUnitNet: string;
+  @ApiProperty({ example: '11.0000' }) realCostPurchaseUnitNet: string;
+  @ApiProperty({ example: '1.0000' }) conversionFactor: string;
+  @ApiProperty({ example: '10.0000' }) provisionalCostBaseUnitNet: string;
+  @ApiProperty({ example: '11.0000' }) realCostBaseUnitNet: string;
+  @ApiProperty({ example: '1.0000' }) costDifferenceUnitNet: string;
+  @ApiProperty({ example: '100.00' }) invoicedQtyBase: string;
+  @ApiProperty({ example: '0.00' }) layerStartQtyBase: string;
+  @ApiProperty({ example: '100.00' }) layerEndQtyBase: string;
+  @ApiProperty({ example: '70.00' }) onHandAllocatedQty: string;
+  @ApiProperty({ example: '30.00' }) consumedAllocatedQty: string;
+  @ApiProperty({ example: '70.0000' }) stockRevaluation: string;
+  @ApiProperty({ example: '30.0000' }) cogsAdjustment: string;
+  @ApiProperty({ example: '10.0000' }) previousProductCostNet: string;
+  @ApiProperty({ example: '11.0000' }) newProductCostNet: string;
+  @ApiProperty({ format: 'date-time' }) appliedAt: string;
+}
+
+export class PriceReviewResponseDto {
+  @ApiProperty({ format: 'uuid' }) id: string;
+  @ApiProperty({ format: 'uuid' }) supplierInvoiceId: string;
+  @ApiProperty({ format: 'uuid' }) productId: string;
+  @ApiProperty() productCode: string;
+  @ApiProperty() productName: string;
+  @ApiProperty() previousCostNet: string;
+  @ApiProperty() newCostNet: string;
+  @ApiProperty({ nullable: true }) markupPercentageSnapshot: string | null;
+  @ApiProperty() previousSuggestedPriceNet: string;
+  @ApiProperty() suggestedPriceNet: string;
+  @ApiProperty() activePriceNetSnapshot: string;
+  @ApiProperty({ nullable: true }) approvedPriceNet: string | null;
+  @ApiProperty({ enum: PriceReviewStatus }) status: PriceReviewStatus;
+  @ApiProperty({ format: 'uuid', nullable: true }) reviewedByUserId:
+    string | null;
+  @ApiProperty({ format: 'date-time', nullable: true }) reviewedAt:
+    string | null;
+  @ApiProperty({ format: 'date-time' }) createdAt: string;
+  @ApiProperty({ format: 'date-time' }) updatedAt: string;
+}
+
+export class SupplierInvoiceConfirmationResponseDto {
+  @ApiProperty({ format: 'date-time' }) confirmedAt: string;
+  @ApiProperty({ type: 'object' }) confirmedBy: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  @ApiProperty({ example: '70.0000' }) stockRevaluationTotal: string;
+  @ApiProperty({ example: '30.0000' }) cogsAdjustmentTotal: string;
+  @ApiProperty({ type: [SupplierCostAdjustmentResponseDto] })
+  adjustments: SupplierCostAdjustmentResponseDto[];
+  @ApiProperty({ type: [PriceReviewResponseDto] })
+  priceReviews: PriceReviewResponseDto[];
+}
 
 export class SupplierInvoiceItemResponseDto {
   @ApiProperty({ format: 'uuid' }) id: string;
@@ -93,6 +159,8 @@ export class SupplierInvoiceResponseDto {
   @ApiProperty({ type: [SupplierInvoiceItemResponseDto] })
   items: SupplierInvoiceItemResponseDto[];
   @ApiProperty({ type: 'object', nullable: true }) decision: object | null;
+  @ApiProperty({ type: SupplierInvoiceConfirmationResponseDto, nullable: true })
+  confirmation: SupplierInvoiceConfirmationResponseDto | null;
 }
 
 export class PaginatedSupplierInvoicesResponseDto {

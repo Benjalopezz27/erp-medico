@@ -7,6 +7,7 @@ import {
   SupplierInvoiceQuantityStatus,
   SupplierInvoiceStatus,
 } from '../enums/purchases.enum';
+import type { IPriceReview } from './pricing.model';
 
 export interface IPurchaseOrderItemPayload {
   supplierProductId: string;
@@ -343,6 +344,7 @@ export interface ISupplierInvoiceSummary {
 export interface ISupplierInvoiceDetail extends ISupplierInvoiceSummary {
   items: ISupplierInvoiceItemDetail[];
   decision: ISupplierInvoiceDecision | null;
+  confirmation: ISupplierInvoiceConfirmation | null;
 }
 
 export interface ISupplierInvoiceDecision {
@@ -450,13 +452,36 @@ export type ISupplierInvoiceItem = ISupplierInvoiceItemDetail;
 export interface ISupplierCostAdjustment {
   id: string;
   supplierInvoiceId: string;
+  supplierInvoiceItemId: string;
+  goodsReceiptId: string;
+  goodsReceiptItemId: string;
   productId: string;
-  previousCostNet: number;
-  newCostNet: number;
-  deltaCostUnit: number;
-  stockQtyAdjusted: number;
-  cogsQtyAdjusted: number;
-  totalStockRevaluation: number;
-  totalCogsAdjustment: number;
-  appliedAt: Date | string;
+  productCode: string;
+  productName: string;
+  stockMovementId: string;
+  provisionalCostPurchaseUnitNet: string;
+  realCostPurchaseUnitNet: string;
+  conversionFactor: string;
+  provisionalCostBaseUnitNet: string;
+  realCostBaseUnitNet: string;
+  costDifferenceUnitNet: string;
+  invoicedQtyBase: string;
+  layerStartQtyBase: string;
+  layerEndQtyBase: string;
+  onHandAllocatedQty: string;
+  consumedAllocatedQty: string;
+  stockRevaluation: string;
+  cogsAdjustment: string;
+  previousProductCostNet: string;
+  newProductCostNet: string;
+  appliedAt: string;
+}
+
+export interface ISupplierInvoiceConfirmation {
+  confirmedAt: string;
+  confirmedBy: { id: string; name: string; email: string };
+  stockRevaluationTotal: string;
+  cogsAdjustmentTotal: string;
+  adjustments: ISupplierCostAdjustment[];
+  priceReviews: IPriceReview[];
 }
