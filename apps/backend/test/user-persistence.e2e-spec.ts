@@ -51,6 +51,8 @@ describe('User Persistence & Seed Engine (E2E)', () => {
       'goods_receipts',
       'goods_receipt_items',
       'goods_receipt_number_seq',
+      'supplier_invoices',
+      'supplier_invoice_items',
     ];
 
     const getSchemaObject = async (
@@ -71,6 +73,9 @@ describe('User Persistence & Seed Engine (E2E)', () => {
     expect(appliedMigrations).not.toHaveLength(0);
     expect(appliedMigrations.map(({ name }) => name)).toContain(
       'CreateGoodsReceiptsTables1700000000015',
+    );
+    expect(appliedMigrations.map(({ name }) => name)).toContain(
+      'CreateSupplierInvoicesTables1700000000016',
     );
 
     for (let index = 0; index < appliedMigrations.length; index += 1) {
