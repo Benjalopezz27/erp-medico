@@ -1,9 +1,9 @@
 import { Link } from '@tanstack/react-router';
-import { ClipboardList, Clock3 } from 'lucide-react';
+import { ClipboardList, Clock3, ReceiptText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PurchasesNavigationTabsProps {
-  active: 'orders' | 'backorders';
+  active: 'orders' | 'backorders' | 'supplier-invoices';
 }
 
 const tabClass =
@@ -41,6 +41,19 @@ export function PurchasesNavigationTabs({ active }: PurchasesNavigationTabsProps
         >
           <Clock3 className="h-4 w-4" />
           Mercadería pendiente
+        </Link>
+        <Link
+          to="/purchases/supplier-invoices"
+          className={cn(
+            tabClass,
+            active === 'supplier-invoices'
+              ? 'border-blue-600 text-blue-700 dark:text-blue-400'
+              : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800 dark:hover:text-slate-200',
+          )}
+          aria-current={active === 'supplier-invoices' ? 'page' : undefined}
+        >
+          <ReceiptText className="h-4 w-4" />
+          Facturas de proveedores
         </Link>
       </div>
     </nav>
