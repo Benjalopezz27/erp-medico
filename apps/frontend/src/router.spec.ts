@@ -15,6 +15,7 @@ import {
   validateSupplierCatalogSearchParams,
   validatePurchaseOrderSearchParams,
   validateBackorderSearchParams,
+  validateSupplierInvoiceSearchParams,
   router,
 } from './router';
 import { PurchaseOrderStatus } from '@/features/purchase-orders/types/purchase-orders.types';
@@ -86,6 +87,12 @@ describe('authentication route guards', () => {
 
   it('registers the administrative backorders route', () => {
     expect(router.routesByPath['/purchases/backorders']).toBeDefined();
+  });
+
+  it('registers all administrative supplier invoice routes', () => {
+    expect(router.routesByPath['/purchases/supplier-invoices']).toBeDefined();
+    expect(router.routesByPath['/purchases/supplier-invoices/new']).toBeDefined();
+    expect(router.routesByPath['/purchases/supplier-invoices/$id']).toBeDefined();
   });
 });
 
@@ -414,5 +421,51 @@ describe('validateBackorderSearchParams', () => {
         urgentOnly: 'false',
       }),
     ).toEqual({ search: undefined, supplierId: undefined, urgentOnly: undefined });
+  });
+});
+
+describe('validateSupplierInvoiceSearchParams', () => {
+  it('normalizes valid filters', () => {
+    expect(
+      validateSupplierInvoiceSearchParams({
+        page: '2',
+        limit: '20',
+        search: '  factura  ',
+        supplierId: '4659b877-d975-4d1e-bcf4-94c80efa2c4c',
+        status: 'OBSERVADA',
+        dateFrom: '2026-08-01',
+        dateTo: '2026-08-31',
+      }),
+    ).toEqual({
+      page: 2,
+      limit: 20,
+      search: 'factura',
+      supplierId: '4659b877-d975-4d1e-bcf4-94c80efa2c4c',
+      status: 'OBSERVADA',
+      dateFrom: '2026-08-01',
+      dateTo: '2026-08-31',
+    });
+  });
+
+  it('discards malformed, overlong and inverted filters', () => {
+    expect(
+      validateSupplierInvoiceSearchParams({
+        page: -1,
+        limit: 100,
+        search: 'x'.repeat(101),
+        supplierId: 'bad',
+        status: 'INVALID',
+        dateFrom: '2026-09-01',
+        dateTo: '2026-08-01',
+      }),
+    ).toEqual({
+      page: 1,
+      limit: 10,
+      search: undefined,
+      supplierId: undefined,
+      status: undefined,
+      dateFrom: undefined,
+      dateTo: undefined,
+    });
   });
 });

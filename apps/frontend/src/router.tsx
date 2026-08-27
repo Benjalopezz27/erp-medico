@@ -132,11 +132,18 @@ import { PurchaseOrderCreatePage } from '@/pages/purchases/PurchaseOrderCreatePa
 import { PurchaseOrderDetailPage } from '@/pages/purchases/PurchaseOrderDetailPage';
 import { PurchaseOrderReceivePage } from '@/pages/purchases/PurchaseOrderReceivePage';
 import { PurchaseBackordersPage } from '@/pages/purchases/PurchaseBackordersPage';
+import { SupplierInvoicesListPage } from '@/pages/purchases/SupplierInvoicesListPage';
+import { SupplierInvoiceCreatePage } from '@/pages/purchases/SupplierInvoiceCreatePage';
+import { SupplierInvoiceDetailPage } from '@/pages/purchases/SupplierInvoiceDetailPage';
 import {
   PurchaseOrderStatus,
   type IBackorderSearchParams,
   type IPurchaseOrderSearchParams,
 } from '@/features/purchase-orders/types/purchase-orders.types';
+import {
+  SupplierInvoiceStatus,
+  type ISupplierInvoiceSearchParams,
+} from '@/features/supplier-invoices/types/supplier-invoices.types';
 import type {
   ISupplierSearchParams,
   SupplierSortField,
@@ -219,6 +226,44 @@ export function validateBackorderSearchParams(
     search: rawSearch.length > 0 && rawSearch.length <= 100 ? rawSearch : undefined,
     supplierId,
     urgentOnly,
+  };
+}
+
+export function validateSupplierInvoiceSearchParams(
+  search: Record<string, unknown>,
+): ISupplierInvoiceSearchParams {
+  const page = Number(search.page);
+  const limit = Number(search.limit);
+  const rawSearch = typeof search.search === 'string' ? search.search.trim() : '';
+  const rawSupplierId = typeof search.supplierId === 'string' ? search.supplierId.trim() : '';
+  const supplierId =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawSupplierId)
+      ? rawSupplierId
+      : undefined;
+  const rawStatus = search.status as string | undefined;
+  const status =
+    rawStatus && Object.values(SupplierInvoiceStatus).includes(rawStatus as SupplierInvoiceStatus)
+      ? (rawStatus as SupplierInvoiceStatus)
+      : undefined;
+  const validDate = (value: unknown): value is string => {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const date = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+  };
+  let dateFrom = validDate(search.dateFrom) ? search.dateFrom : undefined;
+  let dateTo = validDate(search.dateTo) ? search.dateTo : undefined;
+  if (dateFrom && dateTo && dateFrom > dateTo) {
+    dateFrom = undefined;
+    dateTo = undefined;
+  }
+  return {
+    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    limit: [10, 20, 50].includes(limit) ? limit : 10,
+    search: rawSearch && rawSearch.length <= 100 ? rawSearch : undefined,
+    supplierId,
+    status,
+    dateFrom,
+    dateTo,
   };
 }
 
@@ -496,6 +541,28 @@ const purchaseBackordersRoute = createRoute({
   component: () => <PurchaseBackordersPage />,
 });
 
+const supplierInvoicesRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/purchases/supplier-invoices',
+  validateSearch: validateSupplierInvoiceSearchParams,
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
+  component: () => <SupplierInvoicesListPage />,
+});
+
+const supplierInvoiceCreateRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/purchases/supplier-invoices/new',
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
+  component: () => <SupplierInvoiceCreatePage />,
+});
+
+const supplierInvoiceDetailRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/purchases/supplier-invoices/$id',
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
+  component: () => <SupplierInvoiceDetailPage />,
+});
+
 const purchaseOrderCreateRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/purchases/orders/new',
@@ -632,6 +699,9 @@ const routeTree = rootRoute.addChildren([
     purchasesRoute,
     purchasesOrdersRoute,
     purchaseBackordersRoute,
+    supplierInvoicesRoute,
+    supplierInvoiceCreateRoute,
+    supplierInvoiceDetailRoute,
     purchaseOrderCreateRoute,
     purchaseOrderDetailRoute,
     purchaseOrderReceiveRoute,
