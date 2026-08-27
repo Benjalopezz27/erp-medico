@@ -1,7 +1,9 @@
 import {
   SupplierInvoiceErrorCode,
+  SupplierInvoiceAdjustmentMode,
   SupplierInvoiceQuantityStatus,
   SupplierInvoiceStatus,
+  type IPurchaseSettings,
   type ICreateSupplierInvoicePayload,
   type IPaginatedPendingInvoiceReceiptsResponse,
   type IPaginatedSupplierInvoicesResponse,
@@ -16,8 +18,10 @@ import {
 
 export {
   SupplierInvoiceErrorCode,
+  SupplierInvoiceAdjustmentMode,
   SupplierInvoiceQuantityStatus,
   SupplierInvoiceStatus,
+  type IPurchaseSettings,
   type ICreateSupplierInvoicePayload,
   type IPaginatedPendingInvoiceReceiptsResponse,
   type IPaginatedSupplierInvoicesResponse,
@@ -37,11 +41,15 @@ export interface SupplierInvoiceFormLine {
   discountNet: string;
   bonusNet: string;
   surchargeNet: string;
+  discountMode: SupplierInvoiceAdjustmentMode;
+  bonusMode: SupplierInvoiceAdjustmentMode;
+  surchargeMode: SupplierInvoiceAdjustmentMode;
 }
 
 export interface SupplierInvoiceFormData {
   invoiceNumber: string;
   invoiceDate: string;
   taxTotal: string;
+  taxMode: SupplierInvoiceAdjustmentMode;
   items: SupplierInvoiceFormLine[];
 }

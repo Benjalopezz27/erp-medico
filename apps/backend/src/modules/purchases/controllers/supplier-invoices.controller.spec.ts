@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { User } from '../../users/entities/user.entity';
 import { SupplierInvoicesController } from './supplier-invoices.controller';
 import { SupplierInvoicesService } from '../services/supplier-invoices.service';
+import { SupplierInvoiceDecisionsService } from '../services/supplier-invoice-decisions.service';
 
 describe('SupplierInvoicesController', () => {
   const service = {
@@ -10,13 +11,17 @@ describe('SupplierInvoicesController', () => {
     findPendingReceipts: jest.fn(),
     findOne: jest.fn(),
   };
+  const decisions = { authorize: jest.fn(), reject: jest.fn() };
   let controller: SupplierInvoicesController;
 
   beforeEach(async () => {
     jest.clearAllMocks();
     const module = await Test.createTestingModule({
       controllers: [SupplierInvoicesController],
-      providers: [{ provide: SupplierInvoicesService, useValue: service }],
+      providers: [
+        { provide: SupplierInvoicesService, useValue: service },
+        { provide: SupplierInvoiceDecisionsService, useValue: decisions },
+      ],
     }).compile();
     controller = module.get(SupplierInvoicesController);
   });
@@ -44,5 +49,19 @@ describe('SupplierInvoicesController', () => {
       limit: 20,
     });
     expect(service.findOne).toHaveBeenCalledWith('invoice');
+  });
+
+  it('delegates observed invoice decisions with the actor', async () => {
+    const actor = { id: 'admin' } as User;
+    decisions.authorize.mockResolvedValue({ id: 'invoice' });
+    decisions.reject.mockResolvedValue({ id: 'invoice' });
+    await controller.authorize('invoice', actor);
+    await controller.reject('invoice', { reason: 'Costo incorrecto' }, actor);
+    expect(decisions.authorize).toHaveBeenCalledWith('invoice', 'admin');
+    expect(decisions.reject).toHaveBeenCalledWith(
+      'invoice',
+      'admin',
+      'Costo incorrecto',
+    );
   });
 });

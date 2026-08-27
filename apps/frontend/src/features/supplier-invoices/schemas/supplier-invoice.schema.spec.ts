@@ -5,6 +5,7 @@ import {
   mapSupplierInvoiceFormToPayload,
 } from './supplier-invoice.schema';
 import type { IPendingInvoiceReceipt } from '../types/supplier-invoices.types';
+import { SupplierInvoiceAdjustmentMode } from '../types/supplier-invoices.types';
 
 const receipt = {
   id: '11111111-1111-4111-a111-111111111111',
@@ -58,6 +59,29 @@ describe('supplier invoice schema', () => {
       invoiceNumber: 'A 1',
       taxTotal: '0.0000',
       items: [{ invoicedQtyPurchaseUnit: '6.0000', unitPriceNet: '100.0000' }],
+    });
+  });
+
+  it('maps percentage adjustments and IVA without converting them to numbers', () => {
+    const form = buildSupplierInvoiceDefaults(receipt);
+    form.invoiceNumber = 'A-2';
+    form.items[0].invoicedQtyPurchaseUnit = '2';
+    form.items[0].discountMode = SupplierInvoiceAdjustmentMode.PERCENTAGE;
+    form.items[0].discountNet = '10';
+    form.taxMode = SupplierInvoiceAdjustmentMode.PERCENTAGE;
+    form.taxTotal = '21';
+    expect(createSupplierInvoiceSchema(receipt).safeParse(form).success).toBe(true);
+    expect(mapSupplierInvoiceFormToPayload(receipt, form)).toMatchObject({
+      taxTotal: '0.0000',
+      taxMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+      taxPercentage: '21.0000',
+      items: [
+        {
+          discountNet: '0.0000',
+          discountMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+          discountPercentage: '10.0000',
+        },
+      ],
     });
   });
 });

@@ -12,6 +12,7 @@ import {
 import { useCreateSupplierInvoiceMutation } from '../hooks/use-supplier-invoices';
 import {
   SupplierInvoiceErrorCode,
+  SupplierInvoiceAdjustmentMode,
   SupplierInvoiceQuantityStatus,
   type ICreateSupplierInvoicePayload,
   type IPendingInvoiceReceipt,
@@ -68,6 +69,9 @@ export function SupplierInvoiceForm({
       discount: line?.discountNet ?? '0',
       bonus: line?.bonusNet ?? '0',
       surcharge: line?.surchargeNet ?? '0',
+      discountMode: line?.discountMode,
+      bonusMode: line?.bonusMode,
+      surchargeMode: line?.surchargeMode,
     });
   });
   const selectedCalculations = calculations.filter((_, index) =>
@@ -76,6 +80,7 @@ export function SupplierInvoiceForm({
   const totals = calculateInvoiceTotals(
     selectedCalculations.map((item) => item.net),
     values.taxTotal ?? '0',
+    values.taxMode,
   );
   const hasExcess = selectedCalculations.some(
     (item) => item.quantityStatus === SupplierInvoiceQuantityStatus.EXCEDIDA,
@@ -123,6 +128,7 @@ export function SupplierInvoiceForm({
           invoiceNumber: previous.invoiceNumber,
           invoiceDate: previous.invoiceDate,
           taxTotal: previous.taxTotal,
+          taxMode: previous.taxMode,
           items: defaults.items.map((line) => ({
             ...line,
             ...priorLines.get(line.goodsReceiptItemId),
@@ -186,8 +192,24 @@ export function SupplierInvoiceForm({
           <Field label="Fecha de factura" error={errors.invoiceDate?.message}>
             <Input type="date" disabled={mutation.isPending} {...register('invoiceDate')} />
           </Field>
-          <Field label="IVA total" error={errors.taxTotal?.message}>
-            <Input inputMode="decimal" disabled={mutation.isPending} {...register('taxTotal')} />
+          <Field label="IVA" error={errors.taxTotal?.message}>
+            <div className="flex gap-2">
+              <select
+                aria-label="Modo de IVA"
+                className="h-10 rounded-md border bg-background px-2 text-xs"
+                disabled={mutation.isPending}
+                {...register('taxMode')}
+              >
+                <option value={SupplierInvoiceAdjustmentMode.AMOUNT}>Importe</option>
+                <option value={SupplierInvoiceAdjustmentMode.PERCENTAGE}>Porcentaje</option>
+              </select>
+              <Input
+                aria-label="Valor de IVA"
+                inputMode="decimal"
+                disabled={mutation.isPending}
+                {...register('taxTotal')}
+              />
+            </div>
           </Field>
         </section>
         <section className="space-y-3">
@@ -251,22 +273,47 @@ export function SupplierInvoiceForm({
                           'bonusNet',
                           'surchargeNet',
                         ] as const
-                      ).map((field) => (
-                        <td key={field} className="px-2 py-2 align-top">
-                          <Input
-                            inputMode="decimal"
-                            className="w-28 font-mono"
-                            aria-label={`${field} ${item.productName}`}
-                            disabled={mutation.isPending}
-                            {...register(`items.${index}.${field}`)}
-                          />
-                          {errors.items?.[index]?.[field]?.message && (
-                            <p className="mt-1 w-28 text-[10px] text-rose-600">
-                              {errors.items[index]?.[field]?.message}
-                            </p>
-                          )}
-                        </td>
-                      ))}
+                      ).map((field) => {
+                        const modeField =
+                          field === 'discountNet'
+                            ? 'discountMode'
+                            : field === 'bonusNet'
+                              ? 'bonusMode'
+                              : field === 'surchargeNet'
+                                ? 'surchargeMode'
+                                : null;
+                        return (
+                          <td key={field} className="px-2 py-2 align-top">
+                            {modeField && (
+                              <select
+                                aria-label={`Modo ${field} ${item.productName}`}
+                                className="mb-1 h-7 w-28 rounded-md border bg-background px-1 text-[10px]"
+                                disabled={mutation.isPending}
+                                {...register(`items.${index}.${modeField}`)}
+                              >
+                                <option value={SupplierInvoiceAdjustmentMode.AMOUNT}>
+                                  Importe
+                                </option>
+                                <option value={SupplierInvoiceAdjustmentMode.PERCENTAGE}>
+                                  Porcentaje
+                                </option>
+                              </select>
+                            )}
+                            <Input
+                              inputMode="decimal"
+                              className="w-28 font-mono"
+                              aria-label={`${field} ${item.productName}`}
+                              disabled={mutation.isPending}
+                              {...register(`items.${index}.${field}`)}
+                            />
+                            {errors.items?.[index]?.[field]?.message && (
+                              <p className="mt-1 w-28 text-[10px] text-rose-600">
+                                {errors.items[index]?.[field]?.message}
+                              </p>
+                            )}
+                          </td>
+                        );
+                      })}
                       <td className="px-3 py-3 text-right font-mono font-bold">
                         {selected ? formatMoneyAr(calculation.net) : '—'}
                       </td>
@@ -364,7 +411,8 @@ export function SupplierInvoiceForm({
             )}{' '}
             {!hasExcess && (
               <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">
-                Resultado esperado: <strong>VALIDANDO</strong>.
+                Resultado esperado: <strong>AUTORIZADA</strong> si los costos están dentro de la
+                tolerancia vigente; de lo contrario quedará <strong>OBSERVADA</strong>.
               </div>
             )}
             <div className="flex justify-end gap-2">

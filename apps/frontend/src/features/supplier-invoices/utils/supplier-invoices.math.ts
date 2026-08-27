@@ -1,5 +1,8 @@
 import Decimal from 'decimal.js';
-import { SupplierInvoiceQuantityStatus } from '../types/supplier-invoices.types';
+import {
+  SupplierInvoiceAdjustmentMode,
+  SupplierInvoiceQuantityStatus,
+} from '../types/supplier-invoices.types';
 
 export const ZERO_DECIMAL = '0.0000';
 
@@ -19,14 +22,21 @@ export function calculateInvoiceLine(input: {
   discount: string;
   bonus: string;
   surcharge: string;
+  discountMode?: SupplierInvoiceAdjustmentMode;
+  bonusMode?: SupplierInvoiceAdjustmentMode;
+  surchargeMode?: SupplierInvoiceAdjustmentMode;
 }) {
   const quantity = safeDecimal(input.quantity);
   const available = safeDecimal(input.available);
-  const net = quantity
-    .times(safeDecimal(input.unitPrice))
-    .minus(safeDecimal(input.discount))
-    .minus(safeDecimal(input.bonus))
-    .plus(safeDecimal(input.surcharge))
+  const gross = quantity.times(safeDecimal(input.unitPrice));
+  const adjustment = (value: string, mode?: SupplierInvoiceAdjustmentMode) =>
+    mode === SupplierInvoiceAdjustmentMode.PERCENTAGE
+      ? gross.times(safeDecimal(value)).dividedBy(100)
+      : safeDecimal(value);
+  const net = gross
+    .minus(adjustment(input.discount, input.discountMode))
+    .minus(adjustment(input.bonus, input.bonusMode))
+    .plus(adjustment(input.surcharge, input.surchargeMode))
     .toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
   const allocated = Decimal.min(quantity, available);
   const pending = Decimal.max(available.minus(allocated), 0);
@@ -39,14 +49,22 @@ export function calculateInvoiceLine(input: {
   return { net, pending, excess, quantityStatus };
 }
 
-export function calculateInvoiceTotals(lines: Decimal[], tax: string) {
+export function calculateInvoiceTotals(
+  lines: Decimal[],
+  tax: string,
+  taxMode: SupplierInvoiceAdjustmentMode = SupplierInvoiceAdjustmentMode.AMOUNT,
+) {
   const netTotal = lines
     .reduce((total, line) => total.plus(line), new Decimal(0))
     .toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+  const taxTotal =
+    taxMode === SupplierInvoiceAdjustmentMode.PERCENTAGE
+      ? netTotal.times(safeDecimal(tax)).dividedBy(100).toDecimalPlaces(4, Decimal.ROUND_HALF_UP)
+      : safeDecimal(tax).toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
   return {
     netTotal,
-    taxTotal: safeDecimal(tax).toDecimalPlaces(4, Decimal.ROUND_HALF_UP),
-    totalAmount: netTotal.plus(safeDecimal(tax)).toDecimalPlaces(4, Decimal.ROUND_HALF_UP),
+    taxTotal,
+    totalAmount: netTotal.plus(taxTotal).toDecimalPlaces(4, Decimal.ROUND_HALF_UP),
   };
 }
 

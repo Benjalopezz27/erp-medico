@@ -5,6 +5,7 @@ import { SupplierInvoiceStatusBadge } from '@/features/supplier-invoices/compone
 import { useSupplierInvoiceQuery } from '@/features/supplier-invoices/hooks/use-supplier-invoices';
 import {
   SupplierInvoiceQuantityStatus,
+  SupplierInvoiceAdjustmentMode,
   SupplierInvoiceStatus,
 } from '@/features/supplier-invoices/types/supplier-invoices.types';
 import { parseSupplierInvoiceError } from '@/features/supplier-invoices/utils/supplier-invoices.errors';
@@ -198,8 +199,9 @@ export function SupplierInvoiceDetailPage() {
                   {formatMoneyAr(item.realCostUnitNet)}
                 </td>
                 <td className="px-3 py-3 text-right font-mono">
-                  {formatMoneyAr(item.discountNet)} / {formatMoneyAr(item.bonusNet)} /{' '}
-                  {formatMoneyAr(item.surchargeNet)}
+                  {adjustmentLabel(item.discountNet, item.discountMode, item.discountPercentage)} /{' '}
+                  {adjustmentLabel(item.bonusNet, item.bonusMode, item.bonusPercentage)} /{' '}
+                  {adjustmentLabel(item.surchargeNet, item.surchargeMode, item.surchargePercentage)}
                 </td>
                 <td className="px-3 py-3 text-right font-mono font-bold">
                   {formatMoneyAr(item.lineNetTotal)}
@@ -211,11 +213,24 @@ export function SupplierInvoiceDetailPage() {
       </div>
       <section className="ml-auto grid max-w-md gap-2 rounded-xl border bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
         <Row label="Neto" value={formatMoneyAr(invoice.netTotal)} />
-        <Row label="IVA" value={formatMoneyAr(invoice.taxTotal)} />
+        <Row
+          label="IVA"
+          value={adjustmentLabel(invoice.taxTotal, invoice.taxMode, invoice.taxPercentage)}
+        />
         <Row label="Total" value={formatMoneyAr(invoice.totalAmount)} strong />
       </section>
     </div>
   );
+}
+
+function adjustmentLabel(
+  amount: string,
+  mode: SupplierInvoiceAdjustmentMode,
+  percentage: string | null,
+): string {
+  return mode === SupplierInvoiceAdjustmentMode.PERCENTAGE && percentage
+    ? `${formatMoneyAr(amount)} (${formatDecimalAr(percentage)}%)`
+    : formatMoneyAr(amount);
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {

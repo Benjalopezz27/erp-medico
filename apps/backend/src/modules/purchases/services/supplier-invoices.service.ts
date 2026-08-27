@@ -29,8 +29,10 @@ import { QueryPendingInvoiceReceiptsDto } from '../dto/query-pending-invoice-rec
 import {
   calculateSupplierInvoiceAllocation,
   calculateSupplierInvoiceAmounts,
-  normalizeSupplierInvoiceTaxTotal,
+  calculateSupplierInvoiceTax,
 } from '../utils/supplier-invoice-math.utils';
+import { evaluateSupplierInvoiceCost } from '../utils/supplier-invoice-tolerance.utils';
+import { SystemConfigService } from '../../config/system-config.service';
 import { normalizeSupplierInvoiceNumber } from '../utils/supplier-invoice-number-normalizer';
 import {
   mapSupplierInvoiceDetail,
@@ -54,6 +56,7 @@ export class SupplierInvoicesService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly auditService: AuditService,
+    private readonly systemConfigService: SystemConfigService,
     @InjectRepository(SupplierInvoice)
     private readonly invoiceRepository: Repository<SupplierInvoice>,
     @InjectRepository(GoodsReceipt)
@@ -66,7 +69,6 @@ export class SupplierInvoicesService {
   ): Promise<ISupplierInvoiceDetail> {
     const normalizedNumber = normalizeSupplierInvoiceNumber(dto.invoiceNumber);
     this.validateInvoiceDate(dto.invoiceDate);
-    const taxTotal = normalizeSupplierInvoiceTaxTotal(dto.taxTotal);
     if (!dto.items?.length) {
       throw new BadRequestException({
         code: SupplierInvoiceErrorCode.SUPPLIER_INVOICE_EMPTY_ITEMS,
@@ -97,6 +99,8 @@ export class SupplierInvoicesService {
             message: 'La recepción indicada no existe.',
           });
         }
+        const toleranceSnapshot =
+          await this.systemConfigService.getPurchaseToleranceSnapshot(manager);
 
         const duplicate = await manager.findOne(SupplierInvoice, {
           where: {
@@ -160,15 +164,40 @@ export class SupplierInvoicesService {
             discountNet: input.discountNet,
             bonusNet: input.bonusNet,
             surchargeNet: input.surchargeNet,
+            discountMode: input.discountMode,
+            discountPercentage: input.discountPercentage,
+            bonusMode: input.bonusMode,
+            bonusPercentage: input.bonusPercentage,
+            surchargeMode: input.surchargeMode,
+            surchargePercentage: input.surchargePercentage,
           });
-          return { index, input, receiptItem, poItem, allocation, amounts };
+          const costEvaluation = evaluateSupplierInvoiceCost({
+            provisionalCostUnitNet: receiptItem.provisionalCostUnitNet,
+            realCostUnitNet: amounts.realCostUnitNet,
+            tolerancePercentage: toleranceSnapshot,
+          });
+          return {
+            index,
+            input,
+            receiptItem,
+            poItem,
+            allocation,
+            amounts,
+            costEvaluation,
+          };
         });
 
         const netTotalDecimal = prepared.reduce(
           (total, line) => total.plus(line.amounts.lineNetTotal),
           new Decimal(0),
         );
-        const totalAmountDecimal = netTotalDecimal.plus(taxTotal);
+        const tax = calculateSupplierInvoiceTax({
+          netTotal: netTotalDecimal,
+          taxTotal: dto.taxTotal,
+          taxMode: dto.taxMode,
+          taxPercentage: dto.taxPercentage,
+        });
+        const totalAmountDecimal = netTotalDecimal.plus(tax.taxTotal);
         if (
           netTotalDecimal.gt('99999999999999999999.9999') ||
           totalAmountDecimal.gt('99999999999999999999.9999')
@@ -181,7 +210,8 @@ export class SupplierInvoicesService {
         const observed = prepared.some(
           (line) =>
             line.allocation.quantityStatus ===
-            SupplierInvoiceQuantityStatus.EXCEDIDA,
+              SupplierInvoiceQuantityStatus.EXCEDIDA ||
+            line.costEvaluation.costObserved,
         );
 
         let invoice = await manager.save(
@@ -195,9 +225,12 @@ export class SupplierInvoicesService {
             invoiceDate: dto.invoiceDate,
             status: observed
               ? SupplierInvoiceStatus.OBSERVADA
-              : SupplierInvoiceStatus.VALIDANDO,
+              : SupplierInvoiceStatus.AUTORIZADA,
             netTotal: netTotalDecimal.toFixed(4),
-            taxTotal,
+            taxTotal: tax.taxTotal,
+            taxMode: tax.taxMode,
+            taxPercentage: tax.taxPercentage,
+            costTolerancePercentageSnapshot: toleranceSnapshot,
             totalAmount: totalAmountDecimal.toFixed(4),
             userId,
           }),
@@ -221,6 +254,10 @@ export class SupplierInvoicesService {
             invoicedQtyPurchaseUnit: line.input.invoicedQtyPurchaseUnit,
             ...line.allocation,
             ...line.amounts,
+            ...line.costEvaluation,
+            quantityObserved:
+              line.allocation.quantityStatus ===
+              SupplierInvoiceQuantityStatus.EXCEDIDA,
           }),
         );
         invoice.items = await manager.save(SupplierInvoiceItem, invoiceItems);
@@ -238,6 +275,14 @@ export class SupplierInvoicesService {
             netTotal: invoice.netTotal,
             taxTotal: invoice.taxTotal,
             totalAmount: invoice.totalAmount,
+            costTolerancePercentageSnapshot: toleranceSnapshot,
+            observations: invoice.items.map((item) => ({
+              productId: item.productId,
+              quantityObserved: item.quantityObserved,
+              costObserved: item.costObserved,
+              costDifferenceUnitNet: item.costDifferenceUnitNet,
+              costVariationPercentage: item.costVariationPercentage,
+            })),
           },
         });
 
@@ -248,6 +293,7 @@ export class SupplierInvoicesService {
             goodsReceipt: true,
             purchaseOrder: true,
             user: true,
+            decisionUser: true,
             items: true,
           },
         }))!;
@@ -312,6 +358,7 @@ export class SupplierInvoicesService {
         goodsReceipt: true,
         purchaseOrder: true,
         user: true,
+        decisionUser: true,
         items: true,
       },
     });

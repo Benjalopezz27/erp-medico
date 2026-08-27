@@ -1,5 +1,9 @@
 import {
   PurchaseOrderStatus,
+  SupplierInvoiceAdjustmentMode,
+  SupplierInvoiceCostStatus,
+  SupplierInvoiceDecisionAction,
+  SupplierInvoiceObservationReason,
   SupplierInvoiceQuantityStatus,
   SupplierInvoiceStatus,
 } from '../enums/purchases.enum';
@@ -241,6 +245,12 @@ export interface ICreateSupplierInvoiceItemPayload {
   discountNet?: string;
   bonusNet?: string;
   surchargeNet?: string;
+  discountMode?: SupplierInvoiceAdjustmentMode;
+  discountPercentage?: string;
+  bonusMode?: SupplierInvoiceAdjustmentMode;
+  bonusPercentage?: string;
+  surchargeMode?: SupplierInvoiceAdjustmentMode;
+  surchargePercentage?: string;
 }
 
 export interface ICreateSupplierInvoicePayload {
@@ -248,6 +258,8 @@ export interface ICreateSupplierInvoicePayload {
   invoiceNumber: string;
   invoiceDate: string;
   taxTotal: string;
+  taxMode?: SupplierInvoiceAdjustmentMode;
+  taxPercentage?: string;
   items: ICreateSupplierInvoiceItemPayload[];
 }
 
@@ -279,6 +291,16 @@ export interface ISupplierInvoiceItemDetail {
   surchargeNet: string;
   realCostUnitNet: string;
   lineNetTotal: string;
+  discountMode: SupplierInvoiceAdjustmentMode;
+  discountPercentage: string | null;
+  bonusMode: SupplierInvoiceAdjustmentMode;
+  bonusPercentage: string | null;
+  surchargeMode: SupplierInvoiceAdjustmentMode;
+  surchargePercentage: string | null;
+  costDifferenceUnitNet: string;
+  costVariationPercentage: string | null;
+  costStatus: SupplierInvoiceCostStatus;
+  observationReasons: SupplierInvoiceObservationReason[];
 }
 
 export interface ISupplierInvoiceSummary {
@@ -303,6 +325,9 @@ export interface ISupplierInvoiceSummary {
   status: SupplierInvoiceStatus;
   netTotal: string;
   taxTotal: string;
+  taxMode: SupplierInvoiceAdjustmentMode;
+  taxPercentage: string | null;
+  costTolerancePercentageSnapshot: string;
   totalAmount: string;
   itemCount: number;
   observedLineCount: number;
@@ -317,6 +342,28 @@ export interface ISupplierInvoiceSummary {
 
 export interface ISupplierInvoiceDetail extends ISupplierInvoiceSummary {
   items: ISupplierInvoiceItemDetail[];
+  decision: ISupplierInvoiceDecision | null;
+}
+
+export interface ISupplierInvoiceDecision {
+  action: SupplierInvoiceDecisionAction;
+  reason: string | null;
+  decidedAt: string;
+  user: { id: string; name: string; email: string };
+}
+
+export interface IPurchaseSettings {
+  costTolerancePercentage: string;
+  updatedAt: string;
+  updatedBy: { id: string; name: string; email: string } | null;
+}
+
+export interface IUpdatePurchaseSettingsPayload {
+  costTolerancePercentage: string;
+}
+
+export interface IRejectSupplierInvoicePayload {
+  reason: string;
 }
 
 export interface ISupplierInvoiceSearchParams {

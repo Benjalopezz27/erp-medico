@@ -4,7 +4,9 @@ import {
   ISupplierInvoiceDetail,
   ISupplierInvoiceItemDetail,
   ISupplierInvoiceSummary,
-  SupplierInvoiceQuantityStatus,
+  SupplierInvoiceObservationReason,
+  SupplierInvoiceAdjustmentMode,
+  SupplierInvoiceCostStatus,
 } from '@erp/shared-types';
 import { SupplierInvoice } from '../entities/supplier-invoice.entity';
 import { SupplierInvoiceItem } from '../entities/supplier-invoice-item.entity';
@@ -49,6 +51,31 @@ export function mapSupplierInvoiceItem(
     surchargeNet: fixed(item.surchargeNet, 4),
     realCostUnitNet: fixed(item.realCostUnitNet, 4),
     lineNetTotal: fixed(item.lineNetTotal, 4),
+    discountMode: item.discountMode ?? SupplierInvoiceAdjustmentMode.AMOUNT,
+    discountPercentage: item.discountPercentage
+      ? fixed(item.discountPercentage, 4)
+      : null,
+    bonusMode: item.bonusMode ?? SupplierInvoiceAdjustmentMode.AMOUNT,
+    bonusPercentage: item.bonusPercentage
+      ? fixed(item.bonusPercentage, 4)
+      : null,
+    surchargeMode: item.surchargeMode ?? SupplierInvoiceAdjustmentMode.AMOUNT,
+    surchargePercentage: item.surchargePercentage
+      ? fixed(item.surchargePercentage, 4)
+      : null,
+    costDifferenceUnitNet: fixed(item.costDifferenceUnitNet ?? '0', 4),
+    costVariationPercentage: item.costVariationPercentage
+      ? fixed(item.costVariationPercentage, 4)
+      : null,
+    costStatus: item.costStatus ?? SupplierInvoiceCostStatus.WITHIN_TOLERANCE,
+    observationReasons: [
+      ...(item.quantityObserved
+        ? [SupplierInvoiceObservationReason.QUANTITY_EXCESS]
+        : []),
+      ...(item.costObserved
+        ? [SupplierInvoiceObservationReason.COST_VARIATION]
+        : []),
+    ],
   };
 }
 
@@ -78,10 +105,18 @@ export function mapSupplierInvoiceSummary(
     status: invoice.status,
     netTotal: fixed(invoice.netTotal, 4),
     taxTotal: fixed(invoice.taxTotal, 4),
+    taxMode: invoice.taxMode ?? SupplierInvoiceAdjustmentMode.AMOUNT,
+    taxPercentage: invoice.taxPercentage
+      ? fixed(invoice.taxPercentage, 4)
+      : null,
+    costTolerancePercentageSnapshot: fixed(
+      invoice.costTolerancePercentageSnapshot ?? '5',
+      4,
+    ),
     totalAmount: fixed(invoice.totalAmount, 4),
     itemCount: items.length,
     observedLineCount: items.filter(
-      (item) => item.quantityStatus === SupplierInvoiceQuantityStatus.EXCEDIDA,
+      (item) => item.quantityObserved || item.costObserved,
     ).length,
     user: {
       id: invoice.user?.id ?? invoice.userId,
@@ -101,6 +136,19 @@ export function mapSupplierInvoiceDetail(
     items: [...(invoice.items ?? [])]
       .sort((a, b) => a.itemIndex - b.itemIndex)
       .map(mapSupplierInvoiceItem),
+    decision:
+      invoice.decisionAction && invoice.decidedAt && invoice.decisionUser
+        ? {
+            action: invoice.decisionAction,
+            reason: invoice.decisionReason,
+            decidedAt: invoice.decidedAt.toISOString(),
+            user: {
+              id: invoice.decisionUser.id,
+              name: invoice.decisionUser.name,
+              email: invoice.decisionUser.email,
+            },
+          }
+        : null,
   };
 }
 
