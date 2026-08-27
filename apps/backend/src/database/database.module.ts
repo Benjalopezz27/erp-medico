@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import * as path from 'path';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         password: configService.get<string>('DB_PASSWORD', 'erp_password_dev'),
         database: configService.get<string>('DB_NAME', 'erp_medico'),
         autoLoadEntities: true,
+        migrations: [path.resolve(__dirname, './migrations/*{.ts,.js}')],
         synchronize: false,
         logging: configService.get<string>('NODE_ENV') === 'development',
       }),

@@ -4,6 +4,7 @@ import { PurchaseOrdersListPage } from './PurchaseOrdersListPage';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as queryHook from '@/features/purchase-orders/hooks/use-purchase-orders-query';
+import * as suppliersHook from '@/features/suppliers/hooks/use-suppliers-query';
 import { PurchaseOrderStatus } from '@/features/purchase-orders/types/purchase-orders.types';
 
 const mockNavigate = vi.fn();
@@ -20,6 +21,7 @@ vi.mock('@tanstack/react-router', () => ({
 }));
 
 vi.mock('@/features/purchase-orders/hooks/use-purchase-orders-query');
+vi.mock('@/features/suppliers/hooks/use-suppliers-query');
 
 function renderWithClient(ui: React.ReactElement) {
   const queryClient = new QueryClient({
@@ -50,6 +52,9 @@ describe('PurchaseOrdersListPage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(suppliersHook, 'useSuppliersQuery').mockReturnValue({
+      data: { data: [] },
+    } as any);
     vi.spyOn(queryHook, 'usePurchaseOrdersListQuery').mockReturnValue({
       data: {
         data: mockOrders,
@@ -74,6 +79,10 @@ describe('PurchaseOrdersListPage', () => {
 
     expect(screen.getByRole('heading', { name: 'Órdenes de Compra' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Nueva Orden de Compra/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Mercadería pendiente/ })).toHaveAttribute(
+      'href',
+      '/purchases/backorders',
+    );
     expect(screen.getByText('OC-000001')).toBeInTheDocument();
     expect(screen.getByText('Proveedor 3M')).toBeInTheDocument();
   });

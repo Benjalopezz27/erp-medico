@@ -8,6 +8,7 @@ import {
   cancelPurchaseOrderApi,
   createGoodsReceiptApi,
   getGoodsReceiptsByPurchaseOrderApi,
+  getBackordersApi,
 } from './purchase-orders.api';
 import { PurchaseOrderStatus } from '../types/purchase-orders.types';
 
@@ -155,6 +156,45 @@ describe('Purchase Orders API Client', () => {
       expect(apiClient.get).toHaveBeenCalledWith('/purchase-orders/po-123/receipts', {
         params: { page: 2, limit: 10 },
         signal: controller.signal,
+      });
+    });
+  });
+
+  describe('getBackordersApi', () => {
+    it('sends only normalized active filters and forwards AbortSignal', async () => {
+      const response = { generatedAt: '2026-08-27T15:00:00.000Z', summary: {}, groups: [] };
+      const controller = new AbortController();
+      (apiClient.get as any).mockResolvedValueOnce({ data: response });
+
+      await expect(
+        getBackordersApi(
+          {
+            search: '  gasa  ',
+            supplierId: 'supplier-uuid',
+            urgentOnly: true,
+          },
+          { signal: controller.signal },
+        ),
+      ).resolves.toEqual(response);
+
+      expect(apiClient.get).toHaveBeenCalledWith('/purchase-orders/pending', {
+        params: {
+          search: 'gasa',
+          supplierId: 'supplier-uuid',
+          urgentOnly: true,
+        },
+        signal: controller.signal,
+      });
+    });
+
+    it('omits empty and false filters', async () => {
+      (apiClient.get as any).mockResolvedValueOnce({ data: { groups: [] } });
+
+      await getBackordersApi({ search: ' ', urgentOnly: false });
+
+      expect(apiClient.get).toHaveBeenCalledWith('/purchase-orders/pending', {
+        params: {},
+        signal: undefined,
       });
     });
   });

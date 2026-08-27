@@ -93,6 +93,7 @@ describe('Purchase Orders Mutation Hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: purchaseOrdersKeys.lists() });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: purchaseOrdersKeys.detail('po-100') });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: purchaseOrdersKeys.backorders() });
     });
   });
 
@@ -113,6 +114,7 @@ describe('Purchase Orders Mutation Hooks', () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: purchaseOrdersKeys.lists() });
       expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: purchaseOrdersKeys.detail('po-100') });
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: purchaseOrdersKeys.backorders() });
     });
   });
 });

@@ -170,6 +170,62 @@ export interface IPaginatedGoodsReceiptsResponse {
   };
 }
 
+export interface IBackorderSearchParams {
+  search?: string;
+  supplierId?: string;
+  urgentOnly?: boolean;
+}
+
+export interface IBackorderItem {
+  purchaseOrderItemId: string;
+  productId: string;
+  productCode: string;
+  productName: string;
+  supplierSku: string;
+  purchaseUnitName: string;
+  purchaseUnitSymbol: string;
+  orderedQty: string;
+  receivedQty: string;
+  pendingQty: string;
+}
+
+export interface IBackorderOrder {
+  id: string;
+  orderNumber: string;
+  status: PurchaseOrderStatus.EMITIDA | PurchaseOrderStatus.PARCIAL;
+  emittedAt: string;
+  expectedDeliveryDate: string | null;
+  ageDays: number;
+  isUrgent: boolean;
+  pendingLineCount: number;
+  items: IBackorderItem[];
+}
+
+export interface IBackorderSupplierGroup {
+  supplier: {
+    id: string;
+    businessName: string;
+    cuit: string;
+  };
+  orderCount: number;
+  pendingProductCount: number;
+  pendingLineCount: number;
+  urgentOrderCount: number;
+  orders: IBackorderOrder[];
+}
+
+export interface IBackordersResponse {
+  generatedAt: string;
+  summary: {
+    supplierCount: number;
+    orderCount: number;
+    pendingProductCount: number;
+    pendingLineCount: number;
+    urgentOrderCount: number;
+  };
+  groups: IBackorderSupplierGroup[];
+}
+
 // Backward-compatible alias for preliminary models
 export type IGoodsReceipt = IGoodsReceiptDetail;
 export type IGoodsReceiptItem = IGoodsReceiptItemDetail;

@@ -913,4 +913,286 @@ describe('Transactional Goods Receipts & Stock Intake (E2E)', () => {
       expect(Number(poi1?.receivedQty)).toBe(0);
     });
   });
+
+  describe('8. Pending Purchase Orders / Backorders', () => {
+    let backorderSupplier: Supplier;
+    let backorderSp1: SupplierProduct;
+    let backorderSp2: SupplierProduct;
+    let urgentPartialPo: PurchaseOrder;
+    let urgentPartialItems: PurchaseOrderItem[];
+    let day14Po: PurchaseOrder;
+    let thirdReceiptPo: PurchaseOrder;
+    let thirdReceiptItem: PurchaseOrderItem;
+
+    const setEmittedDaysAgo = async (po: PurchaseOrder, days: number) => {
+      const localParts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(new Date());
+      const year = Number(
+        localParts.find((part) => part.type === 'year')?.value,
+      );
+      const month = Number(
+        localParts.find((part) => part.type === 'month')?.value,
+      );
+      const day = Number(localParts.find((part) => part.type === 'day')?.value);
+      const emittedAt = new Date(Date.UTC(year, month - 1, day - days, 15));
+      await ds.getRepository(PurchaseOrder).update(po.id, { emittedAt });
+    };
+
+    const createAndEmitForBackorderSupplier = async (
+      items: Array<{ supplierProductId: string; orderedQty: number }>,
+    ) => {
+      const created = await request(app.getHttpServer())
+        .post('/api/v1/purchase-orders')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ supplierId: backorderSupplier.id, items })
+        .expect(201);
+      await request(app.getHttpServer())
+        .patch(`/api/v1/purchase-orders/${created.body.id}/emit`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      const po = (await ds
+        .getRepository(PurchaseOrder)
+        .findOneBy({ id: created.body.id }))!;
+      const poItems = await ds.getRepository(PurchaseOrderItem).find({
+        where: { purchaseOrderId: po.id },
+        order: { itemIndex: 'ASC' },
+      });
+      return { po, items: poItems };
+    };
+
+    beforeAll(async () => {
+      const supplierRepo = ds.getRepository(Supplier);
+      backorderSupplier = await supplierRepo.save(
+        supplierRepo.create({
+          businessName: 'Proveedor Backorders E2E',
+          cuit: '30999999999',
+          taxCondition: TaxCondition.RESPONSABLE_INSCRIPTO,
+          isActive: true,
+        }),
+      );
+
+      const supplierProductRepo = ds.getRepository(SupplierProduct);
+      backorderSp1 = await supplierProductRepo.save(
+        supplierProductRepo.create({
+          supplierId: backorderSupplier.id,
+          productId: testProduct1.id,
+          supplierExternalCode: 'BACK-JER-05',
+          purchaseUnitId: testUnitBox.id,
+          conversionFactorToBase: '100.0000',
+          usualCostNet: '1400.0000',
+        }),
+      );
+      backorderSp2 = await supplierProductRepo.save(
+        supplierProductRepo.create({
+          supplierId: backorderSupplier.id,
+          productId: testProduct2.id,
+          supplierExternalCode: 'BACK-GUA-M',
+          purchaseUnitId: testUnitBox.id,
+          conversionFactorToBase: '100.0000',
+          usualCostNet: '2400.0000',
+        }),
+      );
+
+      ({ po: urgentPartialPo, items: urgentPartialItems } =
+        await createAndEmitForBackorderSupplier([
+          { supplierProductId: backorderSp1.id, orderedQty: 10 },
+          { supplierProductId: backorderSp2.id, orderedQty: 2 },
+        ]));
+      await setEmittedDaysAgo(urgentPartialPo, 15);
+      await request(app.getHttpServer())
+        .post(`/api/v1/purchase-orders/${urgentPartialPo.id}/receipts`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          deliveryNoteNumber: 'BACK-PARTIAL-01',
+          items: [
+            {
+              purchaseOrderItemId: urgentPartialItems[0].id,
+              receivedQtyPurchaseUnit: 4,
+            },
+          ],
+        })
+        .expect(201);
+
+      ({ po: day14Po } = await createAndEmitForBackorderSupplier([
+        { supplierProductId: backorderSp1.id, orderedQty: 5 },
+      ]));
+      await setEmittedDaysAgo(day14Po, 14);
+
+      const completed = await createAndEmitForBackorderSupplier([
+        { supplierProductId: backorderSp1.id, orderedQty: 1 },
+      ]);
+      await request(app.getHttpServer())
+        .post(`/api/v1/purchase-orders/${completed.po.id}/receipts`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          deliveryNoteNumber: 'BACK-COMPLETE-01',
+          items: [
+            {
+              purchaseOrderItemId: completed.items[0].id,
+              receivedQtyPurchaseUnit: 1,
+            },
+          ],
+        })
+        .expect(201);
+
+      const cancelled = await createAndEmitForBackorderSupplier([
+        { supplierProductId: backorderSp1.id, orderedQty: 2 },
+      ]);
+      await request(app.getHttpServer())
+        .post(`/api/v1/purchase-orders/${cancelled.po.id}/receipts`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          deliveryNoteNumber: 'BACK-CANCEL-PARTIAL-01',
+          items: [
+            {
+              purchaseOrderItemId: cancelled.items[0].id,
+              receivedQtyPurchaseUnit: 1,
+            },
+          ],
+        })
+        .expect(201);
+      await request(app.getHttpServer())
+        .patch(`/api/v1/purchase-orders/${cancelled.po.id}/cancel`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ cancelReason: 'Saldo cancelado para prueba de backorders' })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/purchase-orders')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          supplierId: backorderSupplier.id,
+          items: [{ supplierProductId: backorderSp1.id, orderedQty: 1 }],
+        })
+        .expect(201);
+
+      const thirdReceipt = await createAndEmitForBackorderSupplier([
+        { supplierProductId: backorderSp2.id, orderedQty: 3 },
+      ]);
+      thirdReceiptPo = thirdReceipt.po;
+      thirdReceiptItem = thirdReceipt.items[0];
+      for (const suffix of ['01', '02']) {
+        await request(app.getHttpServer())
+          .post(`/api/v1/purchase-orders/${thirdReceiptPo.id}/receipts`)
+          .set('Authorization', `Bearer ${adminToken}`)
+          .send({
+            deliveryNoteNumber: `BACK-THIRD-${suffix}`,
+            items: [
+              {
+                purchaseOrderItemId: thirdReceiptItem.id,
+                receivedQtyPurchaseUnit: 1,
+              },
+            ],
+          })
+          .expect(201);
+      }
+    });
+
+    it('protects the endpoint with authentication and ADMINISTRADOR role', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/purchase-orders/pending')
+        .expect(401);
+      await request(app.getHttpServer())
+        .get('/api/v1/purchase-orders/pending')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .expect(403);
+    });
+
+    it('returns only emitted and partial orders with pending lines and exact counts', async () => {
+      const response = await request(app.getHttpServer())
+        .get(
+          `/api/v1/purchase-orders/pending?supplierId=${backorderSupplier.id}`,
+        )
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(response.body.summary).toEqual({
+        supplierCount: 1,
+        orderCount: 3,
+        pendingProductCount: 2,
+        pendingLineCount: 4,
+        urgentOrderCount: 1,
+      });
+      const ids = response.body.groups[0].orders.map(
+        (order: { id: string }) => order.id,
+      );
+      expect(ids).toEqual(
+        expect.arrayContaining([
+          urgentPartialPo.id,
+          day14Po.id,
+          thirdReceiptPo.id,
+        ]),
+      );
+      const urgent = response.body.groups[0].orders.find(
+        (order: { id: string }) => order.id === urgentPartialPo.id,
+      );
+      expect(urgent.status).toBe(PurchaseOrderStatus.PARCIAL);
+      expect(urgent.items[0].pendingQty).toBe('6.0000');
+    });
+
+    it('uses the 15-day urgency boundary and preserves all lines on product search', async () => {
+      const urgentOnly = await request(app.getHttpServer())
+        .get(
+          `/api/v1/purchase-orders/pending?supplierId=${backorderSupplier.id}&urgentOnly=true`,
+        )
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(urgentOnly.body.summary.orderCount).toBe(1);
+      expect(urgentOnly.body.groups[0].orders[0].ageDays).toBe(15);
+      expect(urgentOnly.body.groups[0].orders[0].isUrgent).toBe(true);
+
+      const searched = await request(app.getHttpServer())
+        .get(
+          `/api/v1/purchase-orders/pending?supplierId=${backorderSupplier.id}&search=${encodeURIComponent(testProduct1.name)}`,
+        )
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      const matchedOrder = searched.body.groups[0].orders.find(
+        (order: { id: string }) => order.id === urgentPartialPo.id,
+      );
+      expect(matchedOrder.items).toHaveLength(2);
+    });
+
+    it('rejects invalid query parameters', async () => {
+      await request(app.getHttpServer())
+        .get('/api/v1/purchase-orders/pending?urgentOnly=maybe')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(400);
+      await request(app.getHttpServer())
+        .get('/api/v1/purchase-orders/pending?supplierId=invalid')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(400);
+    });
+
+    it('removes an order immediately after the third and final receipt', async () => {
+      await request(app.getHttpServer())
+        .post(`/api/v1/purchase-orders/${thirdReceiptPo.id}/receipts`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          deliveryNoteNumber: 'BACK-THIRD-03',
+          items: [
+            {
+              purchaseOrderItemId: thirdReceiptItem.id,
+              receivedQtyPurchaseUnit: 1,
+            },
+          ],
+        })
+        .expect(201);
+
+      const response = await request(app.getHttpServer())
+        .get(
+          `/api/v1/purchase-orders/pending?supplierId=${backorderSupplier.id}`,
+        )
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      const ids = response.body.groups[0].orders.map(
+        (order: { id: string }) => order.id,
+      );
+      expect(ids).not.toContain(thirdReceiptPo.id);
+    });
+  });
 });

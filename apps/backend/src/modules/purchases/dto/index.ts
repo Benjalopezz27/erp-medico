@@ -5,3 +5,5 @@ export * from './cancel-purchase-order.dto';
 export * from './query-purchase-order.dto';
 export * from './purchase-order-response.dto';
 export * from './paginated-purchase-orders-response.dto';
+export * from './query-backorders.dto';
+export * from './backorders-response.dto';

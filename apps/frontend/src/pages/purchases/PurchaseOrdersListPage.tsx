@@ -11,6 +11,7 @@ import type {
   IPurchaseOrderSearchParams,
   PurchaseOrderStatus,
 } from '@/features/purchase-orders/types/purchase-orders.types';
+import { PurchasesNavigationTabs } from '@/features/purchase-orders/components/PurchasesNavigationTabs';
 
 export const PurchaseOrdersListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -116,6 +117,8 @@ export const PurchaseOrdersListPage: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      <PurchasesNavigationTabs active="orders" />
 
       {/* Filters */}
       <PurchaseOrderFilters
