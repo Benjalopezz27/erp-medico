@@ -4,12 +4,15 @@ import {
   getPendingInvoiceReceiptsApi,
   getSupplierInvoiceApi,
   getSupplierInvoicesApi,
+  authorizeSupplierInvoiceApi,
+  rejectSupplierInvoiceApi,
 } from '../api/supplier-invoices.api';
 import { supplierInvoicesKeys } from './supplier-invoices-keys';
 import type {
   ICreateSupplierInvoicePayload,
   IQueryPendingInvoiceReceiptsParams,
   ISupplierInvoiceSearchParams,
+  IRejectSupplierInvoicePayload,
 } from '../types/supplier-invoices.types';
 
 export function useSupplierInvoicesQuery(params: ISupplierInvoiceSearchParams) {
@@ -50,5 +53,33 @@ export function useCreateSupplierInvoiceMutation() {
         queryClient.invalidateQueries({ queryKey: supplierInvoicesKeys.pendingReceipts() }),
       ]);
     },
+  });
+}
+
+function useDecisionSuccess() {
+  const queryClient = useQueryClient();
+  return async (invoice: { id: string }) => {
+    queryClient.setQueryData(supplierInvoicesKeys.detail(invoice.id), invoice);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: supplierInvoicesKeys.lists() }),
+      queryClient.invalidateQueries({ queryKey: supplierInvoicesKeys.pendingReceipts() }),
+    ]);
+  };
+}
+
+export function useAuthorizeSupplierInvoiceMutation() {
+  const onSuccess = useDecisionSuccess();
+  return useMutation({
+    mutationFn: (id: string) => authorizeSupplierInvoiceApi(id),
+    onSuccess,
+  });
+}
+
+export function useRejectSupplierInvoiceMutation() {
+  const onSuccess = useDecisionSuccess();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: IRejectSupplierInvoicePayload }) =>
+      rejectSupplierInvoiceApi(id, payload),
+    onSuccess,
   });
 }

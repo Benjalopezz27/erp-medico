@@ -16,6 +16,7 @@ import {
   validatePurchaseOrderSearchParams,
   validateBackorderSearchParams,
   validateSupplierInvoiceSearchParams,
+  validateSettingsSearchParams,
   router,
 } from './router';
 import { PurchaseOrderStatus } from '@/features/purchase-orders/types/purchase-orders.types';
@@ -467,5 +468,16 @@ describe('validateSupplierInvoiceSearchParams', () => {
       dateFrom: undefined,
       dateTo: undefined,
     });
+  });
+});
+
+describe('validateSettingsSearchParams', () => {
+  it('keeps supported tabs and falls back to categories', () => {
+    expect(validateSettingsSearchParams({ tab: 'purchases' })).toEqual({
+      tab: 'purchases',
+    });
+    expect(validateSettingsSearchParams({ tab: 'units' })).toEqual({ tab: 'units' });
+    expect(validateSettingsSearchParams({ tab: 'invalid' })).toEqual({});
+    expect(validateSettingsSearchParams({ tab: 'categories' })).toEqual({});
   });
 });

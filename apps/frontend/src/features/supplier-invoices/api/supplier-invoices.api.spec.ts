@@ -2,12 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '@/services/api.client';
 import {
   createSupplierInvoiceApi,
+  authorizeSupplierInvoiceApi,
+  rejectSupplierInvoiceApi,
   getPendingInvoiceReceiptsApi,
   getSupplierInvoiceApi,
   getSupplierInvoicesApi,
 } from './supplier-invoices.api';
 
-vi.mock('@/services/api.client', () => ({ apiClient: { get: vi.fn(), post: vi.fn() } }));
+vi.mock('@/services/api.client', () => ({
+  apiClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
+}));
 
 describe('supplier invoices API', () => {
   beforeEach(() => vi.clearAllMocks());
@@ -48,5 +52,15 @@ describe('supplier invoices API', () => {
     (apiClient.post as any).mockResolvedValue({ data: { id: 'invoice' } });
     await createSupplierInvoiceApi(payload);
     expect(apiClient.post).toHaveBeenCalledWith('/supplier-invoices', payload);
+  });
+
+  it('authorizes and rejects through the decision endpoints', async () => {
+    (apiClient.patch as any).mockResolvedValue({ data: { id: 'invoice' } });
+    await authorizeSupplierInvoiceApi('invoice');
+    await rejectSupplierInvoiceApi('invoice', { reason: 'Costo incorrecto' });
+    expect(apiClient.patch).toHaveBeenNthCalledWith(1, '/supplier-invoices/invoice/authorize');
+    expect(apiClient.patch).toHaveBeenNthCalledWith(2, '/supplier-invoices/invoice/reject', {
+      reason: 'Costo incorrecto',
+    });
   });
 });
