@@ -294,7 +294,10 @@ export class SupplierInvoicesService {
             purchaseOrder: true,
             user: true,
             decisionUser: true,
+            confirmedBy: true,
             items: true,
+            costAdjustments: true,
+            priceReviews: true,
           },
         }))!;
         return mapSupplierInvoiceDetail(invoice);
@@ -359,7 +362,10 @@ export class SupplierInvoicesService {
         purchaseOrder: true,
         user: true,
         decisionUser: true,
+        confirmedBy: true,
         items: true,
+        costAdjustments: true,
+        priceReviews: true,
       },
     });
     if (!invoice) {

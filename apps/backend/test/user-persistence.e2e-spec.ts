@@ -54,6 +54,8 @@ describe('User Persistence & Seed Engine (E2E)', () => {
       'supplier_invoices',
       'supplier_invoice_items',
       'purchase_settings',
+      'supplier_cost_adjustments',
+      'price_reviews',
     ];
 
     const getSchemaObject = async (
@@ -80,6 +82,9 @@ describe('User Persistence & Seed Engine (E2E)', () => {
     );
     expect(appliedMigrations.map(({ name }) => name)).toContain(
       'CreatePurchaseCostToleranceWorkflow1700000000017',
+    );
+    expect(appliedMigrations.map(({ name }) => name)).toContain(
+      'CreateSupplierCostAdjustmentsAndPriceReviews1700000000018',
     );
 
     for (let index = 0; index < appliedMigrations.length; index += 1) {

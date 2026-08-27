@@ -38,6 +38,7 @@ import { QuerySupplierInvoicesDto } from '../dto/query-supplier-invoices.dto';
 import { QueryPendingInvoiceReceiptsDto } from '../dto/query-pending-invoice-receipts.dto';
 import { SupplierInvoicesService } from '../services/supplier-invoices.service';
 import { SupplierInvoiceDecisionsService } from '../services/supplier-invoice-decisions.service';
+import { SupplierInvoiceConfirmationService } from '../services/supplier-invoice-confirmation.service';
 import { RejectSupplierInvoiceDto } from '../dto/reject-supplier-invoice.dto';
 import {
   PaginatedPendingInvoiceReceiptsResponseDto,
@@ -54,6 +55,7 @@ export class SupplierInvoicesController {
   constructor(
     private readonly supplierInvoicesService: SupplierInvoicesService,
     private readonly decisionsService: SupplierInvoiceDecisionsService,
+    private readonly confirmationService: SupplierInvoiceConfirmationService,
   ) {}
 
   @Post()
@@ -128,6 +130,24 @@ export class SupplierInvoicesController {
     @CurrentUser() user: User,
   ): Promise<ISupplierInvoiceDetail> {
     return this.decisionsService.reject(id, user.id, dto.reason);
+  }
+
+  @Patch(':id/confirm')
+  @ApiOperation({
+    summary: 'Confirmar una factura autorizada y aplicar sus ajustes de costo',
+    description:
+      'Distribuye la diferencia monetaria entre inventario y COGS mediante capas FIFO. Es idempotente: una factura ya confirmada devuelve el resultado persistido.',
+  })
+  @ApiOkResponse({ type: SupplierInvoiceResponseDto })
+  @ApiConflictResponse({
+    description:
+      'Estado no confirmable, ledger inconsistente o conflicto concurrente',
+  })
+  confirm(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() user: User,
+  ): Promise<ISupplierInvoiceDetail> {
+    return this.confirmationService.confirm(id, user.id);
   }
 
   @Get(':id')

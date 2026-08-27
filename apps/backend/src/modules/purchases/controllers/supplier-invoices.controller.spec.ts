@@ -3,6 +3,7 @@ import { User } from '../../users/entities/user.entity';
 import { SupplierInvoicesController } from './supplier-invoices.controller';
 import { SupplierInvoicesService } from '../services/supplier-invoices.service';
 import { SupplierInvoiceDecisionsService } from '../services/supplier-invoice-decisions.service';
+import { SupplierInvoiceConfirmationService } from '../services/supplier-invoice-confirmation.service';
 
 describe('SupplierInvoicesController', () => {
   const service = {
@@ -12,6 +13,7 @@ describe('SupplierInvoicesController', () => {
     findOne: jest.fn(),
   };
   const decisions = { authorize: jest.fn(), reject: jest.fn() };
+  const confirmation = { confirm: jest.fn() };
   let controller: SupplierInvoicesController;
 
   beforeEach(async () => {
@@ -21,6 +23,7 @@ describe('SupplierInvoicesController', () => {
       providers: [
         { provide: SupplierInvoicesService, useValue: service },
         { provide: SupplierInvoiceDecisionsService, useValue: decisions },
+        { provide: SupplierInvoiceConfirmationService, useValue: confirmation },
       ],
     }).compile();
     controller = module.get(SupplierInvoicesController);
@@ -63,5 +66,14 @@ describe('SupplierInvoicesController', () => {
       'admin',
       'Costo incorrecto',
     );
+  });
+
+  it('delegates idempotent confirmation with the actor', async () => {
+    const actor = { id: 'admin' } as User;
+    confirmation.confirm.mockResolvedValue({ id: 'invoice' });
+    await expect(controller.confirm('invoice', actor)).resolves.toEqual({
+      id: 'invoice',
+    });
+    expect(confirmation.confirm).toHaveBeenCalledWith('invoice', 'admin');
   });
 });

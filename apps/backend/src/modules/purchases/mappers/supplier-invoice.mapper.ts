@@ -10,6 +10,7 @@ import {
 } from '@erp/shared-types';
 import { SupplierInvoice } from '../entities/supplier-invoice.entity';
 import { SupplierInvoiceItem } from '../entities/supplier-invoice-item.entity';
+import { mapSupplierInvoiceConfirmation } from './supplier-cost-adjustment.mapper';
 
 const fixed = (value: string, places: number): string =>
   new Decimal(value).toFixed(places);
@@ -149,6 +150,7 @@ export function mapSupplierInvoiceDetail(
             },
           }
         : null,
+    confirmation: mapSupplierInvoiceConfirmation(invoice),
   };
 }
 

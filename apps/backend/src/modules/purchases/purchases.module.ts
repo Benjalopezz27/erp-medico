@@ -14,6 +14,9 @@ import { GoodsReceipt } from './entities/goods-receipt.entity';
 import { GoodsReceiptItem } from './entities/goods-receipt-item.entity';
 import { SupplierInvoice } from './entities/supplier-invoice.entity';
 import { SupplierInvoiceItem } from './entities/supplier-invoice-item.entity';
+import { SupplierCostAdjustment } from './entities/supplier-cost-adjustment.entity';
+import { PriceReview } from './entities/price-review.entity';
+import { SupplierInvoiceConfirmationService } from './services/supplier-invoice-confirmation.service';
 import { Supplier } from '../suppliers/entities/supplier.entity';
 import { SupplierProduct } from '../suppliers/supplier-products/entities/supplier-product.entity';
 import { AuditModule } from '../audit/audit.module';
@@ -29,6 +32,8 @@ import { SystemConfigModule } from '../config/system-config.module';
       GoodsReceiptItem,
       SupplierInvoice,
       SupplierInvoiceItem,
+      SupplierCostAdjustment,
+      PriceReview,
       Supplier,
       SupplierProduct,
     ]),
@@ -47,6 +52,7 @@ import { SystemConfigModule } from '../config/system-config.module';
     BackordersService,
     SupplierInvoicesService,
     SupplierInvoiceDecisionsService,
+    SupplierInvoiceConfirmationService,
   ],
   exports: [
     PurchaseOrdersService,
@@ -54,6 +60,7 @@ import { SystemConfigModule } from '../config/system-config.module';
     BackordersService,
     SupplierInvoicesService,
     SupplierInvoiceDecisionsService,
+    SupplierInvoiceConfirmationService,
   ],
 })
 export class PurchasesModule {}
