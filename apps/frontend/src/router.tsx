@@ -127,6 +127,13 @@ import {
 import { SuppliersPage } from '@/pages/suppliers/SuppliersPage';
 import { SupplierCatalogPage } from '@/pages/suppliers/SupplierCatalogPage';
 import { ImporterWizardPage } from '@/pages/importer/ImporterWizardPage';
+import { PurchaseOrdersListPage } from '@/pages/purchases/PurchaseOrdersListPage';
+import { PurchaseOrderCreatePage } from '@/pages/purchases/PurchaseOrderCreatePage';
+import { PurchaseOrderDetailPage } from '@/pages/purchases/PurchaseOrderDetailPage';
+import {
+  PurchaseOrderStatus,
+  type IPurchaseOrderSearchParams,
+} from '@/features/purchase-orders/types/purchase-orders.types';
 import type {
   ISupplierSearchParams,
   SupplierSortField,
@@ -135,6 +142,64 @@ import type {
   ISupplierProductSearchParams,
   SupplierProductSortField,
 } from '@/features/supplier-products/types/supplier-products.types';
+
+export function validatePurchaseOrderSearchParams(
+  search: Record<string, unknown>,
+): IPurchaseOrderSearchParams {
+  const page = Number(search.page);
+  const limit = Number(search.limit);
+  const validLimits = [10, 20, 50];
+
+  const rawStatus = search.status as string | undefined;
+  const status =
+    rawStatus && Object.values(PurchaseOrderStatus).includes(rawStatus as PurchaseOrderStatus)
+      ? (rawStatus as PurchaseOrderStatus)
+      : undefined;
+
+  const rawSupplierId =
+    typeof search.supplierId === 'string' ? search.supplierId.trim() : undefined;
+  const supplierId =
+    rawSupplierId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawSupplierId)
+      ? rawSupplierId
+      : undefined;
+
+  const rawSearch = typeof search.search === 'string' ? search.search.trim() : undefined;
+  const searchParam = rawSearch && rawSearch.length > 0 ? rawSearch : undefined;
+
+  // Strict Calendar Date Validation (YYYY-MM-DD)
+  const isValidCalendarDate = (val?: string): boolean => {
+    if (!val || !/^\d{4}-\d{2}-\d{2}$/.test(val)) return false;
+    const [y, m, d] = val.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+  };
+
+  let dateFrom =
+    typeof search.dateFrom === 'string' && isValidCalendarDate(search.dateFrom)
+      ? search.dateFrom
+      : undefined;
+  let dateTo =
+    typeof search.dateTo === 'string' && isValidCalendarDate(search.dateTo)
+      ? search.dateTo
+      : undefined;
+
+  // Ensure dateFrom <= dateTo
+  if (dateFrom && dateTo && dateFrom > dateTo) {
+    dateFrom = undefined;
+    dateTo = undefined;
+  }
+
+  return {
+    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    limit: validLimits.includes(limit) ? limit : 10,
+    search: searchParam,
+    supplierId,
+    status,
+    dateFrom,
+    dateTo,
+  };
+}
 
 export function validateSupplierCatalogSearchParams(
   search: Record<string, unknown>,
@@ -387,14 +452,33 @@ const stockDetailRoute = createRoute({
 const purchasesRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/purchases',
-  beforeLoad: () => requireRoutePermission('/purchases'),
-  component: () => (
-    <PlaceholderPage
-      title="Compras y Recepción"
-      description="Emisión de órdenes de compra, recepciones parciales y backorders"
-      sprint="Sprint 4 — US-15"
-    />
-  ),
+  beforeLoad: () => {
+    requireRoutePermission('/purchases');
+    throw redirect({ to: '/purchases/orders' });
+  },
+  component: () => null,
+});
+
+const purchasesOrdersRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/purchases/orders',
+  validateSearch: validatePurchaseOrderSearchParams,
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
+  component: () => <PurchaseOrdersListPage />,
+});
+
+const purchaseOrderCreateRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/purchases/orders/new',
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
+  component: () => <PurchaseOrderCreatePage />,
+});
+
+const purchaseOrderDetailRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/purchases/orders/$id',
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
+  component: () => <PurchaseOrderDetailPage />,
 });
 
 const salesRoute = createRoute({
@@ -510,7 +594,11 @@ const routeTree = rootRoute.addChildren([
     stockOverviewRoute,
     stockDetailRoute,
     purchasesRoute,
+    purchasesOrdersRoute,
+    purchaseOrderCreateRoute,
+    purchaseOrderDetailRoute,
     salesRoute,
+
     customersRoute,
     suppliersRoute,
     supplierCatalogRoute,

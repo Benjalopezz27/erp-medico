@@ -10,6 +10,7 @@ import type {
 export async function getSupplierProductsApi(
   supplierId: string,
   params: ISupplierProductSearchParams,
+  options?: { signal?: AbortSignal },
 ): Promise<PaginatedSupplierProductsResponse> {
   const queryParams: Record<string, unknown> = {
     page: params.page ?? 1,
@@ -30,7 +31,7 @@ export async function getSupplierProductsApi(
 
   const response = await apiClient.get<PaginatedSupplierProductsResponse>(
     `/suppliers/${supplierId}/products`,
-    { params: queryParams },
+    { params: queryParams, signal: options?.signal },
   );
 
   return response.data;
