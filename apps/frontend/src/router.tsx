@@ -12,7 +12,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { UsersPage } from '@/pages/admin/UsersPage';
-import { SettingsPage } from '@/pages/SettingsPage';
+import { SettingsPage, type SettingsTab } from '@/pages/SettingsPage';
 import { ProductsListPage } from '@/pages/products/ProductsListPage';
 import { ProductCreatePage } from '@/pages/products/ProductCreatePage';
 import { ProductEditPage } from '@/pages/products/ProductEditPage';
@@ -88,6 +88,13 @@ export function validateProductSearchParams(search: Record<string, unknown>): Pr
     status,
     notice,
   };
+}
+
+export function validateSettingsSearchParams(search: Record<string, unknown>): {
+  tab?: SettingsTab;
+} {
+  const tab = search.tab;
+  return tab === 'units' || tab === 'purchases' ? { tab } : {};
 }
 
 export function requireAuthentication(): void {
@@ -673,6 +680,7 @@ const reportsRoute = createRoute({
 const settingsRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/settings',
+  validateSearch: validateSettingsSearchParams,
   component: () => <SettingsPage />,
 });
 

@@ -4,7 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as api from '../api/supplier-invoices.api';
 import { supplierInvoicesKeys } from './supplier-invoices-keys';
-import { useCreateSupplierInvoiceMutation } from './use-supplier-invoices';
+import {
+  useAuthorizeSupplierInvoiceMutation,
+  useCreateSupplierInvoiceMutation,
+  useRejectSupplierInvoiceMutation,
+} from './use-supplier-invoices';
 
 vi.mock('../api/supplier-invoices.api');
 
@@ -36,5 +40,31 @@ describe('supplier invoice hooks', () => {
     expect(client.getQueryData(supplierInvoicesKeys.detail('invoice-1'))).toEqual(invoice);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: supplierInvoicesKeys.lists() });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: supplierInvoicesKeys.pendingReceipts() });
+  });
+
+  it.each([
+    ['authorize', useAuthorizeSupplierInvoiceMutation],
+    ['reject', useRejectSupplierInvoiceMutation],
+  ] as const)('updates detail and invalidates derived data after %s', async (action, useHook) => {
+    const invoice = { id: 'invoice-1', status: action } as any;
+    if (action === 'authorize')
+      vi.mocked(api.authorizeSupplierInvoiceApi).mockResolvedValue(invoice);
+    else vi.mocked(api.rejectSupplierInvoiceApi).mockResolvedValue(invoice);
+    const invalidate = vi.spyOn(client, 'invalidateQueries');
+    const { result } = renderHook(() => useHook(), { wrapper });
+    act(() => {
+      if (action === 'authorize') (result.current.mutate as any)('invoice-1');
+      else
+        (result.current.mutate as any)({
+          id: 'invoice-1',
+          payload: { reason: 'Costo incorrecto' },
+        });
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(client.getQueryData(supplierInvoicesKeys.detail('invoice-1'))).toEqual(invoice);
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: supplierInvoicesKeys.lists() });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: supplierInvoicesKeys.pendingReceipts(),
+    });
   });
 });

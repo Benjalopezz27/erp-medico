@@ -2,7 +2,14 @@ import axios from 'axios';
 import { SupplierInvoiceErrorCode } from '../types/supplier-invoices.types';
 
 export type SupplierInvoiceErrorKind =
-  'DUPLICATE_NUMBER' | 'RECEIPT_STALE' | 'CONCURRENCY' | 'FIELD' | 'GENERAL';
+  | 'DUPLICATE_NUMBER'
+  | 'RECEIPT_STALE'
+  | 'CONCURRENCY'
+  | 'DECISION_CONFLICT'
+  | 'REJECTION_REASON'
+  | 'NOT_FOUND'
+  | 'FIELD'
+  | 'GENERAL';
 
 export interface ParsedSupplierInvoiceError {
   kind: SupplierInvoiceErrorKind;
@@ -29,6 +36,36 @@ export function parseSupplierInvoiceError(error: unknown): ParsedSupplierInvoice
       code,
       requestId,
       message: 'Ya existe ese comprobante para el proveedor.',
+    };
+  }
+  if (code === SupplierInvoiceErrorCode.SUPPLIER_INVOICE_NOT_FOUND) {
+    return {
+      kind: 'NOT_FOUND',
+      code,
+      requestId,
+      message: `La factura ya no se encuentra disponible.${suffix}`,
+    };
+  }
+  if (
+    code === SupplierInvoiceErrorCode.SUPPLIER_INVOICE_INVALID_STATUS ||
+    code === SupplierInvoiceErrorCode.SUPPLIER_INVOICE_DECISION_CONFLICT
+  ) {
+    return {
+      kind: 'DECISION_CONFLICT',
+      code,
+      requestId,
+      message: `La factura fue resuelta o cambió de estado mientras la revisaba.${suffix}`,
+    };
+  }
+  if (
+    code === SupplierInvoiceErrorCode.SUPPLIER_INVOICE_REJECTION_REASON_REQUIRED ||
+    code === SupplierInvoiceErrorCode.SUPPLIER_INVOICE_REJECTION_REASON_INVALID
+  ) {
+    return {
+      kind: 'REJECTION_REASON',
+      code,
+      requestId,
+      message: `Ingrese un motivo de rechazo de entre 3 y 500 caracteres.${suffix}`,
     };
   }
   if (

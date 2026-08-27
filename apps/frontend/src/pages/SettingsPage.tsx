@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import { Settings, Plus, CheckCircle2, X } from 'lucide-react';
 import { UserRole } from '@erp/shared-types';
 import { useAuthStore } from '@/stores/authStore';
@@ -18,12 +19,24 @@ import { UnitsTable } from '@/features/units/components/UnitsTable';
 import { UnitFormModal } from '@/features/units/components/UnitFormModal';
 import { UnitDeleteModal } from '@/features/units/components/UnitDeleteModal';
 import type { IUnit } from '@/features/units/types/units.types';
+import { PurchaseToleranceSettings } from '@/features/purchase-settings/components/PurchaseToleranceSettings';
+
+export type SettingsTab = 'categories' | 'units' | 'purchases';
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === UserRole.ADMINISTRADOR;
+  const navigate = useNavigate();
+  const search = useSearch({ strict: false }) as { tab?: SettingsTab };
 
-  const [activeTab, setActiveTab] = useState<string>('categories');
+  const activeTab: SettingsTab =
+    search.tab === 'purchases' && !isAdmin ? 'categories' : (search.tab ?? 'categories');
+
+  useEffect(() => {
+    if (search.tab === 'purchases' && !isAdmin) {
+      navigate({ to: '/settings', search: {}, replace: true });
+    }
+  }, [isAdmin, navigate, search.tab]);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
   // Categories query & state
@@ -96,7 +109,7 @@ export const SettingsPage: React.FC = () => {
               Configuración del Sistema
             </h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              Gestión de datos maestros, categorías y unidades de medida del catálogo
+              Gestión de datos maestros y parámetros operativos del sistema
             </p>
           </div>
         </div>
@@ -121,15 +134,25 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* Tabs Container */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(tab) =>
+          navigate({
+            to: '/settings',
+            search: tab === 'categories' ? {} : { tab: tab as SettingsTab },
+            replace: true,
+          })
+        }
+      >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
           <TabsList>
             <TabsTrigger value="categories">Categorías</TabsTrigger>
             <TabsTrigger value="units">Unidades de Medida</TabsTrigger>
+            {isAdmin && <TabsTrigger value="purchases">Compras</TabsTrigger>}
           </TabsList>
 
           {/* Action button corresponding to active tab */}
-          {isAdmin && (
+          {isAdmin && activeTab !== 'purchases' && (
             <div>
               {activeTab === 'categories' ? (
                 <Button
@@ -179,6 +202,8 @@ export const SettingsPage: React.FC = () => {
             isAdmin={isAdmin}
           />
         </TabsContent>
+
+        <TabsContent value="purchases">{isAdmin && <PurchaseToleranceSettings />}</TabsContent>
       </Tabs>
 
       {/* Category Modals */}

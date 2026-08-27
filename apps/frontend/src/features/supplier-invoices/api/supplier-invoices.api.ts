@@ -6,6 +6,7 @@ import type {
   IQueryPendingInvoiceReceiptsParams,
   ISupplierInvoiceDetail,
   ISupplierInvoiceSearchParams,
+  IRejectSupplierInvoicePayload,
 } from '../types/supplier-invoices.types';
 
 function compactParams(params: Record<string, unknown>): Record<string, unknown> {
@@ -53,5 +54,23 @@ export async function createSupplierInvoiceApi(
   payload: ICreateSupplierInvoicePayload,
 ): Promise<ISupplierInvoiceDetail> {
   const response = await apiClient.post<ISupplierInvoiceDetail>('/supplier-invoices', payload);
+  return response.data;
+}
+
+export async function authorizeSupplierInvoiceApi(id: string): Promise<ISupplierInvoiceDetail> {
+  const response = await apiClient.patch<ISupplierInvoiceDetail>(
+    `/supplier-invoices/${id}/authorize`,
+  );
+  return response.data;
+}
+
+export async function rejectSupplierInvoiceApi(
+  id: string,
+  payload: IRejectSupplierInvoicePayload,
+): Promise<ISupplierInvoiceDetail> {
+  const response = await apiClient.patch<ISupplierInvoiceDetail>(
+    `/supplier-invoices/${id}/reject`,
+    payload,
+  );
   return response.data;
 }

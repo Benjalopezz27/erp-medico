@@ -1,6 +1,9 @@
 import {
   SupplierInvoiceErrorCode,
   SupplierInvoiceAdjustmentMode,
+  SupplierInvoiceCostStatus,
+  SupplierInvoiceDecisionAction,
+  SupplierInvoiceObservationReason,
   SupplierInvoiceQuantityStatus,
   SupplierInvoiceStatus,
   type IPurchaseSettings,
@@ -14,11 +17,15 @@ import {
   type ISupplierInvoiceItemDetail,
   type ISupplierInvoiceSearchParams,
   type ISupplierInvoiceSummary,
+  type IRejectSupplierInvoicePayload,
 } from '@erp/shared-types';
 
 export {
   SupplierInvoiceErrorCode,
   SupplierInvoiceAdjustmentMode,
+  SupplierInvoiceCostStatus,
+  SupplierInvoiceDecisionAction,
+  SupplierInvoiceObservationReason,
   SupplierInvoiceQuantityStatus,
   SupplierInvoiceStatus,
   type IPurchaseSettings,
@@ -32,6 +39,7 @@ export {
   type ISupplierInvoiceItemDetail,
   type ISupplierInvoiceSearchParams,
   type ISupplierInvoiceSummary,
+  type IRejectSupplierInvoicePayload,
 };
 
 export interface SupplierInvoiceFormLine {

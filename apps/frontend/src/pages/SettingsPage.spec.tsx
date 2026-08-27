@@ -42,7 +42,7 @@ const mockUnits = [
   },
 ];
 
-function renderSettingsPage(role: UserRole = UserRole.ADMINISTRADOR) {
+function renderSettingsPage(role: UserRole = UserRole.ADMINISTRADOR, initialPath = '/settings') {
   useAuthStore.setState(useAuthStore.getInitialState(), true);
   useAuthStore.getState().setSession({
     accessToken: 'test-token',
@@ -55,7 +55,7 @@ function renderSettingsPage(role: UserRole = UserRole.ADMINISTRADOR) {
     },
   });
 
-  const router = createTestRouter([{ path: '/settings', component: SettingsPage }], '/settings');
+  const router = createTestRouter([{ path: '/settings', component: SettingsPage }], initialPath);
 
   return renderWithRouter({ router });
 }
@@ -71,6 +71,13 @@ describe('SettingsPage master catalog management', () => {
       http.get(`${baseUrl}/units`, () => {
         return HttpResponse.json(mockUnits);
       }),
+      http.get(`${baseUrl}/config/purchases`, () =>
+        HttpResponse.json({
+          costTolerancePercentage: '5.0000',
+          updatedAt: '2026-08-27T10:00:00.000Z',
+          updatedBy: null,
+        }),
+      ),
     );
   });
 
@@ -111,6 +118,16 @@ describe('SettingsPage master catalog management', () => {
       expect(screen.getByText('u')).toBeInTheDocument();
       expect(screen.getByText('Caja')).toBeInTheDocument();
       expect(screen.getByText('cj')).toBeInTheDocument();
+    });
+
+    it('opens the purchases tab directly for administrators', async () => {
+      renderSettingsPage(UserRole.ADMINISTRADOR, '/settings?tab=purchases');
+      expect(
+        await screen.findByRole('heading', {
+          name: 'Tolerancia de variación de costos',
+        }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Compras' })).toHaveAttribute('aria-selected', 'true');
     });
   });
 
@@ -153,6 +170,15 @@ describe('SettingsPage master catalog management', () => {
       ).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', { name: 'Eliminar unidad Unidad' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not expose the purchases tab to sellers even through the URL', async () => {
+      renderSettingsPage(UserRole.VENDEDOR, '/settings?tab=purchases');
+      expect(await screen.findByText('Analgésicos')).toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: 'Compras' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', { name: 'Tolerancia de variación de costos' }),
       ).not.toBeInTheDocument();
     });
   });

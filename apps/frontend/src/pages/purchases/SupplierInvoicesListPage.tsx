@@ -1,19 +1,27 @@
 import { useCallback } from 'react';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
-import { AlertCircle, Plus, RefreshCw } from 'lucide-react';
+import { AlertCircle, Eye, Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PurchasesNavigationTabs } from '@/features/purchase-orders/components/PurchasesNavigationTabs';
 import { PurchaseOrderPagination } from '@/features/purchase-orders/components/PurchaseOrderPagination';
 import { SupplierInvoiceFilters } from '@/features/supplier-invoices/components/SupplierInvoiceFilters';
 import { SupplierInvoicesTable } from '@/features/supplier-invoices/components/SupplierInvoicesTable';
 import { useSupplierInvoicesQuery } from '@/features/supplier-invoices/hooks/use-supplier-invoices';
-import type { ISupplierInvoiceSearchParams } from '@/features/supplier-invoices/types/supplier-invoices.types';
+import {
+  SupplierInvoiceStatus,
+  type ISupplierInvoiceSearchParams,
+} from '@/features/supplier-invoices/types/supplier-invoices.types';
 import { parseSupplierInvoiceError } from '@/features/supplier-invoices/utils/supplier-invoices.errors';
 
 export function SupplierInvoicesListPage() {
   const navigate = useNavigate();
   const filters = useSearch({ from: '/app/purchases/supplier-invoices' });
   const query = useSupplierInvoicesQuery(filters);
+  const observedQuery = useSupplierInvoicesQuery({
+    page: 1,
+    limit: 10,
+    status: SupplierInvoiceStatus.OBSERVADA,
+  });
   const update = useCallback(
     (next: Partial<ISupplierInvoiceSearchParams>, resetPage = true) =>
       navigate({
@@ -58,6 +66,31 @@ export function SupplierInvoicesListPage() {
         </div>
       </header>
       <PurchasesNavigationTabs active="supplier-invoices" />
+      <button
+        type="button"
+        onClick={() => update({ status: SupplierInvoiceStatus.OBSERVADA })}
+        aria-pressed={filters.status === SupplierInvoiceStatus.OBSERVADA}
+        className={`flex w-full items-center justify-between rounded-xl border p-4 text-left transition-colors ${
+          filters.status === SupplierInvoiceStatus.OBSERVADA
+            ? 'border-amber-400 bg-amber-50'
+            : 'border-slate-200 bg-white hover:border-amber-300 hover:bg-amber-50/50'
+        }`}
+      >
+        <span className="flex items-center gap-3">
+          <span className="rounded-lg bg-amber-100 p-2 text-amber-800">
+            <Eye className="h-5 w-5" />
+          </span>
+          <span>
+            <strong className="block">Facturas observadas</strong>
+            <span className="text-xs text-slate-500">
+              Pendientes de una decisión administrativa
+            </span>
+          </span>
+        </span>
+        <span className="font-mono text-2xl font-bold text-amber-800">
+          {observedQuery.isLoading ? '—' : (observedQuery.data?.meta.total ?? 0)}
+        </span>
+      </button>
       <SupplierInvoiceFilters
         filters={filters}
         onChange={(next) => update(next)}
