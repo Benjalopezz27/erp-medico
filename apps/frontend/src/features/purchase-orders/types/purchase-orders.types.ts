@@ -1,6 +1,7 @@
 import {
   PurchaseOrderStatus,
   PurchaseOrderErrorCode,
+  GoodsReceiptErrorCode,
   type ICreatePurchaseOrderPayload,
   type IUpdatePurchaseOrderPayload,
   type ICancelPurchaseOrderPayload,
@@ -8,11 +9,19 @@ import {
   type IPurchaseOrderDetail,
   type IPurchaseOrderItemDetail,
   type IPurchaseOrderSearchParams,
+  type ICreateGoodsReceiptPayload,
+  type ICreateGoodsReceiptItemPayload,
+  type ICreateGoodsReceiptResponse,
+  type IGoodsReceiptDetail,
+  type IGoodsReceiptItemDetail,
+  type IQueryGoodsReceiptsParams,
+  type IPaginatedGoodsReceiptsResponse,
 } from '@erp/shared-types';
 
 export {
   PurchaseOrderStatus,
   PurchaseOrderErrorCode,
+  GoodsReceiptErrorCode,
   type ICreatePurchaseOrderPayload,
   type IUpdatePurchaseOrderPayload,
   type ICancelPurchaseOrderPayload,
@@ -20,6 +29,13 @@ export {
   type IPurchaseOrderDetail,
   type IPurchaseOrderItemDetail,
   type IPurchaseOrderSearchParams,
+  type ICreateGoodsReceiptPayload,
+  type ICreateGoodsReceiptItemPayload,
+  type ICreateGoodsReceiptResponse,
+  type IGoodsReceiptDetail,
+  type IGoodsReceiptItemDetail,
+  type IQueryGoodsReceiptsParams,
+  type IPaginatedGoodsReceiptsResponse,
 };
 
 export interface PaginatedPurchaseOrdersResponse {
@@ -56,4 +72,15 @@ export interface IPurchaseOrderFormData {
   expectedDeliveryDate?: string | null;
   notes?: string | null;
   items: IPurchaseOrderFormItem[];
+}
+
+export interface IGoodsReceiptFormItem {
+  purchaseOrderItemId: string;
+  receivedQtyPurchaseUnit: string;
+  provisionalCostUnitNet: string;
+}
+
+export interface IGoodsReceiptFormData {
+  deliveryNoteNumber: string;
+  items: IGoodsReceiptFormItem[];
 }

@@ -10,13 +10,14 @@ import {
   AlertCircle,
   Clock,
   CheckCircle2,
-  Lock,
+  PackageCheck,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { PurchaseOrderStatusBadge } from '@/features/purchase-orders/components/PurchaseOrderStatusBadge';
 import { EmitPurchaseOrderModal } from '@/features/purchase-orders/components/EmitPurchaseOrderModal';
 import { CancelPurchaseOrderModal } from '@/features/purchase-orders/components/CancelPurchaseOrderModal';
 import { PurchaseOrderForm } from '@/features/purchase-orders/components/PurchaseOrderForm';
+import { GoodsReceiptsHistory } from '@/features/purchase-orders/components/goods-receipts/GoodsReceiptsHistory';
 import { usePurchaseOrderDetailQuery } from '@/features/purchase-orders/hooks/use-purchase-orders-query';
 import {
   useUpdatePurchaseOrderMutation,
@@ -240,23 +241,20 @@ export const PurchaseOrderDetailPage: React.FC = () => {
             </Button>
           )}
 
-          {/* Deferred Reception Action */}
           {(isEmitted || isPartial) && (
-            <div className="relative group">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={true}
-                className="text-xs opacity-50 cursor-not-allowed flex items-center gap-1.5"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                <span>Registrar Recepción</span>
-              </Button>
-              <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-20 bg-slate-900 text-white text-[11px] px-2.5 py-1 rounded shadow-lg whitespace-nowrap">
-                Recepción de mercadería disponible en próxima etapa (#133 / #134)
-              </div>
-            </div>
+            <Link
+              to="/purchases/orders/$id/receive"
+              params={{ id: order.id }}
+              className={buttonVariants({
+                variant: 'outline',
+                size: 'sm',
+                className:
+                  'text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50 dark:text-emerald-300 dark:border-emerald-800',
+              })}
+            >
+              <PackageCheck className="w-3.5 h-3.5 mr-1.5" />
+              Registrar Recepción
+            </Link>
           )}
         </div>
       </div>
@@ -484,6 +482,11 @@ export const PurchaseOrderDetailPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          <GoodsReceiptsHistory
+            purchaseOrderId={order.id}
+            enabled={order.status !== PurchaseOrderStatus.BORRADOR}
+          />
         </div>
       )}
 
