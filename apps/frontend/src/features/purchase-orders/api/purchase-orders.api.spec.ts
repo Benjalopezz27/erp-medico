@@ -6,6 +6,8 @@ import {
   updatePurchaseOrderApi,
   emitPurchaseOrderApi,
   cancelPurchaseOrderApi,
+  createGoodsReceiptApi,
+  getGoodsReceiptsByPurchaseOrderApi,
 } from './purchase-orders.api';
 import { PurchaseOrderStatus } from '../types/purchase-orders.types';
 
@@ -122,6 +124,38 @@ describe('Purchase Orders API Client', () => {
         cancelReason: 'Error de compra',
       });
       expect(result).toEqual(mockCancelled);
+    });
+  });
+
+  describe('goods receipts endpoints', () => {
+    it('posts a receipt against the selected purchase order', async () => {
+      const response = { receipt: { id: 'receipt-1' }, resultingPurchaseOrder: { id: 'po-123' } };
+      (apiClient.post as any).mockResolvedValueOnce({ data: response });
+      const payload = {
+        deliveryNoteNumber: '0001-00001234',
+        items: [{ purchaseOrderItemId: 'item-1', receivedQtyPurchaseUnit: 2 }],
+      };
+
+      await expect(createGoodsReceiptApi('po-123', payload)).resolves.toEqual(response);
+      expect(apiClient.post).toHaveBeenCalledWith('/purchase-orders/po-123/receipts', payload);
+    });
+
+    it('gets paginated receipt history and forwards AbortSignal', async () => {
+      const response = { data: [], meta: { total: 0 } };
+      const controller = new AbortController();
+      (apiClient.get as any).mockResolvedValueOnce({ data: response });
+
+      await expect(
+        getGoodsReceiptsByPurchaseOrderApi(
+          'po-123',
+          { page: 2, limit: 10 },
+          { signal: controller.signal },
+        ),
+      ).resolves.toEqual(response);
+      expect(apiClient.get).toHaveBeenCalledWith('/purchase-orders/po-123/receipts', {
+        params: { page: 2, limit: 10 },
+        signal: controller.signal,
+      });
     });
   });
 });

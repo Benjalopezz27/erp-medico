@@ -5,17 +5,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as queryHook from '@/features/purchase-orders/hooks/use-purchase-orders-query';
 import * as mutationsHook from '@/features/purchase-orders/hooks/use-purchase-order-mutations';
 import * as suppliersHook from '@/features/suppliers/hooks/use-suppliers-query';
+import * as receiptsHook from '@/features/purchase-orders/hooks/use-goods-receipts-query';
 import { PurchaseOrderStatus } from '@/features/purchase-orders/types/purchase-orders.types';
 
 const mockNavigate = vi.fn();
 const mockHistoryBack = vi.fn();
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to, ...props }: any) => (
-    <a href={to} {...props}>
-      {children}
-    </a>
-  ),
+  Link: ({ children, to }: any) => <a href={to}>{children}</a>,
   useParams: () => ({ id: '11111111-1111-4111-a111-111111111111' }),
   useNavigate: () => mockNavigate,
 
@@ -28,6 +25,7 @@ vi.mock('@tanstack/react-router', () => ({
 vi.mock('@/features/purchase-orders/hooks/use-purchase-orders-query');
 vi.mock('@/features/purchase-orders/hooks/use-purchase-order-mutations');
 vi.mock('@/features/suppliers/hooks/use-suppliers-query');
+vi.mock('@/features/purchase-orders/hooks/use-goods-receipts-query');
 
 function renderWithClient(ui: React.ReactElement) {
   const queryClient = new QueryClient({
@@ -114,6 +112,13 @@ describe('PurchaseOrderDetailPage', () => {
     vi.spyOn(queryHook, 'useSupplierProductsInfiniteQuery').mockReturnValue({
       data: { pages: [{ data: [] }] },
     } as any);
+
+    vi.spyOn(receiptsHook, 'useGoodsReceiptsQuery').mockReturnValue({
+      data: { data: [], meta: { total: 0, page: 1, limit: 10, totalPages: 0 } },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
   });
 
   it('renders order detail with snapshots, supplier info, and draft actions', () => {
@@ -177,5 +182,21 @@ describe('PurchaseOrderDetailPage', () => {
     await waitFor(() => {
       expect(mockUpdateMutateAsync).toHaveBeenCalled();
     });
+  });
+
+  it('enables goods receipt navigation for emitted orders', () => {
+    vi.spyOn(queryHook, 'usePurchaseOrderDetailQuery').mockReturnValue({
+      data: { ...mockOrder, status: PurchaseOrderStatus.EMITIDA },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    } as any);
+
+    renderWithClient(<PurchaseOrderDetailPage />);
+    expect(screen.getByRole('link', { name: /Registrar Recepción/i })).toHaveAttribute(
+      'href',
+      '/purchases/orders/$id/receive',
+    );
+    expect(screen.getByRole('heading', { name: 'Historial de recepciones' })).toBeInTheDocument();
   });
 });
