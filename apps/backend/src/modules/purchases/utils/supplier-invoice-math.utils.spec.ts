@@ -1,9 +1,14 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { SupplierInvoiceQuantityStatus } from '@erp/shared-types';
+import Decimal from 'decimal.js';
+import {
+  SupplierInvoiceAdjustmentMode,
+  SupplierInvoiceQuantityStatus,
+} from '@erp/shared-types';
 import {
   calculateSupplierInvoiceAllocation,
   calculateSupplierInvoiceAmounts,
   normalizeSupplierInvoiceTaxTotal,
+  calculateSupplierInvoiceTax,
 } from './supplier-invoice-math.utils';
 
 describe('supplier invoice math', () => {
@@ -16,7 +21,7 @@ describe('supplier invoice math', () => {
         bonusNet: '2.0000',
         surchargeNet: '0.5000',
       }),
-    ).toEqual({
+    ).toMatchObject({
       unitPriceNet: '10.0000',
       discountNet: '1.0000',
       bonusNet: '2.0000',
@@ -24,6 +29,33 @@ describe('supplier invoice math', () => {
       realCostUnitNet: '9.1667',
       lineNetTotal: '27.5000',
     });
+  });
+
+  it('calculates percentage adjustments over gross and percentage tax over net', () => {
+    const amounts = calculateSupplierInvoiceAmounts({
+      invoicedQty: '2',
+      unitPriceNet: '100',
+      discountMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+      discountPercentage: '10',
+      bonusMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+      bonusPercentage: '5',
+      surchargeMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+      surchargePercentage: '2',
+    });
+    expect(amounts).toMatchObject({
+      discountNet: '20.0000',
+      bonusNet: '10.0000',
+      surchargeNet: '4.0000',
+      lineNetTotal: '174.0000',
+    });
+    expect(
+      calculateSupplierInvoiceTax({
+        netTotal: new Decimal('174'),
+        taxTotal: '0',
+        taxMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+        taxPercentage: '21',
+      }),
+    ).toMatchObject({ taxTotal: '36.5400', taxPercentage: '21.0000' });
   });
 
   it('partitions base cumulatively and closes exactly on the last allocation', () => {

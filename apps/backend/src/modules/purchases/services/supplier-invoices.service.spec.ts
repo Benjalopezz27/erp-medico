@@ -8,6 +8,9 @@ import { SupplierInvoicesService } from './supplier-invoices.service';
 describe('SupplierInvoicesService', () => {
   const dataSource = { transaction: jest.fn(), manager: {} } as any;
   const auditService = { record: jest.fn() } as any;
+  const systemConfigService = {
+    getPurchaseToleranceSnapshot: jest.fn(),
+  } as any;
   const invoiceRepository = {
     findOne: jest.fn(),
     createQueryBuilder: jest.fn(),
@@ -31,9 +34,13 @@ describe('SupplierInvoicesService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    systemConfigService.getPurchaseToleranceSnapshot.mockResolvedValue(
+      '5.0000',
+    );
     service = new SupplierInvoicesService(
       dataSource,
       auditService,
+      systemConfigService,
       invoiceRepository,
       receiptRepository,
     );

@@ -6,7 +6,11 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { SupplierInvoiceQuantityStatus } from '@erp/shared-types';
+import {
+  SupplierInvoiceAdjustmentMode,
+  SupplierInvoiceCostStatus,
+  SupplierInvoiceQuantityStatus,
+} from '@erp/shared-types';
 import { Product } from '../../products/entities/product.entity';
 import { Unit } from '../../units/entities/unit.entity';
 import { GoodsReceiptItem } from './goods-receipt-item.entity';
@@ -136,11 +140,47 @@ export class SupplierInvoiceItem {
   @Column({ name: 'discount_net', type: 'numeric', precision: 24, scale: 4 })
   discountNet: string;
 
+  @Column({ name: 'discount_mode', type: 'varchar', length: 20 })
+  discountMode: SupplierInvoiceAdjustmentMode;
+
+  @Column({
+    name: 'discount_percentage',
+    type: 'numeric',
+    precision: 7,
+    scale: 4,
+    nullable: true,
+  })
+  discountPercentage: string | null;
+
   @Column({ name: 'bonus_net', type: 'numeric', precision: 24, scale: 4 })
   bonusNet: string;
 
+  @Column({ name: 'bonus_mode', type: 'varchar', length: 20 })
+  bonusMode: SupplierInvoiceAdjustmentMode;
+
+  @Column({
+    name: 'bonus_percentage',
+    type: 'numeric',
+    precision: 7,
+    scale: 4,
+    nullable: true,
+  })
+  bonusPercentage: string | null;
+
   @Column({ name: 'surcharge_net', type: 'numeric', precision: 24, scale: 4 })
   surchargeNet: string;
+
+  @Column({ name: 'surcharge_mode', type: 'varchar', length: 20 })
+  surchargeMode: SupplierInvoiceAdjustmentMode;
+
+  @Column({
+    name: 'surcharge_percentage',
+    type: 'numeric',
+    precision: 7,
+    scale: 4,
+    nullable: true,
+  })
+  surchargePercentage: string | null;
 
   @Column({
     name: 'real_cost_unit_net',
@@ -152,6 +192,32 @@ export class SupplierInvoiceItem {
 
   @Column({ name: 'line_net_total', type: 'numeric', precision: 24, scale: 4 })
   lineNetTotal: string;
+
+  @Column({
+    name: 'cost_difference_unit_net',
+    type: 'numeric',
+    precision: 24,
+    scale: 4,
+  })
+  costDifferenceUnitNet: string;
+
+  @Column({
+    name: 'cost_variation_percentage',
+    type: 'numeric',
+    precision: 30,
+    scale: 4,
+    nullable: true,
+  })
+  costVariationPercentage: string | null;
+
+  @Column({ name: 'cost_status', type: 'varchar', length: 40 })
+  costStatus: SupplierInvoiceCostStatus;
+
+  @Column({ name: 'quantity_observed', type: 'boolean' })
+  quantityObserved: boolean;
+
+  @Column({ name: 'cost_observed', type: 'boolean' })
+  costObserved: boolean;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;

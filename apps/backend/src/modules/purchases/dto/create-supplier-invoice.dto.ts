@@ -3,6 +3,7 @@ import {
   ArrayMinSize,
   IsArray,
   IsNotEmpty,
+  IsEnum,
   IsOptional,
   IsString,
   IsUUID,
@@ -11,6 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { SupplierInvoiceAdjustmentMode } from '@erp/shared-types';
 
 const DECIMAL_4 = /^\d{1,20}(?:\.\d{1,4})?$/;
 const POSITIVE_DECIMAL_4 = /^(?!0+(?:\.0+)?$)\d{1,20}(?:\.\d{1,4})?$/;
@@ -53,6 +55,48 @@ export class CreateSupplierInvoiceItemDto {
   @IsString()
   @Matches(DECIMAL_4)
   surchargeNet?: string;
+
+  @ApiPropertyOptional({
+    enum: SupplierInvoiceAdjustmentMode,
+    default: SupplierInvoiceAdjustmentMode.AMOUNT,
+  })
+  @IsOptional()
+  @IsEnum(SupplierInvoiceAdjustmentMode)
+  discountMode?: SupplierInvoiceAdjustmentMode;
+
+  @ApiPropertyOptional({ example: '10.0000' })
+  @IsOptional()
+  @IsString()
+  @Matches(DECIMAL_4)
+  discountPercentage?: string;
+
+  @ApiPropertyOptional({
+    enum: SupplierInvoiceAdjustmentMode,
+    default: SupplierInvoiceAdjustmentMode.AMOUNT,
+  })
+  @IsOptional()
+  @IsEnum(SupplierInvoiceAdjustmentMode)
+  bonusMode?: SupplierInvoiceAdjustmentMode;
+
+  @ApiPropertyOptional({ example: '5.0000' })
+  @IsOptional()
+  @IsString()
+  @Matches(DECIMAL_4)
+  bonusPercentage?: string;
+
+  @ApiPropertyOptional({
+    enum: SupplierInvoiceAdjustmentMode,
+    default: SupplierInvoiceAdjustmentMode.AMOUNT,
+  })
+  @IsOptional()
+  @IsEnum(SupplierInvoiceAdjustmentMode)
+  surchargeMode?: SupplierInvoiceAdjustmentMode;
+
+  @ApiPropertyOptional({ example: '2.0000' })
+  @IsOptional()
+  @IsString()
+  @Matches(DECIMAL_4)
+  surchargePercentage?: string;
 }
 
 export class CreateSupplierInvoiceDto {
@@ -77,6 +121,20 @@ export class CreateSupplierInvoiceDto {
     message: 'El IVA debe ser un decimal no negativo con hasta 4 decimales.',
   })
   taxTotal: string;
+
+  @ApiPropertyOptional({
+    enum: SupplierInvoiceAdjustmentMode,
+    default: SupplierInvoiceAdjustmentMode.AMOUNT,
+  })
+  @IsOptional()
+  @IsEnum(SupplierInvoiceAdjustmentMode)
+  taxMode?: SupplierInvoiceAdjustmentMode;
+
+  @ApiPropertyOptional({ example: '21.0000' })
+  @IsOptional()
+  @IsString()
+  @Matches(DECIMAL_4)
+  taxPercentage?: string;
 
   @ApiProperty({ type: [CreateSupplierInvoiceItemDto] })
   @IsArray()

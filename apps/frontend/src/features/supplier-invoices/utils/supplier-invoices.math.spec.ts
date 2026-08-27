@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { SupplierInvoiceQuantityStatus } from '../types/supplier-invoices.types';
+import {
+  SupplierInvoiceAdjustmentMode,
+  SupplierInvoiceQuantityStatus,
+} from '../types/supplier-invoices.types';
 import {
   calculateInvoiceLine,
   calculateInvoiceTotals,
@@ -61,5 +64,27 @@ describe('supplier invoice decimal math', () => {
     expect(totals.netTotal.toFixed(4)).toBe('10.5556');
     expect(totals.totalAmount.toFixed(4)).toBe('12.7723');
     expect(formatDecimalAr('1234567.5', 2)).toBe('1.234.567,50');
+  });
+
+  it('supports percentage adjustments and IVA without floating point conversion', () => {
+    const line = calculateInvoiceLine({
+      quantity: '2',
+      available: '2',
+      unitPrice: '100',
+      discount: '10',
+      bonus: '5',
+      surcharge: '2',
+      discountMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+      bonusMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+      surchargeMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+    });
+    expect(line.net.toFixed(4)).toBe('174.0000');
+    const totals = calculateInvoiceTotals(
+      [line.net],
+      '21',
+      SupplierInvoiceAdjustmentMode.PERCENTAGE,
+    );
+    expect(totals.taxTotal.toFixed(4)).toBe('36.5400');
+    expect(totals.totalAmount.toFixed(4)).toBe('210.5400');
   });
 });

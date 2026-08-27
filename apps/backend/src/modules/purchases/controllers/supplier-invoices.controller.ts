@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Patch,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -36,6 +37,8 @@ import { CreateSupplierInvoiceDto } from '../dto/create-supplier-invoice.dto';
 import { QuerySupplierInvoicesDto } from '../dto/query-supplier-invoices.dto';
 import { QueryPendingInvoiceReceiptsDto } from '../dto/query-pending-invoice-receipts.dto';
 import { SupplierInvoicesService } from '../services/supplier-invoices.service';
+import { SupplierInvoiceDecisionsService } from '../services/supplier-invoice-decisions.service';
+import { RejectSupplierInvoiceDto } from '../dto/reject-supplier-invoice.dto';
 import {
   PaginatedPendingInvoiceReceiptsResponseDto,
   PaginatedSupplierInvoicesResponseDto,
@@ -50,6 +53,7 @@ import {
 export class SupplierInvoicesController {
   constructor(
     private readonly supplierInvoicesService: SupplierInvoicesService,
+    private readonly decisionsService: SupplierInvoiceDecisionsService,
   ) {}
 
   @Post()
@@ -101,6 +105,29 @@ export class SupplierInvoicesController {
     @Query() query: QueryPendingInvoiceReceiptsDto,
   ): Promise<IPaginatedPendingInvoiceReceiptsResponse> {
     return this.supplierInvoicesService.findPendingReceipts(query);
+  }
+
+  @Patch(':id/authorize')
+  @ApiOperation({ summary: 'Autorizar manualmente una factura observada' })
+  @ApiOkResponse({ type: SupplierInvoiceResponseDto })
+  authorize(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() user: User,
+  ): Promise<ISupplierInvoiceDetail> {
+    return this.decisionsService.authorize(id, user.id);
+  }
+
+  @Patch(':id/reject')
+  @ApiOperation({
+    summary: 'Rechazar una factura observada y liberar su reserva',
+  })
+  @ApiOkResponse({ type: SupplierInvoiceResponseDto })
+  reject(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() dto: RejectSupplierInvoiceDto,
+    @CurrentUser() user: User,
+  ): Promise<ISupplierInvoiceDetail> {
+    return this.decisionsService.reject(id, user.id, dto.reason);
   }
 
   @Get(':id')

@@ -2,6 +2,9 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   SupplierInvoiceQuantityStatus,
   SupplierInvoiceStatus,
+  SupplierInvoiceAdjustmentMode,
+  SupplierInvoiceCostStatus,
+  SupplierInvoiceObservationReason,
 } from '@erp/shared-types';
 
 export class SupplierInvoiceItemResponseDto {
@@ -34,6 +37,21 @@ export class SupplierInvoiceItemResponseDto {
   @ApiProperty({ example: '0.0000' }) surchargeNet: string;
   @ApiProperty({ example: '110.0000' }) realCostUnitNet: string;
   @ApiProperty({ example: '550.0000' }) lineNetTotal: string;
+  @ApiProperty({ enum: SupplierInvoiceAdjustmentMode })
+  discountMode: SupplierInvoiceAdjustmentMode;
+  @ApiProperty({ nullable: true }) discountPercentage: string | null;
+  @ApiProperty({ enum: SupplierInvoiceAdjustmentMode })
+  bonusMode: SupplierInvoiceAdjustmentMode;
+  @ApiProperty({ nullable: true }) bonusPercentage: string | null;
+  @ApiProperty({ enum: SupplierInvoiceAdjustmentMode })
+  surchargeMode: SupplierInvoiceAdjustmentMode;
+  @ApiProperty({ nullable: true }) surchargePercentage: string | null;
+  @ApiProperty() costDifferenceUnitNet: string;
+  @ApiProperty({ nullable: true }) costVariationPercentage: string | null;
+  @ApiProperty({ enum: SupplierInvoiceCostStatus })
+  costStatus: SupplierInvoiceCostStatus;
+  @ApiProperty({ enum: SupplierInvoiceObservationReason, isArray: true })
+  observationReasons: SupplierInvoiceObservationReason[];
 }
 
 export class SupplierInvoiceResponseDto {
@@ -58,6 +76,10 @@ export class SupplierInvoiceResponseDto {
   @ApiProperty({ enum: SupplierInvoiceStatus }) status: SupplierInvoiceStatus;
   @ApiProperty() netTotal: string;
   @ApiProperty() taxTotal: string;
+  @ApiProperty({ enum: SupplierInvoiceAdjustmentMode })
+  taxMode: SupplierInvoiceAdjustmentMode;
+  @ApiProperty({ nullable: true }) taxPercentage: string | null;
+  @ApiProperty() costTolerancePercentageSnapshot: string;
   @ApiProperty() totalAmount: string;
   @ApiProperty() itemCount: number;
   @ApiProperty() observedLineCount: number;
@@ -70,6 +92,7 @@ export class SupplierInvoiceResponseDto {
   @ApiProperty({ format: 'date-time' }) updatedAt: string;
   @ApiProperty({ type: [SupplierInvoiceItemResponseDto] })
   items: SupplierInvoiceItemResponseDto[];
+  @ApiProperty({ type: 'object', nullable: true }) decision: object | null;
 }
 
 export class PaginatedSupplierInvoicesResponseDto {

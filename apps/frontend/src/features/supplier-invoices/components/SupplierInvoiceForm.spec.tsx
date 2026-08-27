@@ -59,4 +59,59 @@ describe('SupplierInvoiceForm', () => {
     );
     expect(onCreated).toHaveBeenCalledWith({ id: 'invoice-1' });
   });
+
+  it('allows percentage discounts, bonuses, surcharges and VAT', async () => {
+    const user = userEvent.setup();
+    mutateAsync.mockResolvedValue({ id: 'invoice-percentage' });
+    render(
+      <SupplierInvoiceForm
+        receipt={pendingReceiptFixture}
+        onCreated={vi.fn()}
+        onChangeReceipt={vi.fn()}
+        onRefreshReceipt={vi.fn()}
+        onReceiptUpdated={vi.fn()}
+      />,
+    );
+
+    await user.type(screen.getByLabelText('Número de comprobante'), 'P-1');
+    await user.type(screen.getByLabelText('invoicedQtyPurchaseUnit Producto médico'), '2');
+    await user.selectOptions(screen.getByLabelText('Modo de IVA'), 'PERCENTAGE');
+    await user.clear(screen.getByLabelText('Valor de IVA'));
+    await user.type(screen.getByLabelText('Valor de IVA'), '21');
+
+    for (const [field, percentage] of [
+      ['discountNet', '10'],
+      ['bonusNet', '5'],
+      ['surchargeNet', '2'],
+    ] as const) {
+      await user.selectOptions(
+        screen.getByLabelText(`Modo ${field} Producto médico`),
+        'PERCENTAGE',
+      );
+      await user.clear(screen.getByLabelText(`${field} Producto médico`));
+      await user.type(screen.getByLabelText(`${field} Producto médico`), percentage);
+    }
+
+    await user.click(screen.getByRole('button', { name: /revisar factura/i }));
+    expect(await screen.findByRole('dialog')).toHaveTextContent('$ 210,54');
+    await user.click(screen.getByRole('button', { name: /registrar factura/i }));
+
+    expect(mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taxMode: 'PERCENTAGE',
+        taxPercentage: '21.0000',
+        taxTotal: '0.0000',
+        items: [
+          expect.objectContaining({
+            discountMode: 'PERCENTAGE',
+            discountPercentage: '10.0000',
+            bonusMode: 'PERCENTAGE',
+            bonusPercentage: '5.0000',
+            surchargeMode: 'PERCENTAGE',
+            surchargePercentage: '2.0000',
+          }),
+        ],
+      }),
+    );
+  });
 });

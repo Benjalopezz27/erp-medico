@@ -8,7 +8,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { SupplierInvoiceStatus } from '@erp/shared-types';
+import {
+  SupplierInvoiceAdjustmentMode,
+  SupplierInvoiceDecisionAction,
+  SupplierInvoiceStatus,
+} from '@erp/shared-types';
 import { Supplier } from '../../suppliers/entities/supplier.entity';
 import { User } from '../../users/entities/user.entity';
 import { GoodsReceipt } from './goods-receipt.entity';
@@ -47,6 +51,48 @@ export class SupplierInvoice {
   @Column({ name: 'tax_total', type: 'numeric', precision: 24, scale: 4 })
   taxTotal: string;
 
+  @Column({ name: 'tax_mode', type: 'varchar', length: 20 })
+  taxMode: SupplierInvoiceAdjustmentMode;
+
+  @Column({
+    name: 'tax_percentage',
+    type: 'numeric',
+    precision: 7,
+    scale: 4,
+    nullable: true,
+  })
+  taxPercentage: string | null;
+
+  @Column({
+    name: 'cost_tolerance_percentage_snapshot',
+    type: 'numeric',
+    precision: 7,
+    scale: 4,
+  })
+  costTolerancePercentageSnapshot: string;
+
+  @Column({
+    name: 'decision_action',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
+  decisionAction: SupplierInvoiceDecisionAction | null;
+
+  @Column({
+    name: 'decision_reason',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  decisionReason: string | null;
+
+  @Column({ name: 'decision_user_id', type: 'uuid', nullable: true })
+  decisionUserId: string | null;
+
+  @Column({ name: 'decided_at', type: 'timestamptz', nullable: true })
+  decidedAt: Date | null;
+
   @Column({ name: 'total_amount', type: 'numeric', precision: 24, scale: 4 })
   totalAmount: string;
 
@@ -76,6 +122,10 @@ export class SupplierInvoice {
   @ManyToOne(() => User, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'user_id' })
   user?: User;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'decision_user_id' })
+  decisionUser?: User | null;
 
   @OneToMany(() => SupplierInvoiceItem, (item) => item.supplierInvoice)
   items?: SupplierInvoiceItem[];

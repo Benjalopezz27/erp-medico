@@ -4,11 +4,14 @@ import * as request from 'supertest';
 import { DataSource } from 'typeorm';
 import {
   ProductStatus,
+  SupplierInvoiceAdjustmentMode,
+  SupplierInvoiceObservationReason,
   SupplierInvoiceStatus,
   TaxCondition,
 } from '@erp/shared-types';
 import { AppModule } from '../src/app.module';
 import { runInitialSeed } from '../src/database/seeds/initial.seed';
+import { AuditLog } from '../src/modules/audit/entities/audit-log.entity';
 import { Category } from '../src/modules/categories/entities/category.entity';
 import { Product } from '../src/modules/products/entities/product.entity';
 import { PurchaseOrderItem } from '../src/modules/purchases/entities/purchase-order-item.entity';
@@ -51,6 +54,10 @@ describe('Supplier invoices (E2E)', () => {
       vendedorEmail: 'seller-invoices@erp.com',
       vendedorPassword: 'SellerPassword123!',
     });
+    // The broad users CASCADE cleanup also truncates this singleton table.
+    await ds.query(
+      `INSERT INTO purchase_settings (id, cost_tolerance_percentage) VALUES (1, 5.0000)`,
+    );
     adminToken = (
       await request(app.getHttpServer()).post('/api/v1/auth/login').send({
         email: 'admin-invoices@erp.com',
@@ -159,10 +166,10 @@ describe('Supplier invoices (E2E)', () => {
       {
         goodsReceiptItemId: receiptItemId,
         invoicedQtyPurchaseUnit: quantity,
-        unitPriceNet: '100.0000',
-        discountNet: '5.0000',
+        unitPriceNet: '500.0000',
+        discountNet: '0.0000',
         bonusNet: '0.0000',
-        surchargeNet: '2.0000',
+        surchargeNet: '0.0000',
       },
     ],
   });
@@ -177,7 +184,7 @@ describe('Supplier invoices (E2E)', () => {
       .expect(403);
   });
 
-  it('creates an exact VALIDANDO invoice without changing stock or product cost', async () => {
+  it('automatically authorizes an invoice within tolerance without changing stock or product cost', async () => {
     const receipt = await createReceipt();
     const stockBefore = await ds
       .getRepository(Stock)
@@ -197,13 +204,16 @@ describe('Supplier invoices (E2E)', () => {
         ),
       )
       .expect(201);
-    expect(response.body.status).toBe(SupplierInvoiceStatus.VALIDANDO);
-    expect(response.body.netTotal).toBe('997.0000');
-    expect(response.body.totalAmount).toBe('1018.0000');
+    expect(response.body.status).toBe(SupplierInvoiceStatus.AUTORIZADA);
+    expect(response.body.costTolerancePercentageSnapshot).toBe('5.0000');
+    expect(response.body.netTotal).toBe('5000.0000');
+    expect(response.body.totalAmount).toBe('5021.0000');
     expect(response.body.items[0]).toMatchObject({
       allocatedReceivedQtyPurchaseUnit: '10.0000',
       allocatedReceivedQtyBase: '100.00',
       pendingQtyAfter: '0.0000',
+      costVariationPercentage: '0.0000',
+      observationReasons: [],
     });
     expect(
       (await ds.getRepository(Stock).findOneByOrFail({ productId: product.id }))
@@ -341,8 +351,183 @@ describe('Supplier invoices (E2E)', () => {
     );
     expect(allocated).toBe(5);
     expect([first.body.status, second.body.status].sort()).toEqual(
-      [SupplierInvoiceStatus.OBSERVADA, SupplierInvoiceStatus.VALIDANDO].sort(),
+      [
+        SupplierInvoiceStatus.AUTORIZADA,
+        SupplierInvoiceStatus.OBSERVADA,
+      ].sort(),
     );
+  });
+
+  it('supports percentage adjustments and VAT with authoritative decimal amounts', async () => {
+    const receipt = await createReceipt(2);
+    const response = await request(app.getHttpServer())
+      .post('/api/v1/supplier-invoices')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        goodsReceiptId: receipt.receiptId,
+        invoiceNumber: 'P 0005-00000001',
+        invoiceDate: '2026-08-27',
+        taxTotal: '0.0000',
+        taxMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+        taxPercentage: '21.0000',
+        items: [
+          {
+            goodsReceiptItemId: receipt.receiptItemId,
+            invoicedQtyPurchaseUnit: '2.0000',
+            unitPriceNet: '500.0000',
+            discountNet: '0.0000',
+            discountMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+            discountPercentage: '10.0000',
+            bonusNet: '0.0000',
+            bonusMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+            bonusPercentage: '5.0000',
+            surchargeNet: '0.0000',
+            surchargeMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+            surchargePercentage: '2.0000',
+          },
+        ],
+      })
+      .expect(201);
+
+    expect(response.body).toMatchObject({
+      taxMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+      taxPercentage: '21.0000',
+      netTotal: '870.0000',
+      taxTotal: '182.7000',
+      totalAmount: '1052.7000',
+    });
+    expect(response.body.items[0]).toMatchObject({
+      discountMode: SupplierInvoiceAdjustmentMode.PERCENTAGE,
+      discountPercentage: '10.0000',
+      discountNet: '100.0000',
+      bonusPercentage: '5.0000',
+      bonusNet: '50.0000',
+      surchargePercentage: '2.0000',
+      surchargeNet: '20.0000',
+      realCostUnitNet: '435.0000',
+    });
+  });
+
+  it('configures tolerance, accumulates observation reasons and resolves observed invoices', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/config/purchases')
+      .set('Authorization', `Bearer ${sellerToken}`)
+      .expect(403);
+    await request(app.getHttpServer())
+      .patch('/api/v1/config/purchases')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ costTolerancePercentage: '4.0000' })
+      .expect(200)
+      .expect(({ body }) =>
+        expect(body.costTolerancePercentage).toBe('4.0000'),
+      );
+
+    const rejectedReceipt = await createReceipt(5);
+    const observed = await request(app.getHttpServer())
+      .post('/api/v1/supplier-invoices')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        ...payload(
+          rejectedReceipt.receiptId,
+          rejectedReceipt.receiptItemId,
+          'O 0006-00000001',
+          '6.0000',
+        ),
+        items: [
+          {
+            ...payload(
+              rejectedReceipt.receiptId,
+              rejectedReceipt.receiptItemId,
+              'unused',
+              '6.0000',
+            ).items[0],
+            unitPriceNet: '525.0001',
+          },
+        ],
+      })
+      .expect(201);
+
+    expect(observed.body.status).toBe(SupplierInvoiceStatus.OBSERVADA);
+    expect(observed.body.costTolerancePercentageSnapshot).toBe('4.0000');
+    expect(observed.body.items[0].observationReasons).toEqual(
+      expect.arrayContaining([
+        SupplierInvoiceObservationReason.QUANTITY_EXCESS,
+        SupplierInvoiceObservationReason.COST_VARIATION,
+      ]),
+    );
+
+    const rejected = await request(app.getHttpServer())
+      .patch(`/api/v1/supplier-invoices/${observed.body.id}/reject`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ reason: 'La factura no coincide con lo acordado.' })
+      .expect(200);
+    expect(rejected.body.status).toBe(SupplierInvoiceStatus.RECHAZADA);
+    expect(rejected.body.decision.reason).toBe(
+      'La factura no coincide con lo acordado.',
+    );
+
+    const pending = await request(app.getHttpServer())
+      .get('/api/v1/supplier-invoices/pending-receipts')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    const restored = pending.body.data.find(
+      (item: any) => item.id === rejectedReceipt.receiptId,
+    );
+    expect(restored.items[0].availableQtyPurchaseUnit).toBe('5.0000');
+
+    const authorizedReceipt = await createReceipt(1);
+    const secondObserved = await request(app.getHttpServer())
+      .post('/api/v1/supplier-invoices')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        ...payload(
+          authorizedReceipt.receiptId,
+          authorizedReceipt.receiptItemId,
+          'O 0006-00000002',
+          '1.0000',
+        ),
+        items: [
+          {
+            ...payload(
+              authorizedReceipt.receiptId,
+              authorizedReceipt.receiptItemId,
+              'unused',
+              '1.0000',
+            ).items[0],
+            unitPriceNet: '530.0000',
+          },
+        ],
+      })
+      .expect(201);
+    const auditCountBefore = await ds.getRepository(AuditLog).countBy({
+      entityName: 'SupplierInvoice',
+      entityId: secondObserved.body.id,
+    });
+    const decisions = await Promise.all([
+      request(app.getHttpServer())
+        .patch(`/api/v1/supplier-invoices/${secondObserved.body.id}/authorize`)
+        .set('Authorization', `Bearer ${adminToken}`),
+      request(app.getHttpServer())
+        .patch(`/api/v1/supplier-invoices/${secondObserved.body.id}/authorize`)
+        .set('Authorization', `Bearer ${adminToken}`),
+    ]);
+    expect(decisions.map((response) => response.status)).toEqual([200, 200]);
+    for (const decision of decisions) {
+      expect(decision.body.status).toBe(SupplierInvoiceStatus.AUTORIZADA);
+      expect(decision.body.decision.action).toBe('AUTHORIZE');
+    }
+    expect(
+      await ds.getRepository(AuditLog).countBy({
+        entityName: 'SupplierInvoice',
+        entityId: secondObserved.body.id,
+      }),
+    ).toBe(auditCountBefore + 1);
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/config/purchases')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ costTolerancePercentage: '5.0000' })
+      .expect(200);
   });
 
   it('accepts historical receipts after deactivating masters and rejects crossed items', async () => {
