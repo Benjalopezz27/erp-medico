@@ -10,7 +10,6 @@ import { AppModule } from '../src/app.module';
 import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter';
 import dataSource from '../src/database/data-source';
 
-
 @Controller('test-throttling')
 class TestThrottlingController {
   @Get('limited')
