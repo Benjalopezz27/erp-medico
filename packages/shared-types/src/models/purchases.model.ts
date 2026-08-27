@@ -88,24 +88,91 @@ export interface IPurchaseOrderSearchParams {
 export type IPurchaseOrderItem = IPurchaseOrderItemDetail;
 export type IPurchaseOrder = IPurchaseOrderDetail;
 
-export interface IGoodsReceiptItem {
-  id: string;
-  goodsReceiptId: string;
-  productId: string;
-  quantityReceivedBase: number;
-  conversionFactorUsed: number;
+// Goods Receipt Models
+export interface ICreateGoodsReceiptItemPayload {
+  purchaseOrderItemId: string;
+  receivedQtyPurchaseUnit: number;
+  provisionalCostUnitNet?: number | null;
 }
 
-export interface IGoodsReceipt {
+export interface ICreateGoodsReceiptPayload {
+  deliveryNoteNumber: string;
+  items: ICreateGoodsReceiptItemPayload[];
+}
+
+export interface IGoodsReceiptItemDetail {
+  id: string;
+  purchaseOrderItemId: string;
+  productId: string;
+  productCode: string;
+  productName: string;
+  purchaseUnitId: string;
+  purchaseUnitName: string;
+  purchaseUnitSymbol: string;
+  receivedQtyPurchaseUnit: string;
+  conversionFactorUsed: string;
+  receivedQtyBase: string;
+  provisionalCostUnitNet: string;
+  provisionalSubtotalNet: string;
+  stockMovementId: string;
+  previousStock: string;
+  subsequentStock: string;
+}
+
+export interface IGoodsReceiptDetail {
   id: string;
   receiptNumber: string;
-  purchaseOrderId?: string | null;
-  supplierId: string;
-  deliveryNoteNumber?: string | null;
-  items?: IGoodsReceiptItem[];
-  userId: string;
-  createdAt: Date | string;
+  purchaseOrderId: string;
+  orderNumber: string;
+  supplier: {
+    id: string;
+    businessName: string;
+    cuit: string;
+  };
+  deliveryNoteNumber: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  createdAt: string;
+  items: IGoodsReceiptItemDetail[];
 }
+
+export interface ICreateGoodsReceiptResponse {
+  receipt: IGoodsReceiptDetail;
+  resultingPurchaseOrder: {
+    id: string;
+    status: PurchaseOrderStatus;
+    items: Array<{
+      purchaseOrderItemId: string;
+      orderedQty: string;
+      receivedQty: string;
+      pendingQty: string;
+    }>;
+  };
+}
+
+export interface IQueryGoodsReceiptsParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface IPaginatedGoodsReceiptsResponse {
+  data: IGoodsReceiptDetail[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
+// Backward-compatible alias for preliminary models
+export type IGoodsReceipt = IGoodsReceiptDetail;
+export type IGoodsReceiptItem = IGoodsReceiptItemDetail;
 
 export interface ISupplierInvoiceItem {
   id: string;
