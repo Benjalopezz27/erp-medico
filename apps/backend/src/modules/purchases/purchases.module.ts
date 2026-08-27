@@ -4,6 +4,7 @@ import { PurchasesController } from './purchases.controller';
 import { GoodsReceiptsController } from './controllers/goods-receipts.controller';
 import { PurchaseOrdersService } from './services/purchase-orders.service';
 import { GoodsReceiptsService } from './services/goods-receipts.service';
+import { BackordersService } from './services/backorders.service';
 import { PurchaseOrder } from './entities/purchase-order.entity';
 import { PurchaseOrderItem } from './entities/purchase-order-item.entity';
 import { GoodsReceipt } from './entities/goods-receipt.entity';
@@ -27,7 +28,7 @@ import { StockModule } from '../stock/stock.module';
     StockModule,
   ],
   controllers: [PurchasesController, GoodsReceiptsController],
-  providers: [PurchaseOrdersService, GoodsReceiptsService],
-  exports: [PurchaseOrdersService, GoodsReceiptsService],
+  providers: [PurchaseOrdersService, GoodsReceiptsService, BackordersService],
+  exports: [PurchaseOrdersService, GoodsReceiptsService, BackordersService],
 })
 export class PurchasesModule {}

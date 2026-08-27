@@ -1,12 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PurchasesController } from './purchases.controller';
 import { PurchaseOrdersService } from './services/purchase-orders.service';
+import { BackordersService } from './services/backorders.service';
 import { PurchaseOrderStatus, UserRole } from '@erp/shared-types';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 
 describe('PurchasesController Unit Tests', () => {
   let controller: PurchasesController;
   let service: jest.Mocked<PurchaseOrdersService>;
+  let backordersService: jest.Mocked<BackordersService>;
 
   const mockAdminUser: AuthenticatedUser = {
     id: '11111111-1111-1111-1111-111111111111',
@@ -55,10 +57,26 @@ describe('PurchasesController Unit Tests', () => {
         cancelledAt: '2026-08-26T15:40:00.000Z',
       }),
     } as unknown as jest.Mocked<PurchaseOrdersService>;
+    backordersService = {
+      findPending: jest.fn().mockResolvedValue({
+        generatedAt: '2026-08-27T15:00:00.000Z',
+        summary: {
+          supplierCount: 0,
+          orderCount: 0,
+          pendingProductCount: 0,
+          pendingLineCount: 0,
+          urgentOrderCount: 0,
+        },
+        groups: [],
+      }),
+    } as unknown as jest.Mocked<BackordersService>;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PurchasesController],
-      providers: [{ provide: PurchaseOrdersService, useValue: service }],
+      providers: [
+        { provide: PurchaseOrdersService, useValue: service },
+        { provide: BackordersService, useValue: backordersService },
+      ],
     }).compile();
 
     controller = module.get<PurchasesController>(PurchasesController);
@@ -97,6 +115,15 @@ describe('PurchasesController Unit Tests', () => {
     const res = await controller.findOne('po-1');
     expect(res.id).toBe('po-1');
     expect(service.findOne).toHaveBeenCalledWith('po-1');
+  });
+
+  it('delegates pending backorders query to the dedicated service', async () => {
+    const query = { search: 'gasa', urgentOnly: true };
+
+    const result = await controller.findPending(query);
+
+    expect(result.groups).toEqual([]);
+    expect(backordersService.findPending).toHaveBeenCalledWith(query);
   });
 
   it('delegates emit to service', async () => {

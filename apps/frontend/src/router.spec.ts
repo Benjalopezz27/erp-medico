@@ -14,6 +14,7 @@ import {
   validateSuppliersSearchParams,
   validateSupplierCatalogSearchParams,
   validatePurchaseOrderSearchParams,
+  validateBackorderSearchParams,
   router,
 } from './router';
 import { PurchaseOrderStatus } from '@/features/purchase-orders/types/purchase-orders.types';
@@ -81,6 +82,10 @@ describe('authentication route guards', () => {
 
   it('registers the administrative goods receipt route', () => {
     expect(router.routesByPath['/purchases/orders/$id/receive']).toBeDefined();
+  });
+
+  it('registers the administrative backorders route', () => {
+    expect(router.routesByPath['/purchases/backorders']).toBeDefined();
   });
 });
 
@@ -383,5 +388,31 @@ describe('validatePurchaseOrderSearchParams', () => {
 
     expect(result.dateFrom).toBeUndefined();
     expect(result.dateTo).toBeUndefined();
+  });
+});
+
+describe('validateBackorderSearchParams', () => {
+  it('normalizes valid filters', () => {
+    expect(
+      validateBackorderSearchParams({
+        search: '  Gasa  ',
+        supplierId: '4659b877-d975-4d1e-bcf4-94c80efa2c4c',
+        urgentOnly: 'true',
+      }),
+    ).toEqual({
+      search: 'Gasa',
+      supplierId: '4659b877-d975-4d1e-bcf4-94c80efa2c4c',
+      urgentOnly: true,
+    });
+  });
+
+  it('discards invalid and overlong filters', () => {
+    expect(
+      validateBackorderSearchParams({
+        search: 'x'.repeat(101),
+        supplierId: 'invalid',
+        urgentOnly: 'false',
+      }),
+    ).toEqual({ search: undefined, supplierId: undefined, urgentOnly: undefined });
   });
 });

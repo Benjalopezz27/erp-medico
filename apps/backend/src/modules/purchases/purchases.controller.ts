@@ -22,6 +22,7 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { Roles, CurrentUser } from '../auth/decorators';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PurchaseOrdersService } from './services/purchase-orders.service';
+import { BackordersService } from './services/backorders.service';
 import {
   CreatePurchaseOrderDto,
   UpdatePurchaseOrderDto,
@@ -29,6 +30,8 @@ import {
   QueryPurchaseOrderDto,
   PurchaseOrderDetailResponseDto,
   PaginatedPurchaseOrdersResponseDto,
+  QueryBackordersDto,
+  BackordersResponseDto,
 } from './dto';
 
 @ApiTags('purchase-orders')
@@ -37,7 +40,10 @@ import {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMINISTRADOR)
 export class PurchasesController {
-  constructor(private readonly purchaseOrdersService: PurchaseOrdersService) {}
+  constructor(
+    private readonly purchaseOrdersService: PurchaseOrdersService,
+    private readonly backordersService: BackordersService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -117,6 +123,29 @@ export class PurchasesController {
     @Query() query: QueryPurchaseOrderDto,
   ): Promise<PaginatedPurchaseOrdersResponseDto> {
     return this.purchaseOrdersService.findAll(query);
+  }
+
+  @Get('pending')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'List pending purchase order balances grouped by supplier',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'Pending EMITIDA and PARCIAL purchase orders grouped by supplier',
+    type: BackordersResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid filters' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires ADMINISTRADOR role',
+  })
+  async findPending(
+    @Query() query: QueryBackordersDto,
+  ): Promise<BackordersResponseDto> {
+    return this.backordersService.findPending(query);
   }
 
   @Get(':id')

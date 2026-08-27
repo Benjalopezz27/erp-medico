@@ -10,6 +10,8 @@ import type {
   ICreateGoodsReceiptResponse,
   IQueryGoodsReceiptsParams,
   IPaginatedGoodsReceiptsResponse,
+  IBackorderSearchParams,
+  IBackordersResponse,
 } from '../types/purchase-orders.types';
 
 export async function getPurchaseOrdersApi(
@@ -116,5 +118,22 @@ export async function getGoodsReceiptsByPurchaseOrderApi(
       signal: options?.signal,
     },
   );
+  return response.data;
+}
+
+export async function getBackordersApi(
+  params: IBackorderSearchParams,
+  options?: { signal?: AbortSignal },
+): Promise<IBackordersResponse> {
+  const queryParams: Record<string, unknown> = {};
+  const search = params.search?.trim();
+  if (search) queryParams.search = search;
+  if (params.supplierId) queryParams.supplierId = params.supplierId;
+  if (params.urgentOnly) queryParams.urgentOnly = true;
+
+  const response = await apiClient.get<IBackordersResponse>('/purchase-orders/pending', {
+    params: queryParams,
+    signal: options?.signal,
+  });
   return response.data;
 }

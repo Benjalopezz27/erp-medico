@@ -131,8 +131,10 @@ import { PurchaseOrdersListPage } from '@/pages/purchases/PurchaseOrdersListPage
 import { PurchaseOrderCreatePage } from '@/pages/purchases/PurchaseOrderCreatePage';
 import { PurchaseOrderDetailPage } from '@/pages/purchases/PurchaseOrderDetailPage';
 import { PurchaseOrderReceivePage } from '@/pages/purchases/PurchaseOrderReceivePage';
+import { PurchaseBackordersPage } from '@/pages/purchases/PurchaseBackordersPage';
 import {
   PurchaseOrderStatus,
+  type IBackorderSearchParams,
   type IPurchaseOrderSearchParams,
 } from '@/features/purchase-orders/types/purchase-orders.types';
 import type {
@@ -199,6 +201,24 @@ export function validatePurchaseOrderSearchParams(
     status,
     dateFrom,
     dateTo,
+  };
+}
+
+export function validateBackorderSearchParams(
+  search: Record<string, unknown>,
+): IBackorderSearchParams {
+  const rawSearch = typeof search.search === 'string' ? search.search.trim() : '';
+  const rawSupplierId = typeof search.supplierId === 'string' ? search.supplierId.trim() : '';
+  const supplierId =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rawSupplierId)
+      ? rawSupplierId
+      : undefined;
+  const urgentOnly = search.urgentOnly === true || search.urgentOnly === 'true' ? true : undefined;
+
+  return {
+    search: rawSearch.length > 0 && rawSearch.length <= 100 ? rawSearch : undefined,
+    supplierId,
+    urgentOnly,
   };
 }
 
@@ -468,6 +488,14 @@ const purchasesOrdersRoute = createRoute({
   component: () => <PurchaseOrdersListPage />,
 });
 
+const purchaseBackordersRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/purchases/backorders',
+  validateSearch: validateBackorderSearchParams,
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
+  component: () => <PurchaseBackordersPage />,
+});
+
 const purchaseOrderCreateRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/purchases/orders/new',
@@ -603,6 +631,7 @@ const routeTree = rootRoute.addChildren([
     stockDetailRoute,
     purchasesRoute,
     purchasesOrdersRoute,
+    purchaseBackordersRoute,
     purchaseOrderCreateRoute,
     purchaseOrderDetailRoute,
     purchaseOrderReceiveRoute,
