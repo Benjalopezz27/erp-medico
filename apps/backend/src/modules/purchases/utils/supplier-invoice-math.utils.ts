@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import Decimal from 'decimal.js';
 import {
   SupplierInvoiceErrorCode,
+  SupplierInvoiceAdjustmentMode,
   SupplierInvoiceQuantityStatus,
 } from '@erp/shared-types';
 
@@ -32,6 +33,12 @@ export interface SupplierInvoiceAmountsInput {
   discountNet?: string | number;
   bonusNet?: string | number;
   surchargeNet?: string | number;
+  discountMode?: SupplierInvoiceAdjustmentMode;
+  discountPercentage?: string | number;
+  bonusMode?: SupplierInvoiceAdjustmentMode;
+  bonusPercentage?: string | number;
+  surchargeMode?: SupplierInvoiceAdjustmentMode;
+  surchargePercentage?: string | number;
 }
 
 export interface SupplierInvoiceAmountsResult {
@@ -41,6 +48,12 @@ export interface SupplierInvoiceAmountsResult {
   surchargeNet: string;
   realCostUnitNet: string;
   lineNetTotal: string;
+  discountMode: SupplierInvoiceAdjustmentMode;
+  discountPercentage: string | null;
+  bonusMode: SupplierInvoiceAdjustmentMode;
+  bonusPercentage: string | null;
+  surchargeMode: SupplierInvoiceAdjustmentMode;
+  surchargePercentage: string | null;
 }
 
 export function calculateSupplierInvoiceAmounts(
@@ -68,28 +81,30 @@ export function calculateSupplierInvoiceAmounts(
     SupplierInvoiceErrorCode.SUPPLIER_INVOICE_INVALID_COST,
     'Los importes de la factura deben ser decimales no negativos.',
   );
-  const discount = decimalOrThrow(
+  const discountInput = decimalOrThrow(
     input.discountNet ?? '0',
     SupplierInvoiceErrorCode.SUPPLIER_INVOICE_INVALID_COST,
     'Los importes de la factura deben ser decimales no negativos.',
   );
-  const bonus = decimalOrThrow(
+  const bonusInput = decimalOrThrow(
     input.bonusNet ?? '0',
     SupplierInvoiceErrorCode.SUPPLIER_INVOICE_INVALID_COST,
     'Los importes de la factura deben ser decimales no negativos.',
   );
-  const surcharge = decimalOrThrow(
+  const surchargeInput = decimalOrThrow(
     input.surchargeNet ?? '0',
     SupplierInvoiceErrorCode.SUPPLIER_INVOICE_INVALID_COST,
     'Los importes de la factura deben ser decimales no negativos.',
   );
 
   if (
-    [unitPrice, discount, bonus, surcharge].some(
+    [unitPrice, discountInput, bonusInput, surchargeInput].some(
       (value) => value.isNegative() || value.decimalPlaces() > 4,
     ) ||
     unitPrice.gt(MAX_UNIT_COST) ||
-    [discount, bonus, surcharge].some((value) => value.gt(MAX_TOTAL))
+    [discountInput, bonusInput, surchargeInput].some((value) =>
+      value.gt(MAX_TOTAL),
+    )
   ) {
     throw new BadRequestException({
       code: SupplierInvoiceErrorCode.SUPPLIER_INVOICE_INVALID_COST,
@@ -98,11 +113,62 @@ export function calculateSupplierInvoiceAmounts(
     });
   }
 
-  const lineNetTotal = quantity
+  const gross = quantity
     .times(unitPrice)
-    .minus(discount)
-    .minus(bonus)
-    .plus(surcharge)
+    .toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
+  const adjustment = (
+    mode: SupplierInvoiceAdjustmentMode | undefined,
+    amount: Decimal,
+    percentageValue: string | number | undefined,
+  ): {
+    amount: Decimal;
+    mode: SupplierInvoiceAdjustmentMode;
+    percentage: string | null;
+  } => {
+    const resolvedMode = mode ?? SupplierInvoiceAdjustmentMode.AMOUNT;
+    if (resolvedMode === SupplierInvoiceAdjustmentMode.AMOUNT) {
+      return { amount, mode: resolvedMode, percentage: null };
+    }
+    const percentage = decimalOrThrow(
+      percentageValue ?? '-1',
+      SupplierInvoiceErrorCode.SUPPLIER_INVOICE_INVALID_COST,
+      'Los porcentajes deben estar entre 0 y 100 con hasta 4 decimales.',
+    );
+    if (
+      percentage.lt(0) ||
+      percentage.gt(100) ||
+      percentage.decimalPlaces() > 4
+    ) {
+      throw new BadRequestException({
+        code: SupplierInvoiceErrorCode.SUPPLIER_INVOICE_INVALID_COST,
+        message:
+          'Los porcentajes deben estar entre 0 y 100 con hasta 4 decimales.',
+      });
+    }
+    return {
+      amount: gross
+        .times(percentage)
+        .dividedBy(100)
+        .toDecimalPlaces(4, Decimal.ROUND_HALF_UP),
+      mode: resolvedMode,
+      percentage: percentage.toFixed(4),
+    };
+  };
+  const discount = adjustment(
+    input.discountMode,
+    discountInput,
+    input.discountPercentage,
+  );
+  const bonus = adjustment(input.bonusMode, bonusInput, input.bonusPercentage);
+  const surcharge = adjustment(
+    input.surchargeMode,
+    surchargeInput,
+    input.surchargePercentage,
+  );
+  const lineNetTotal = gross
+    .minus(discount.amount)
+    .minus(bonus.amount)
+    .plus(surcharge.amount)
     .toDecimalPlaces(4, Decimal.ROUND_HALF_UP);
 
   if (lineNetTotal.isNegative() || lineNetTotal.gt(MAX_TOTAL)) {
@@ -115,9 +181,15 @@ export function calculateSupplierInvoiceAmounts(
 
   return {
     unitPriceNet: unitPrice.toFixed(4),
-    discountNet: discount.toFixed(4),
-    bonusNet: bonus.toFixed(4),
-    surchargeNet: surcharge.toFixed(4),
+    discountNet: discount.amount.toFixed(4),
+    bonusNet: bonus.amount.toFixed(4),
+    surchargeNet: surcharge.amount.toFixed(4),
+    discountMode: discount.mode,
+    discountPercentage: discount.percentage,
+    bonusMode: bonus.mode,
+    bonusPercentage: bonus.percentage,
+    surchargeMode: surcharge.mode,
+    surchargePercentage: surcharge.percentage,
     realCostUnitNet: lineNetTotal
       .dividedBy(quantity)
       .toDecimalPlaces(4, Decimal.ROUND_HALF_UP)
@@ -241,4 +313,49 @@ export function normalizeSupplierInvoiceTaxTotal(value: string): string {
     });
   }
   return tax.toFixed(4);
+}
+
+export function calculateSupplierInvoiceTax(input: {
+  netTotal: Decimal;
+  taxTotal: string;
+  taxMode?: SupplierInvoiceAdjustmentMode;
+  taxPercentage?: string;
+}): {
+  taxTotal: string;
+  taxMode: SupplierInvoiceAdjustmentMode;
+  taxPercentage: string | null;
+} {
+  const mode = input.taxMode ?? SupplierInvoiceAdjustmentMode.AMOUNT;
+  if (mode === SupplierInvoiceAdjustmentMode.AMOUNT) {
+    return {
+      taxTotal: normalizeSupplierInvoiceTaxTotal(input.taxTotal),
+      taxMode: mode,
+      taxPercentage: null,
+    };
+  }
+  const percentage = decimalOrThrow(
+    input.taxPercentage ?? '-1',
+    SupplierInvoiceErrorCode.SUPPLIER_INVOICE_INVALID_TAX,
+    'El porcentaje de IVA debe estar entre 0 y 100 con hasta 4 decimales.',
+  );
+  if (
+    percentage.lt(0) ||
+    percentage.gt(100) ||
+    percentage.decimalPlaces() > 4
+  ) {
+    throw new BadRequestException({
+      code: SupplierInvoiceErrorCode.SUPPLIER_INVOICE_INVALID_TAX,
+      message:
+        'El porcentaje de IVA debe estar entre 0 y 100 con hasta 4 decimales.',
+    });
+  }
+  return {
+    taxTotal: input.netTotal
+      .times(percentage)
+      .dividedBy(100)
+      .toDecimalPlaces(4, Decimal.ROUND_HALF_UP)
+      .toFixed(4),
+    taxMode: mode,
+    taxPercentage: percentage.toFixed(4),
+  };
 }

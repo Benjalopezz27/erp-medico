@@ -10,4 +10,5 @@ export * from './create-supplier-invoice.dto';
 export * from './query-supplier-invoices.dto';
 export * from './query-pending-invoice-receipts.dto';
 export * from './supplier-invoice-response.dto';
+export * from './reject-supplier-invoice.dto';
 export * from './backorders-response.dto';
