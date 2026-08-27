@@ -32,8 +32,9 @@ const navItems: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Productos', href: '/products', icon: Package },
   { name: 'Stock', href: '/stock', icon: Boxes },
-  { name: 'Compras', href: '/purchases', icon: Truck },
+  { name: 'Compras', href: '/purchases/orders', icon: Truck },
   { name: 'Ventas', href: '/sales', icon: ShoppingCart },
+
   { name: 'Clientes', href: '/customers', icon: Users },
   { name: 'Proveedores', href: '/suppliers', icon: Factory },
   { name: 'Importador', href: '/importer', icon: FileUp },

@@ -17,6 +17,10 @@ describe('route permissions', () => {
     expect(isRouteAllowed('/admin/users', UserRole.VENDEDOR)).toBe(false);
     expect(isRouteAllowed('/purchases', UserRole.ADMINISTRADOR)).toBe(true);
     expect(isRouteAllowed('/purchases', UserRole.VENDEDOR)).toBe(false);
+    expect(isRouteAllowed('/purchases/orders', UserRole.ADMINISTRADOR)).toBe(true);
+    expect(isRouteAllowed('/purchases/orders', UserRole.VENDEDOR)).toBe(false);
+    expect(isRouteAllowed('/purchases/orders/new', UserRole.ADMINISTRADOR)).toBe(true);
+    expect(isRouteAllowed('/purchases/orders/new', UserRole.VENDEDOR)).toBe(false);
     expect(isRouteAllowed('/importer', UserRole.ADMINISTRADOR)).toBe(true);
     expect(isRouteAllowed('/importer', UserRole.VENDEDOR)).toBe(false);
   });

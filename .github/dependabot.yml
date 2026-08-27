@@ -1,52 +1,54 @@
 version: 2
 updates:
   # Maintain root/monorepo npm & pnpm dependencies
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "America/Argentina/Buenos_Aires"
-    open-pull-requests-limit: 10
+      interval: 'weekly'
+      day: 'monday'
+      time: '04:00'
+      timezone: 'America/Argentina/Buenos_Aires'
+    # Routine version bumps are reviewed and batched manually against dev.
+    # Security alerts remain managed separately in the repository settings.
+    open-pull-requests-limit: 0
     commit-message:
-      prefix: "chore(deps)"
+      prefix: 'chore(deps)'
     ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
 
   # Maintain GitHub Actions workflow actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "America/Argentina/Buenos_Aires"
-    open-pull-requests-limit: 5
+      interval: 'weekly'
+      day: 'monday'
+      time: '04:00'
+      timezone: 'America/Argentina/Buenos_Aires'
+    open-pull-requests-limit: 0
     commit-message:
-      prefix: "ci(deps)"
+      prefix: 'ci(deps)'
 
   # Maintain Dockerfile base images for backend
-  - package-ecosystem: "docker"
-    directory: "/apps/backend"
+  - package-ecosystem: 'docker'
+    directory: '/apps/backend'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "America/Argentina/Buenos_Aires"
-    open-pull-requests-limit: 5
+      interval: 'weekly'
+      day: 'monday'
+      time: '04:00'
+      timezone: 'America/Argentina/Buenos_Aires'
+    open-pull-requests-limit: 0
     commit-message:
-      prefix: "chore(docker-backend)"
+      prefix: 'chore(docker-backend)'
 
   # Maintain Dockerfile base images for frontend
-  - package-ecosystem: "docker"
-    directory: "/apps/frontend"
+  - package-ecosystem: 'docker'
+    directory: '/apps/frontend'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "04:00"
-      timezone: "America/Argentina/Buenos_Aires"
-    open-pull-requests-limit: 5
+      interval: 'weekly'
+      day: 'monday'
+      time: '04:00'
+      timezone: 'America/Argentina/Buenos_Aires'
+    open-pull-requests-limit: 0
     commit-message:
-      prefix: "chore(docker-frontend)"
+      prefix: 'chore(docker-frontend)'
