@@ -27,186 +27,65 @@ describe('User Persistence & Seed Engine (E2E)', () => {
   });
 
   it('verifies migration up/down/up cycle cleanly', async () => {
-    // Revert purchase orders table migration (1700000000014)
-    await ds.undoLastMigration();
-    const afterDropPoItems = await ds.query(
-      "SELECT to_regclass('public.purchase_order_items') as tablename",
-    );
-    expect(afterDropPoItems[0].tablename).toBeNull();
-    const afterDropPurchaseOrders = await ds.query(
-      "SELECT to_regclass('public.purchase_orders') as tablename",
-    );
-    expect(afterDropPurchaseOrders[0].tablename).toBeNull();
-    const afterDropPoSeq = await ds.query(
-      "SELECT to_regclass('public.purchase_order_number_seq') as seqname",
-    );
-    expect(afterDropPoSeq[0].seqname).toBeNull();
-
-    // Revert supplier import batches table migration (1700000000013)
-    await ds.undoLastMigration();
-    const afterDropBatchItems = await ds.query(
-      "SELECT to_regclass('public.supplier_import_batch_items') as tablename",
-    );
-    expect(afterDropBatchItems[0].tablename).toBeNull();
-    const afterDropImportBatches = await ds.query(
-      "SELECT to_regclass('public.supplier_import_batches') as tablename",
-    );
-    expect(afterDropImportBatches[0].tablename).toBeNull();
-
-    // Revert supplier import templates table migration (1700000000012)
-    await ds.undoLastMigration();
-    const afterDropTemplates = await ds.query(
-      "SELECT to_regclass('public.supplier_import_templates') as tablename",
-    );
-    expect(afterDropTemplates[0].tablename).toBeNull();
-
-    // Revert supplier products table migration (1700000000011)
-    await ds.undoLastMigration();
-    const afterDropSupplierProducts = await ds.query(
-      "SELECT to_regclass('public.supplier_products') as tablename",
-    );
-    expect(afterDropSupplierProducts[0].tablename).toBeNull();
-
-    // Revert suppliers table migration (1700000000010)
-    await ds.undoLastMigration();
-    const afterDropSuppliers = await ds.query(
-      "SELECT to_regclass('public.suppliers') as tablename",
-    );
-    expect(afterDropSuppliers[0].tablename).toBeNull();
-
-    // Revert quarantine stock table migration (1700000000009)
-    await ds.undoLastMigration();
-    const afterDropQuarantine = await ds.query(
-      "SELECT to_regclass('public.quarantine_stocks') as tablename",
-    );
-    expect(afterDropQuarantine[0].tablename).toBeNull();
-
-    // Revert stock import batches table migration (1700000000008)
-    await ds.undoLastMigration();
-    const afterDropBatches = await ds.query(
-      "SELECT to_regclass('public.stock_import_batches') as tablename",
-    );
-    expect(afterDropBatches[0].tablename).toBeNull();
-
-    // Revert enforce non-negative stock check constraint migration (1700000000007)
-    await ds.undoLastMigration();
-
-    // Revert stock & stock movements table migration (1700000000006)
-    await ds.undoLastMigration();
-    const afterDropMovements = await ds.query(
-      "SELECT to_regclass('public.stock_movements') as tablename",
-    );
-    expect(afterDropMovements[0].tablename).toBeNull();
-    const afterDropStocks = await ds.query(
-      "SELECT to_regclass('public.stocks') as tablename",
-    );
-    expect(afterDropStocks[0].tablename).toBeNull();
-
-    // Revert automatic product code migration (1700000000005)
-    await ds.undoLastMigration();
-    const afterDropProductCodeSequence = await ds.query(
-      "SELECT to_regclass('public.product_internal_code_seq') as sequence_name",
-    );
-    expect(afterDropProductCodeSequence[0].sequence_name).toBeNull();
-
-    // Revert products & unit conversions table migration (1700000000004)
-    await ds.undoLastMigration();
-    const afterDropConversions = await ds.query(
-      "SELECT to_regclass('public.product_unit_conversions') as tablename",
-    );
-    expect(afterDropConversions[0].tablename).toBeNull();
-    const afterDropProducts = await ds.query(
-      "SELECT to_regclass('public.products') as tablename",
-    );
-    expect(afterDropProducts[0].tablename).toBeNull();
-
-    // Revert categories & units table migration (1700000000003)
-    await ds.undoLastMigration();
-    const afterDropCategories = await ds.query(
-      "SELECT to_regclass('public.categories') as tablename",
-    );
-    expect(afterDropCategories[0].tablename).toBeNull();
-    const afterDropUnits = await ds.query(
-      "SELECT to_regclass('public.units') as tablename",
-    );
-    expect(afterDropUnits[0].tablename).toBeNull();
-
-    // Revert audit_logs table migration (1700000000002)
-    await ds.undoLastMigration();
-    const afterDropAudit = await ds.query(
-      "SELECT to_regclass('public.audit_logs') as tablename",
-    );
-    expect(afterDropAudit[0].tablename).toBeNull();
-
-    // Revert users table migration (1700000000001)
-    await ds.undoLastMigration();
-    const afterDropUsers = await ds.query(
-      "SELECT to_regclass('public.users') as tablename",
-    );
-    expect(afterDropUsers[0].tablename).toBeNull();
-
-    // Re-run all migrations
-    await ds.runMigrations();
-    const afterRecreateUsers = await ds.query(
-      "SELECT to_regclass('public.users') as tablename",
-    );
-    expect(afterRecreateUsers[0].tablename).toBe('users');
-    const afterRecreateAudit = await ds.query(
-      "SELECT to_regclass('public.audit_logs') as tablename",
-    );
-    expect(afterRecreateAudit[0].tablename).toBe('audit_logs');
-    const afterRecreateCategories = await ds.query(
-      "SELECT to_regclass('public.categories') as tablename",
-    );
-    expect(afterRecreateCategories[0].tablename).toBe('categories');
-    const afterRecreateUnits = await ds.query(
-      "SELECT to_regclass('public.units') as tablename",
-    );
-    expect(afterRecreateUnits[0].tablename).toBe('units');
-    const afterRecreateProducts = await ds.query(
-      "SELECT to_regclass('public.products') as tablename",
-    );
-    expect(afterRecreateProducts[0].tablename).toBe('products');
-    const afterRecreateConversions = await ds.query(
-      "SELECT to_regclass('public.product_unit_conversions') as tablename",
-    );
-    expect(afterRecreateConversions[0].tablename).toBe(
+    const schemaObjects = [
+      '_migrations_check',
+      'users',
+      'audit_logs',
+      'categories',
+      'units',
+      'products',
       'product_unit_conversions',
-    );
-    const afterRecreateProductCodeSequence = await ds.query(
-      "SELECT to_regclass('public.product_internal_code_seq') as sequence_name",
-    );
-    expect(afterRecreateProductCodeSequence[0].sequence_name).toBe(
       'product_internal_code_seq',
-    );
-    const afterRecreateStocks = await ds.query(
-      "SELECT to_regclass('public.stocks') as tablename",
-    );
-    expect(afterRecreateStocks[0].tablename).toBe('stocks');
-    const afterRecreateMovements = await ds.query(
-      "SELECT to_regclass('public.stock_movements') as tablename",
-    );
-    expect(afterRecreateMovements[0].tablename).toBe('stock_movements');
-    const afterRecreateQuarantine = await ds.query(
-      "SELECT to_regclass('public.quarantine_stocks') as tablename",
-    );
-    expect(afterRecreateQuarantine[0].tablename).toBe('quarantine_stocks');
-    const afterRecreateSuppliers = await ds.query(
-      "SELECT to_regclass('public.suppliers') as tablename",
-    );
-    expect(afterRecreateSuppliers[0].tablename).toBe('suppliers');
-    const afterRecreateSupplierProducts = await ds.query(
-      "SELECT to_regclass('public.supplier_products') as tablename",
-    );
-    expect(afterRecreateSupplierProducts[0].tablename).toBe(
+      'stocks',
+      'stock_movements',
+      'stock_import_batches',
+      'quarantine_stocks',
+      'suppliers',
       'supplier_products',
-    );
-    const afterRecreateSupplierImportTemplates = await ds.query(
-      "SELECT to_regclass('public.supplier_import_templates') as tablename",
-    );
-    expect(afterRecreateSupplierImportTemplates[0].tablename).toBe(
       'supplier_import_templates',
+      'supplier_import_batches',
+      'supplier_import_batch_items',
+      'purchase_orders',
+      'purchase_order_items',
+      'purchase_order_number_seq',
+      'goods_receipts',
+      'goods_receipt_items',
+      'goods_receipt_number_seq',
+    ];
+
+    const getSchemaObject = async (
+      objectName: string,
+    ): Promise<string | null> => {
+      const [result] = (await ds.query(
+        'SELECT to_regclass($1::text) AS object_name',
+        [`public.${objectName}`],
+      )) as Array<{ object_name: string | null }>;
+
+      return result.object_name;
+    };
+
+    const appliedMigrations = (await ds.query(
+      'SELECT "name" FROM "migrations" ORDER BY "timestamp" DESC, "id" DESC',
+    )) as Array<{ name: string }>;
+
+    expect(appliedMigrations).not.toHaveLength(0);
+    expect(appliedMigrations.map(({ name }) => name)).toContain(
+      'CreateGoodsReceiptsTables1700000000015',
     );
+
+    for (let index = 0; index < appliedMigrations.length; index += 1) {
+      await ds.undoLastMigration();
+    }
+
+    for (const objectName of schemaObjects) {
+      await expect(getSchemaObject(objectName)).resolves.toBeNull();
+    }
+
+    await ds.runMigrations();
+
+    for (const objectName of schemaObjects) {
+      await expect(getSchemaObject(objectName)).resolves.toBe(objectName);
+    }
   });
 
   it('creates exactly 2 users on first seed run and hashes passwords with cost 12', async () => {
