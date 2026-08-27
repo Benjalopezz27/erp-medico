@@ -14,6 +14,7 @@ import {
   validateSuppliersSearchParams,
   validateSupplierCatalogSearchParams,
   validatePurchaseOrderSearchParams,
+  router,
 } from './router';
 import { PurchaseOrderStatus } from '@/features/purchase-orders/types/purchase-orders.types';
 
@@ -76,6 +77,10 @@ describe('authentication route guards', () => {
 
     useAuthStore.getState().setSession(session(UserRole.ADMINISTRADOR));
     expect(redirectDestination(() => requireRole(UserRole.ADMINISTRADOR))).toBeUndefined();
+  });
+
+  it('registers the administrative goods receipt route', () => {
+    expect(router.routesByPath['/purchases/orders/$id/receive']).toBeDefined();
   });
 });
 

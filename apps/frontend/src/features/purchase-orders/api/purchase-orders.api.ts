@@ -6,6 +6,10 @@ import type {
   ICreatePurchaseOrderPayload,
   IUpdatePurchaseOrderPayload,
   ICancelPurchaseOrderPayload,
+  ICreateGoodsReceiptPayload,
+  ICreateGoodsReceiptResponse,
+  IQueryGoodsReceiptsParams,
+  IPaginatedGoodsReceiptsResponse,
 } from '../types/purchase-orders.types';
 
 export async function getPurchaseOrdersApi(
@@ -82,6 +86,35 @@ export async function cancelPurchaseOrderApi(
   const response = await apiClient.patch<IPurchaseOrderDetail>(
     `/purchase-orders/${id}/cancel`,
     payload || {},
+  );
+  return response.data;
+}
+
+export async function createGoodsReceiptApi(
+  purchaseOrderId: string,
+  payload: ICreateGoodsReceiptPayload,
+): Promise<ICreateGoodsReceiptResponse> {
+  const response = await apiClient.post<ICreateGoodsReceiptResponse>(
+    `/purchase-orders/${purchaseOrderId}/receipts`,
+    payload,
+  );
+  return response.data;
+}
+
+export async function getGoodsReceiptsByPurchaseOrderApi(
+  purchaseOrderId: string,
+  params: IQueryGoodsReceiptsParams,
+  options?: { signal?: AbortSignal },
+): Promise<IPaginatedGoodsReceiptsResponse> {
+  const response = await apiClient.get<IPaginatedGoodsReceiptsResponse>(
+    `/purchase-orders/${purchaseOrderId}/receipts`,
+    {
+      params: {
+        page: params.page ?? 1,
+        limit: params.limit ?? 20,
+      },
+      signal: options?.signal,
+    },
   );
   return response.data;
 }

@@ -130,6 +130,7 @@ import { ImporterWizardPage } from '@/pages/importer/ImporterWizardPage';
 import { PurchaseOrdersListPage } from '@/pages/purchases/PurchaseOrdersListPage';
 import { PurchaseOrderCreatePage } from '@/pages/purchases/PurchaseOrderCreatePage';
 import { PurchaseOrderDetailPage } from '@/pages/purchases/PurchaseOrderDetailPage';
+import { PurchaseOrderReceivePage } from '@/pages/purchases/PurchaseOrderReceivePage';
 import {
   PurchaseOrderStatus,
   type IPurchaseOrderSearchParams,
@@ -481,6 +482,13 @@ const purchaseOrderDetailRoute = createRoute({
   component: () => <PurchaseOrderDetailPage />,
 });
 
+const purchaseOrderReceiveRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/purchases/orders/$id/receive',
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
+  component: () => <PurchaseOrderReceivePage />,
+});
+
 const salesRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/sales',
@@ -597,6 +605,7 @@ const routeTree = rootRoute.addChildren([
     purchasesOrdersRoute,
     purchaseOrderCreateRoute,
     purchaseOrderDetailRoute,
+    purchaseOrderReceiveRoute,
     salesRoute,
 
     customersRoute,
