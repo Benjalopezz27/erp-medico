@@ -12,6 +12,7 @@ import { PurchaseOrderStatus } from '@erp/shared-types';
 import { Supplier } from '../../suppliers/entities/supplier.entity';
 import { User } from '../../users/entities/user.entity';
 import { PurchaseOrderItem } from './purchase-order-item.entity';
+import { GoodsReceipt } from './goods-receipt.entity';
 
 @Entity('purchase_orders')
 export class PurchaseOrder {
@@ -88,4 +89,7 @@ export class PurchaseOrder {
 
   @OneToMany(() => PurchaseOrderItem, (item) => item.purchaseOrder)
   items?: PurchaseOrderItem[];
+
+  @OneToMany(() => GoodsReceipt, (gr) => gr.purchaseOrder)
+  goodsReceipts?: GoodsReceipt[];
 }
