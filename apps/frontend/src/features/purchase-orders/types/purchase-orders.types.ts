@@ -16,6 +16,11 @@ import {
   type IGoodsReceiptItemDetail,
   type IQueryGoodsReceiptsParams,
   type IPaginatedGoodsReceiptsResponse,
+  type IBackorderSearchParams,
+  type IBackorderItem,
+  type IBackorderOrder,
+  type IBackorderSupplierGroup,
+  type IBackordersResponse,
 } from '@erp/shared-types';
 
 export {
@@ -36,6 +41,11 @@ export {
   type IGoodsReceiptItemDetail,
   type IQueryGoodsReceiptsParams,
   type IPaginatedGoodsReceiptsResponse,
+  type IBackorderSearchParams,
+  type IBackorderItem,
+  type IBackorderOrder,
+  type IBackorderSupplierGroup,
+  type IBackordersResponse,
 };
 
 export interface PaginatedPurchaseOrdersResponse {

@@ -58,6 +58,9 @@ export function useEmitPurchaseOrderMutation() {
       queryClient.invalidateQueries({
         queryKey: purchaseOrdersKeys.detail(data.id),
       });
+      queryClient.invalidateQueries({
+        queryKey: purchaseOrdersKeys.backorders(),
+      });
     },
   });
 }
@@ -75,6 +78,9 @@ export function useCancelPurchaseOrderMutation() {
       queryClient.setQueryData(purchaseOrdersKeys.detail(data.id), data);
       queryClient.invalidateQueries({
         queryKey: purchaseOrdersKeys.detail(data.id),
+      });
+      queryClient.invalidateQueries({
+        queryKey: purchaseOrdersKeys.backorders(),
       });
     },
   });

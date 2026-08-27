@@ -1,6 +1,7 @@
 import type {
   IPurchaseOrderSearchParams,
   IQueryGoodsReceiptsParams,
+  IBackorderSearchParams,
 } from '../types/purchase-orders.types';
 
 export const purchaseOrdersKeys = {
@@ -13,4 +14,7 @@ export const purchaseOrdersKeys = {
     [...purchaseOrdersKeys.detail(purchaseOrderId), 'receipts'] as const,
   receiptList: (purchaseOrderId: string, params: IQueryGoodsReceiptsParams) =>
     [...purchaseOrdersKeys.receipts(purchaseOrderId), params] as const,
+  backorders: () => [...purchaseOrdersKeys.all, 'backorders'] as const,
+  backorderList: (params: IBackorderSearchParams) =>
+    [...purchaseOrdersKeys.backorders(), params] as const,
 };
