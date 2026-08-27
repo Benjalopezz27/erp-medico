@@ -1,4 +1,8 @@
-import { PurchaseOrderStatus, SupplierInvoiceStatus } from '../enums/purchases.enum';
+import {
+  PurchaseOrderStatus,
+  SupplierInvoiceQuantityStatus,
+  SupplierInvoiceStatus,
+} from '../enums/purchases.enum';
 
 export interface IPurchaseOrderItemPayload {
   supplierProductId: string;
@@ -230,32 +234,171 @@ export interface IBackordersResponse {
 export type IGoodsReceipt = IGoodsReceiptDetail;
 export type IGoodsReceiptItem = IGoodsReceiptItemDetail;
 
-export interface ISupplierInvoiceItem {
-  id: string;
-  supplierInvoiceId: string;
-  productId: string;
-  quantityBilled: number;
-  unitCostNet: number;
-  subtotalNet: number;
+export interface ICreateSupplierInvoiceItemPayload {
+  goodsReceiptItemId: string;
+  invoicedQtyPurchaseUnit: string;
+  unitPriceNet: string;
+  discountNet?: string;
+  bonusNet?: string;
+  surchargeNet?: string;
 }
 
-export interface ISupplierInvoice {
+export interface ICreateSupplierInvoicePayload {
+  goodsReceiptId: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  taxTotal: string;
+  items: ICreateSupplierInvoiceItemPayload[];
+}
+
+export interface ISupplierInvoiceItemDetail {
+  id: string;
+  itemIndex: number;
+  goodsReceiptItemId: string;
+  purchaseOrderItemId: string;
+  productId: string;
+  productCode: string;
+  productName: string;
+  purchaseUnitId: string;
+  purchaseUnitName: string;
+  purchaseUnitSymbol: string;
+  conversionFactor: string;
+  receivedQtyPurchaseUnit: string;
+  previouslyAllocatedQtyPurchaseUnit: string;
+  availableQtyBefore: string;
+  invoicedQtyPurchaseUnit: string;
+  allocatedReceivedQtyPurchaseUnit: string;
+  allocatedReceivedQtyBase: string;
+  pendingQtyAfter: string;
+  quantityExcess: string;
+  quantityStatus: SupplierInvoiceQuantityStatus;
+  provisionalCostUnitNet: string;
+  unitPriceNet: string;
+  discountNet: string;
+  bonusNet: string;
+  surchargeNet: string;
+  realCostUnitNet: string;
+  lineNetTotal: string;
+}
+
+export interface ISupplierInvoiceSummary {
   id: string;
   invoiceNumber: string;
-  supplierId: string;
-  purchaseOrderId?: string | null;
-  goodsReceiptId?: string | null;
+  supplier: {
+    id: string;
+    businessName: string;
+    cuit: string;
+  };
+  goodsReceipt: {
+    id: string;
+    receiptNumber: string;
+    deliveryNoteNumber: string;
+    createdAt: string;
+  };
+  purchaseOrder: {
+    id: string;
+    orderNumber: string;
+  };
+  invoiceDate: string;
   status: SupplierInvoiceStatus;
-  totalNet: number;
-  ivaTotal: number;
-  totalGross: number;
-  observationReason?: string | null;
-  authorizedByUserId?: string | null;
-  authorizedAt?: Date | string | null;
-  items?: ISupplierInvoiceItem[];
-  createdAt: Date | string;
-  updatedAt: Date | string;
+  netTotal: string;
+  taxTotal: string;
+  totalAmount: string;
+  itemCount: number;
+  observedLineCount: number;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  createdAt: string;
+  updatedAt: string;
 }
+
+export interface ISupplierInvoiceDetail extends ISupplierInvoiceSummary {
+  items: ISupplierInvoiceItemDetail[];
+}
+
+export interface ISupplierInvoiceSearchParams {
+  page?: number;
+  limit?: number;
+  supplierId?: string;
+  status?: SupplierInvoiceStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+}
+
+export interface IPaginatedSupplierInvoicesResponse {
+  data: ISupplierInvoiceSummary[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
+export interface IPendingInvoiceReceiptItem {
+  goodsReceiptItemId: string;
+  purchaseOrderItemId: string;
+  productId: string;
+  productCode: string;
+  productName: string;
+  supplierSku: string;
+  purchaseUnitId: string;
+  purchaseUnitName: string;
+  purchaseUnitSymbol: string;
+  conversionFactor: string;
+  receivedQtyPurchaseUnit: string;
+  previouslyAllocatedQtyPurchaseUnit: string;
+  availableQtyPurchaseUnit: string;
+  receivedQtyBase: string;
+  provisionalCostUnitNet: string;
+}
+
+export interface IPendingInvoiceReceipt {
+  id: string;
+  receiptNumber: string;
+  deliveryNoteNumber: string;
+  createdAt: string;
+  supplier: {
+    id: string;
+    businessName: string;
+    cuit: string;
+  };
+  purchaseOrder: {
+    id: string;
+    orderNumber: string;
+  };
+  pendingLineCount: number;
+  items: IPendingInvoiceReceiptItem[];
+}
+
+export interface IQueryPendingInvoiceReceiptsParams {
+  page?: number;
+  limit?: number;
+  supplierId?: string;
+  search?: string;
+}
+
+export interface IPaginatedPendingInvoiceReceiptsResponse {
+  data: IPendingInvoiceReceipt[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+    hasPreviousPage: boolean;
+  };
+}
+
+// Backward-compatible aliases for the preliminary contracts.
+export type ISupplierInvoice = ISupplierInvoiceDetail;
+export type ISupplierInvoiceItem = ISupplierInvoiceItemDetail;
 
 export interface ISupplierCostAdjustment {
   id: string;
