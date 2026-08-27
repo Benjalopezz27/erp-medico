@@ -11,6 +11,7 @@ import { PurchaseOrder } from './purchase-order.entity';
 import { Supplier } from '../../suppliers/entities/supplier.entity';
 import { User } from '../../users/entities/user.entity';
 import { GoodsReceiptItem } from './goods-receipt-item.entity';
+import { SupplierInvoice } from './supplier-invoice.entity';
 
 @Entity('goods_receipts')
 export class GoodsReceipt {
@@ -57,4 +58,7 @@ export class GoodsReceipt {
 
   @OneToMany(() => GoodsReceiptItem, (item) => item.goodsReceipt)
   items?: GoodsReceiptItem[];
+
+  @OneToMany(() => SupplierInvoice, (invoice) => invoice.goodsReceipt)
+  supplierInvoices?: SupplierInvoice[];
 }
