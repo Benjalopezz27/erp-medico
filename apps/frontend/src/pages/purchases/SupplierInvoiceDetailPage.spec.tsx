@@ -13,6 +13,7 @@ import { SupplierInvoiceDetailPage } from './SupplierInvoiceDetailPage';
 
 const authorize = vi.fn();
 const reject = vi.fn();
+const confirm = vi.fn();
 const refetch = vi.fn();
 let invoice: any;
 
@@ -25,6 +26,7 @@ vi.mock('@/features/supplier-invoices/hooks/use-supplier-invoices', () => ({
   }),
   useAuthorizeSupplierInvoiceMutation: () => ({ mutateAsync: authorize, isPending: false }),
   useRejectSupplierInvoiceMutation: () => ({ mutateAsync: reject, isPending: false }),
+  useConfirmSupplierInvoiceMutation: () => ({ mutateAsync: confirm, isPending: false }),
 }));
 
 const id = '11111111-1111-4111-a111-111111111111';
@@ -55,6 +57,7 @@ function fixture(status = SupplierInvoiceStatus.OBSERVADA) {
     createdAt: '2026-08-27T10:00:00.000Z',
     updatedAt: '2026-08-27T10:00:00.000Z',
     decision: null,
+    confirmation: null,
     items: [
       {
         id: 'item',
@@ -115,6 +118,7 @@ describe('SupplierInvoiceDetailPage observed workflow', () => {
     invoice = fixture();
     authorize.mockReset();
     reject.mockReset();
+    confirm.mockReset();
     refetch.mockReset();
   });
 
@@ -142,12 +146,48 @@ describe('SupplierInvoiceDetailPage observed workflow', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('saldo facturable');
   });
 
-  it('does not expose decisions for an automatically authorized invoice', async () => {
+  it('offers confirmation but not review decisions for an automatically authorized invoice', async () => {
     invoice = fixture(SupplierInvoiceStatus.AUTORIZADA);
     renderPage();
     expect(await screen.findByText('Autorización automática')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Autorizar' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Rechazar' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirmar factura' })).toBeInTheDocument();
+  });
+
+  it('shows the irreversible impact summary and confirms once', async () => {
+    invoice = fixture(SupplierInvoiceStatus.AUTORIZADA);
+    confirm.mockResolvedValue({
+      ...invoice,
+      status: SupplierInvoiceStatus.CONFIRMADA,
+      confirmation: { adjustments: [], priceReviews: [] },
+    });
+    const { user } = renderPage();
+
+    await user.click(await screen.findByRole('button', { name: 'Confirmar factura' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Esta operación es irreversible.')).toBeInTheDocument();
+    expect(within(dialog).getByText(/no cambia el precio activo/i)).toBeInTheDocument();
+    expect(within(dialog).getByText(/50,00 u\. base/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Confirmar y aplicar ajustes' }));
+
+    expect(confirm).toHaveBeenCalledOnce();
+    expect(confirm).toHaveBeenCalledWith(id);
+    expect(await screen.findByRole('status')).toHaveTextContent('ajustes de costos');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    SupplierInvoiceStatus.BORRADOR,
+    SupplierInvoiceStatus.VALIDANDO,
+    SupplierInvoiceStatus.OBSERVADA,
+    SupplierInvoiceStatus.RECHAZADA,
+    SupplierInvoiceStatus.CONFIRMADA,
+  ])('does not offer confirmation while status is %s', async (status) => {
+    invoice = fixture(status);
+    renderPage();
+    await screen.findByText(invoice.invoiceNumber);
+    expect(screen.queryByRole('button', { name: 'Confirmar factura' })).not.toBeInTheDocument();
   });
 
   it('closes the modal and refreshes authoritative state after a concurrent decision', async () => {
@@ -168,5 +208,38 @@ describe('SupplierInvoiceDetailPage observed workflow', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('estado autoritativo');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(refetch).toHaveBeenCalledOnce();
+  });
+
+  it('closes confirmation and refreshes after a concurrent confirmation', async () => {
+    invoice = fixture(SupplierInvoiceStatus.AUTORIZADA);
+    confirm.mockRejectedValue({
+      isAxiosError: true,
+      response: {
+        status: 409,
+        data: {
+          code: SupplierInvoiceErrorCode.SUPPLIER_INVOICE_CONFIRMATION_CONFLICT,
+        },
+      },
+    });
+    refetch.mockResolvedValue({ data: fixture(SupplierInvoiceStatus.CONFIRMADA) });
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Confirmar factura' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar y aplicar ajustes' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('detalle autoritativo');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(refetch).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the confirmation dialog open so a recoverable error can be retried', async () => {
+    invoice = fixture(SupplierInvoiceStatus.AUTORIZADA);
+    confirm.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 500, data: { message: 'Error interno', requestId: 'req-500' } },
+    });
+    const { user } = renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Confirmar factura' }));
+    await user.click(screen.getByRole('button', { name: 'Confirmar y aplicar ajustes' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('req-500');
   });
 });
