@@ -17,6 +17,7 @@ import {
   validateBackorderSearchParams,
   validateSupplierInvoiceSearchParams,
   validateSettingsSearchParams,
+  validatePriceReviewSearchParams,
   router,
 } from './router';
 import { PurchaseOrderStatus } from '@/features/purchase-orders/types/purchase-orders.types';
@@ -86,6 +87,10 @@ describe('authentication route guards', () => {
     expect(router.routesByPath['/admin/markups']).toBeDefined();
     useAuthStore.getState().setSession(session(UserRole.VENDEDOR));
     expect(redirectDestination(() => requireRole(UserRole.ADMINISTRADOR))).toBe('/products');
+  });
+
+  it('registers the administrator-only price review route', () => {
+    expect(router.routesByPath['/prices/review']).toBeDefined();
   });
 
   it('registers the administrative goods receipt route', () => {
@@ -485,5 +490,57 @@ describe('validateSettingsSearchParams', () => {
     expect(validateSettingsSearchParams({ tab: 'units' })).toEqual({ tab: 'units' });
     expect(validateSettingsSearchParams({ tab: 'invalid' })).toEqual({});
     expect(validateSettingsSearchParams({ tab: 'categories' })).toEqual({});
+  });
+});
+
+describe('validatePriceReviewSearchParams', () => {
+  it('defaults invalid values and normalizes supported filters', () => {
+    expect(
+      validatePriceReviewSearchParams({
+        page: -1,
+        limit: 999,
+        status: 'INVALID',
+        productId: 'bad',
+        dateFrom: '2026-09-01',
+        dateTo: '2026-08-01',
+      }),
+    ).toEqual({
+      page: 1,
+      limit: 20,
+      status: 'PENDIENTE',
+      productId: undefined,
+      categoryId: undefined,
+      supplierId: undefined,
+      supplierInvoiceId: undefined,
+      dateFrom: undefined,
+      dateTo: undefined,
+    });
+  });
+
+  it('keeps valid status, ids, pagination and dates', () => {
+    const id = '4659b877-d975-4d1e-bcf4-94c80efa2c4c';
+    expect(
+      validatePriceReviewSearchParams({
+        page: '2',
+        limit: '50',
+        status: 'APROBADO',
+        productId: id,
+        categoryId: id,
+        supplierId: id,
+        supplierInvoiceId: id,
+        dateFrom: '2026-08-01',
+        dateTo: '2026-08-31',
+      }),
+    ).toEqual({
+      page: 2,
+      limit: 50,
+      status: 'APROBADO',
+      productId: id,
+      categoryId: id,
+      supplierId: id,
+      supplierInvoiceId: id,
+      dateFrom: '2026-08-01',
+      dateTo: '2026-08-31',
+    });
   });
 });

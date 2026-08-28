@@ -8,6 +8,7 @@ export const ADMIN_ROUTES = [
   '/treasury',
   '/reports',
   '/importer',
+  '/prices',
 ] as const;
 
 export function isRouteAllowed(pathname: string, role: UserRole | null | undefined): boolean {

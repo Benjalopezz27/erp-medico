@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Plus, Package, AlertCircle, CheckCircle2, RotateCcw, X } from 'lucide-react';
+import { Plus, Package, AlertCircle, CheckCircle2, RotateCcw, Tags, X } from 'lucide-react';
 import { UserRole } from '@erp/shared-types';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
@@ -217,15 +217,30 @@ export const ProductsListPage: React.FC = () => {
         </div>
 
         {isAdmin && (
-          <Button
-            type="button"
-            onClick={handleOpenCreatePage}
-            size="sm"
-            className="bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5 shadow-sm self-start sm:self-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nuevo Producto</span>
-          </Button>
+          <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                navigate({
+                  to: '/prices/review',
+                  search: { page: 1, limit: 20, status: 'PENDIENTE' } as never,
+                })
+              }
+            >
+              <Tags className="mr-1.5 h-4 w-4" /> Revisión de precios
+            </Button>
+            <Button
+              type="button"
+              onClick={handleOpenCreatePage}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5 shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nuevo Producto</span>
+            </Button>
+          </div>
         )}
       </div>
 

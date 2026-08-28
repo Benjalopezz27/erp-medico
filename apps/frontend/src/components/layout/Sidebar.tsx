@@ -16,9 +16,13 @@ import {
   X,
   HeartPulse,
   FileUp,
+  Tags,
+  ChevronDown,
 } from 'lucide-react';
+import { UserRole } from '@erp/shared-types';
 import { useAuthStore } from '@/stores/authStore';
 import { useStockAlertsCountQuery } from '@/features/stock/hooks/use-stock-alerts-count-query';
+import { usePriceReviewPendingCountQuery } from '@/features/price-reviews/hooks/use-price-reviews-query';
 import { cn } from '@/lib/utils';
 import { isRouteAllowed } from '@/config/permissions.config';
 
@@ -26,24 +30,85 @@ interface NavItem {
   name: string;
   href: string;
   icon: React.ElementType;
+  matchPrefixes?: string[];
 }
 
-const navItems: NavItem[] = [
-  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Productos', href: '/products', icon: Package },
-  { name: 'Stock', href: '/stock', icon: Boxes },
-  { name: 'Compras', href: '/purchases/orders', icon: Truck },
-  { name: 'Ventas', href: '/sales', icon: ShoppingCart },
+interface NavGroup {
+  id: string;
+  name: string;
+  icon: React.ElementType;
+  children: NavItem[];
+}
 
-  { name: 'Clientes', href: '/customers', icon: Users },
-  { name: 'Proveedores', href: '/suppliers', icon: Factory },
-  { name: 'Importador', href: '/importer', icon: FileUp },
-  { name: 'Cta Cte', href: '/receivables', icon: Receipt },
-  { name: 'Tesorería', href: '/treasury', icon: Landmark },
-  { name: 'Reportes', href: '/reports', icon: FileBarChart2 },
-  { name: 'Usuarios', href: '/admin/users', icon: UserCog },
-  { name: 'Configuración', href: '/settings', icon: Settings },
+type NavigationEntry = NavItem | NavGroup;
+
+const navigationEntries: NavigationEntry[] = [
+  { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+  {
+    id: 'products-prices',
+    name: 'Productos y precios',
+    icon: Package,
+    children: [
+      { name: 'Productos', href: '/products', icon: Package },
+      { name: 'Revisión Precios', href: '/prices/review', icon: Tags },
+    ],
+  },
+  { name: 'Stock', href: '/stock', icon: Boxes },
+  {
+    id: 'supply',
+    name: 'Abastecimiento',
+    icon: Truck,
+    children: [
+      {
+        name: 'Compras',
+        href: '/purchases/orders',
+        icon: Truck,
+        matchPrefixes: ['/purchases'],
+      },
+      { name: 'Proveedores', href: '/suppliers', icon: Factory },
+      { name: 'Importador', href: '/importer', icon: FileUp },
+    ],
+  },
+  {
+    id: 'sales-customers',
+    name: 'Ventas y clientes',
+    icon: ShoppingCart,
+    children: [
+      { name: 'Ventas', href: '/sales', icon: ShoppingCart },
+      { name: 'Clientes', href: '/customers', icon: Users },
+      { name: 'Cta Cte', href: '/receivables', icon: Receipt },
+    ],
+  },
+  {
+    id: 'management',
+    name: 'Gestión',
+    icon: Landmark,
+    children: [
+      { name: 'Tesorería', href: '/treasury', icon: Landmark },
+      { name: 'Reportes', href: '/reports', icon: FileBarChart2 },
+    ],
+  },
+  {
+    id: 'administration',
+    name: 'Administración',
+    icon: Settings,
+    children: [
+      { name: 'Usuarios', href: '/admin/users', icon: UserCog },
+      { name: 'Configuración', href: '/settings', icon: Settings },
+    ],
+  },
 ];
+
+function isNavGroup(entry: NavigationEntry): entry is NavGroup {
+  return 'children' in entry;
+}
+
+function isItemActive(item: NavItem, pathname: string): boolean {
+  if (item.href === '/') return pathname === '/';
+  return [item.href, ...(item.matchPrefixes ?? [])].some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
 
 interface SidebarProps {
   isOpen: boolean;
@@ -53,10 +118,80 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { user } = useAuthStore();
   const { data: stockAlertCount } = useStockAlertsCountQuery();
+  const isAdmin = user?.role === UserRole.ADMINISTRADOR;
+  const { data: pendingPriceReviews } = usePriceReviewPendingCountQuery(isAdmin);
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
 
-  const filteredNavItems = navItems.filter((item) => isRouteAllowed(item.href, user?.role));
+  const visibleEntries = React.useMemo(
+    () =>
+      navigationEntries.flatMap<NavigationEntry>((entry) => {
+        if (!isNavGroup(entry)) {
+          return isRouteAllowed(entry.href, user?.role) ? [entry] : [];
+        }
+        const children = entry.children.filter((item) => isRouteAllowed(item.href, user?.role));
+        if (children.length === 0) return [];
+        if (children.length === 1) return children;
+        return [{ ...entry, children }];
+      }),
+    [user?.role],
+  );
+  const activeGroupId = visibleEntries.find(
+    (entry): entry is NavGroup =>
+      isNavGroup(entry) && entry.children.some((item) => isItemActive(item, currentPath)),
+  )?.id;
+  const [expandedGroupId, setExpandedGroupId] = React.useState<string | null>(
+    activeGroupId ?? null,
+  );
+
+  React.useEffect(() => {
+    if (activeGroupId) setExpandedGroupId(activeGroupId);
+  }, [activeGroupId]);
+
+  const renderBadge = (item: NavItem) => {
+    if (item.href === '/stock' && stockAlertCount !== undefined && stockAlertCount > 0) {
+      return (
+        <span
+          data-testid="stock-alerts-badge"
+          aria-label={`${stockAlertCount} productos bajo stock mínimo`}
+          className="ml-auto rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold text-amber-400"
+        >
+          {stockAlertCount}
+        </span>
+      );
+    }
+    return null;
+  };
+
+  const renderNavItem = (item: NavItem, nested = false) => {
+    const Icon = item.icon;
+    const active = isItemActive(item, currentPath);
+    return (
+      <Link
+        key={item.href}
+        to={item.href}
+        onClick={onClose}
+        className={cn(
+          'flex items-center rounded-lg text-sm font-medium transition-colors',
+          nested ? 'ml-3 gap-2.5 px-3 py-2 text-xs' : 'gap-3 px-3 py-2',
+          active
+            ? 'bg-blue-600 text-white shadow-sm'
+            : nested
+              ? 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+        )}
+      >
+        <Icon
+          className={cn(
+            nested ? 'h-3.5 w-3.5' : 'h-4 w-4',
+            active ? 'text-white' : 'text-slate-400',
+          )}
+        />
+        <span>{item.name}</span>
+        {renderBadge(item)}
+      </Link>
+    );
+  };
 
   return (
     <>
@@ -104,40 +239,70 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             Menú Principal
           </div>
 
-          <nav className="space-y-1">
-            {filteredNavItems.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                item.href === '/' ? currentPath === '/' : currentPath.startsWith(item.href);
-
-              return (
-                <Link
-                  key={item.href}
-                  to={item.href}
-                  onClick={() => onClose()}
-                  className={cn(
-                    'flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white',
-                  )}
-                >
-                  <Icon className={cn('w-4 h-4', isActive ? 'text-white' : 'text-slate-400')} />
-                  <span>{item.name}</span>
-                  {item.href === '/stock' &&
-                    stockAlertCount !== undefined &&
-                    stockAlertCount > 0 && (
-                      <span
-                        data-testid="stock-alerts-badge"
-                        aria-label={`${stockAlertCount} productos bajo stock mínimo`}
-                        className="ml-auto px-2 py-0.5 text-[11px] font-bold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30"
+          <nav aria-label="Navegación principal">
+            <ul className="space-y-1">
+              {visibleEntries.map((entry) => {
+                if (!isNavGroup(entry)) {
+                  return <li key={entry.href}>{renderNavItem(entry)}</li>;
+                }
+                const expanded = expandedGroupId === entry.id;
+                const groupActive = entry.children.some((item) => isItemActive(item, currentPath));
+                const Icon = entry.icon;
+                const showsPendingPriceCount =
+                  entry.id === 'products-prices' &&
+                  isAdmin &&
+                  pendingPriceReviews !== undefined &&
+                  pendingPriceReviews.count > 0;
+                return (
+                  <li key={entry.id}>
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-controls={`sidebar-group-${entry.id}`}
+                      onClick={() => setExpandedGroupId(expanded ? null : entry.id)}
+                      className={cn(
+                        'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                        groupActive
+                          ? 'bg-slate-800 text-white'
+                          : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+                      )}
+                    >
+                      <Icon
+                        className={cn('h-4 w-4', groupActive ? 'text-blue-400' : 'text-slate-400')}
+                      />
+                      <span>{entry.name}</span>
+                      {showsPendingPriceCount && (
+                        <span
+                          data-testid="price-reviews-pending-badge"
+                          aria-label={`${pendingPriceReviews.count} revisiones de precio pendientes`}
+                          className="ml-auto rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold text-amber-400"
+                        >
+                          {pendingPriceReviews.count}
+                        </span>
+                      )}
+                      <ChevronDown
+                        aria-hidden="true"
+                        className={cn(
+                          'h-4 w-4 text-slate-500 transition-transform',
+                          !showsPendingPriceCount && 'ml-auto',
+                          expanded && 'rotate-180',
+                        )}
+                      />
+                    </button>
+                    {expanded && (
+                      <ul
+                        id={`sidebar-group-${entry.id}`}
+                        className="mt-1 space-y-1 border-l border-slate-700 pl-1"
                       >
-                        {stockAlertCount}
-                      </span>
+                        {entry.children.map((item) => (
+                          <li key={item.href}>{renderNavItem(item, true)}</li>
+                        ))}
+                      </ul>
                     )}
-                </Link>
-              );
-            })}
+                  </li>
+                );
+              })}
+            </ul>
           </nav>
         </div>
 

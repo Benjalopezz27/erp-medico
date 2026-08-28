@@ -25,5 +25,7 @@ describe('route permissions', () => {
     expect(isRouteAllowed('/purchases/orders/new', UserRole.VENDEDOR)).toBe(false);
     expect(isRouteAllowed('/importer', UserRole.ADMINISTRADOR)).toBe(true);
     expect(isRouteAllowed('/importer', UserRole.VENDEDOR)).toBe(false);
+    expect(isRouteAllowed('/prices/review', UserRole.ADMINISTRADOR)).toBe(true);
+    expect(isRouteAllowed('/prices/review', UserRole.VENDEDOR)).toBe(false);
   });
 });
