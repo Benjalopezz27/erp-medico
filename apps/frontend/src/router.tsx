@@ -12,6 +12,7 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { UsersPage } from '@/pages/admin/UsersPage';
+import { MarkupsPage } from '@/pages/admin/MarkupsPage';
 import { SettingsPage, type SettingsTab } from '@/pages/SettingsPage';
 import { ProductsListPage } from '@/pages/products/ProductsListPage';
 import { ProductCreatePage } from '@/pages/products/ProductCreatePage';
@@ -692,6 +693,13 @@ const adminUsersRoute = createRoute({
   component: () => <UsersPage />,
 });
 
+const adminMarkupsRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/admin/markups',
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
+  component: () => <MarkupsPage />,
+});
+
 // 4. Build Route Tree
 const routeTree = rootRoute.addChildren([
   authLayoutRoute.addChildren([loginRoute]),
@@ -724,6 +732,7 @@ const routeTree = rootRoute.addChildren([
     reportsRoute,
     settingsRoute,
     adminUsersRoute,
+    adminMarkupsRoute,
   ]),
 ]);
 
