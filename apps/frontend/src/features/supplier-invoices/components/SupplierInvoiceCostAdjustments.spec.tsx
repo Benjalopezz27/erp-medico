@@ -86,6 +86,8 @@ const confirmation: ISupplierInvoiceConfirmation = {
       activePriceNetSnapshot: '14.0000',
       approvedPriceNet: null,
       status: PriceReviewStatus.PENDIENTE,
+      decisionAction: null,
+      decisionReason: null,
       reviewedByUserId: null,
       reviewedAt: null,
       createdAt: '2026-08-27T20:00:00.000Z',

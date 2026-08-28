@@ -7,7 +7,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { MarkupLevel, PriceReviewStatus } from '@erp/shared-types';
+import {
+  MarkupLevel,
+  PriceReviewDecisionAction,
+  PriceReviewStatus,
+} from '@erp/shared-types';
 import { Product } from '../../products/entities/product.entity';
 import { User } from '../../users/entities/user.entity';
 import { SupplierInvoice } from './supplier-invoice.entity';
@@ -110,6 +114,22 @@ export class PriceReview {
 
   @Column({ type: 'varchar', length: 20, default: PriceReviewStatus.PENDIENTE })
   status: PriceReviewStatus;
+
+  @Column({
+    name: 'decision_action',
+    type: 'varchar',
+    length: 30,
+    nullable: true,
+  })
+  decisionAction: PriceReviewDecisionAction | null;
+
+  @Column({
+    name: 'decision_reason',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
+  decisionReason: string | null;
 
   @Column({ name: 'reviewed_by_user_id', type: 'uuid', nullable: true })
   reviewedByUserId: string | null;
