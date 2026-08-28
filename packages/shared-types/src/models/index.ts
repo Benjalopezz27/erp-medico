@@ -5,6 +5,7 @@ export * from './suppliers.model';
 export * from './purchases.model';
 export * from './pricing.model';
 export * from './customers.model';
+export * from './customer-pricing.model';
 export * from './sales.model';
 export * from './receivables.model';
 export * from './treasury.model';

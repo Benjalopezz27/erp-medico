@@ -18,6 +18,7 @@ const customer = {
   phone: null,
   address: null,
   creditLimit: '0.00',
+  generalDiscountPercentage: '0.0000',
   isActive: true,
   createdAt: '2026-08-28T00:00:00.000Z',
   updatedAt: '2026-08-28T00:00:00.000Z',

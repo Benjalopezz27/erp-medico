@@ -8,3 +8,4 @@ export * from './sales.enum';
 export * from './financial.enum';
 export * from './importer.enum';
 export * from './customers.enum';
+export * from './customer-pricing.enum';

@@ -49,11 +49,24 @@ export class CustomersService {
     const document = this.normalizeDocument(dto.documentType, dto.cuitOrDni);
     this.validateTaxCondition(dto.documentType, dto.taxCondition);
     const creditLimit = this.normalizeCreditLimit(dto.creditLimit ?? '0');
+    const generalDiscountPercentage = this.normalizeGeneralDiscount(
+      dto.generalDiscountPercentage ?? '0',
+    );
     if (actor.role === UserRole.VENDEDOR && new Decimal(creditLimit).gt(0)) {
       throw new ForbiddenException({
         code: CustomerErrorCode.CUSTOMER_FORBIDDEN_CREDIT_LIMIT,
         message:
           'Los vendedores no pueden asignar un límite de crédito inicial superior a cero.',
+      });
+    }
+    if (
+      actor.role === UserRole.VENDEDOR &&
+      new Decimal(generalDiscountPercentage).gt(0)
+    ) {
+      throw new ForbiddenException({
+        code: CustomerErrorCode.CUSTOMER_FORBIDDEN_GENERAL_DISCOUNT,
+        message:
+          'Los vendedores no pueden asignar un descuento general al cliente.',
       });
     }
 
@@ -69,6 +82,7 @@ export class CustomersService {
         phone: this.optionalText(dto.phone),
         address: this.optionalText(dto.address),
         creditLimit,
+        generalDiscountPercentage,
         isActive: true,
       });
       const saved = await repo.save(customer);
@@ -153,14 +167,18 @@ export class CustomersService {
   ): Promise<CustomerResponseDto> {
     if (
       actor.role === UserRole.VENDEDOR &&
-      [dto.documentType, dto.cuitOrDni, dto.taxCondition, dto.creditLimit].some(
-        (value) => value !== undefined,
-      )
+      [
+        dto.documentType,
+        dto.cuitOrDni,
+        dto.taxCondition,
+        dto.creditLimit,
+        dto.generalDiscountPercentage,
+      ].some((value) => value !== undefined)
     ) {
       throw new ForbiddenException({
         code: CustomerErrorCode.CUSTOMER_FORBIDDEN_FIELD_UPDATE,
         message:
-          'Los vendedores no pueden modificar documento, condición fiscal ni límite de crédito.',
+          'Los vendedores no pueden modificar documento, condición fiscal, límite de crédito ni descuento general.',
       });
     }
 
@@ -181,6 +199,10 @@ export class CustomersService {
         dto.creditLimit === undefined
           ? target.creditLimit
           : this.normalizeCreditLimit(dto.creditLimit);
+      const generalDiscountPercentage =
+        dto.generalDiscountPercentage === undefined
+          ? target.generalDiscountPercentage
+          : this.normalizeGeneralDiscount(dto.generalDiscountPercentage);
       const next = {
         businessName: dto.businessName?.trim() ?? target.businessName,
         documentType,
@@ -199,6 +221,7 @@ export class CustomersService {
             ? target.address
             : this.optionalText(dto.address),
         creditLimit,
+        generalDiscountPercentage,
       };
       const changed =
         next.businessName !== target.businessName ||
@@ -208,7 +231,10 @@ export class CustomersService {
         next.email !== target.email ||
         next.phone !== target.phone ||
         next.address !== target.address ||
-        !new Decimal(next.creditLimit).eq(target.creditLimit);
+        !new Decimal(next.creditLimit).eq(target.creditLimit) ||
+        !new Decimal(next.generalDiscountPercentage).eq(
+          target.generalDiscountPercentage,
+        );
       if (!changed) {
         throw new BadRequestException({
           code: CustomerErrorCode.CUSTOMER_NO_EFFECTIVE_CHANGES,
@@ -360,6 +386,22 @@ export class CustomersService {
     return decimal.toFixed(2);
   }
 
+  private normalizeGeneralDiscount(value: string): string {
+    if (!/^(?:0|[1-9]\d*)(?:\.\d{1,4})?$/.test(value)) {
+      this.throwInvalidGeneralDiscount();
+    }
+    const decimal = new Decimal(value);
+    if (
+      !decimal.isFinite() ||
+      decimal.lt(0) ||
+      decimal.gt(100) ||
+      decimal.decimalPlaces() > 4
+    ) {
+      this.throwInvalidGeneralDiscount();
+    }
+    return decimal.toFixed(4);
+  }
+
   private optionalText(value: string | null | undefined): string | null {
     return typeof value === 'string' && value.trim() ? value.trim() : null;
   }
@@ -369,6 +411,14 @@ export class CustomersService {
       code: CustomerErrorCode.CUSTOMER_INVALID_CREDIT_LIMIT,
       message:
         'El límite de crédito debe ser un string decimal no negativo con hasta dos decimales.',
+    });
+  }
+
+  private throwInvalidGeneralDiscount(): never {
+    throw new BadRequestException({
+      code: CustomerErrorCode.CUSTOMER_INVALID_GENERAL_DISCOUNT,
+      message:
+        'El descuento general debe estar entre 0 y 100 con hasta cuatro decimales.',
     });
   }
 

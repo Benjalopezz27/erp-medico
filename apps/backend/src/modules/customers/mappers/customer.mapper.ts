@@ -13,6 +13,9 @@ export function toCustomerResponseDto(customer: Customer): CustomerResponseDto {
     phone: customer.phone ?? null,
     address: customer.address ?? null,
     creditLimit: new Decimal(customer.creditLimit).toFixed(2),
+    generalDiscountPercentage: new Decimal(
+      customer.generalDiscountPercentage ?? 0,
+    ).toFixed(4),
     isActive: customer.isActive,
     createdAt: customer.createdAt,
     updatedAt: customer.updatedAt,
