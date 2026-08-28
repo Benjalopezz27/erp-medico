@@ -74,3 +74,10 @@ export async function rejectSupplierInvoiceApi(
   );
   return response.data;
 }
+
+export async function confirmSupplierInvoiceApi(id: string): Promise<ISupplierInvoiceDetail> {
+  const response = await apiClient.patch<ISupplierInvoiceDetail>(
+    `/supplier-invoices/${id}/confirm`,
+  );
+  return response.data;
+}

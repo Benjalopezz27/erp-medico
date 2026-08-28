@@ -6,6 +6,7 @@ import {
   SupplierInvoiceObservationReason,
   SupplierInvoiceQuantityStatus,
   SupplierInvoiceStatus,
+  PriceReviewStatus,
   type IPurchaseSettings,
   type ICreateSupplierInvoicePayload,
   type IPaginatedPendingInvoiceReceiptsResponse,
@@ -17,6 +18,9 @@ import {
   type ISupplierInvoiceItemDetail,
   type ISupplierInvoiceSearchParams,
   type ISupplierInvoiceSummary,
+  type ISupplierInvoiceConfirmation,
+  type ISupplierCostAdjustment,
+  type IPriceReview,
   type IRejectSupplierInvoicePayload,
 } from '@erp/shared-types';
 
@@ -28,6 +32,7 @@ export {
   SupplierInvoiceObservationReason,
   SupplierInvoiceQuantityStatus,
   SupplierInvoiceStatus,
+  PriceReviewStatus,
   type IPurchaseSettings,
   type ICreateSupplierInvoicePayload,
   type IPaginatedPendingInvoiceReceiptsResponse,
@@ -39,6 +44,9 @@ export {
   type ISupplierInvoiceItemDetail,
   type ISupplierInvoiceSearchParams,
   type ISupplierInvoiceSummary,
+  type ISupplierInvoiceConfirmation,
+  type ISupplierCostAdjustment,
+  type IPriceReview,
   type IRejectSupplierInvoicePayload,
 };
 

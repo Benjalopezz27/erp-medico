@@ -6,6 +6,7 @@ import {
   AlertCircle,
   ArrowLeft,
   CheckCircle2,
+  CircleDollarSign,
   ExternalLink,
   ReceiptText,
   Settings2,
@@ -14,11 +15,14 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SupplierInvoiceDecisionModal } from '@/features/supplier-invoices/components/SupplierInvoiceDecisionModal';
+import { SupplierInvoiceConfirmationModal } from '@/features/supplier-invoices/components/SupplierInvoiceConfirmationModal';
+import { SupplierInvoiceCostAdjustments } from '@/features/supplier-invoices/components/SupplierInvoiceCostAdjustments';
 import type { SupplierInvoiceDecisionMode } from '@/features/supplier-invoices/components/SupplierInvoiceDecisionModal';
 import { SupplierInvoiceStatusBadge } from '@/features/supplier-invoices/components/SupplierInvoiceStatusBadge';
 import { supplierInvoicesKeys } from '@/features/supplier-invoices/hooks/supplier-invoices-keys';
 import {
   useAuthorizeSupplierInvoiceMutation,
+  useConfirmSupplierInvoiceMutation,
   useRejectSupplierInvoiceMutation,
   useSupplierInvoiceQuery,
 } from '@/features/supplier-invoices/hooks/use-supplier-invoices';
@@ -36,6 +40,9 @@ import {
   formatDecimalAr,
   formatMoneyAr,
 } from '@/features/supplier-invoices/utils/supplier-invoices.math';
+import { productKeys } from '@/features/products/hooks/use-products-query';
+import { stockKeys } from '@/features/stock/hooks/stock-keys';
+import { priceReviewKeys } from '@/features/price-reviews/hooks/price-review-keys';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const calendarDate = (value: string) =>
@@ -55,11 +62,15 @@ export function SupplierInvoiceDetailPage() {
   const query = useSupplierInvoiceQuery(valid ? id : '');
   const authorize = useAuthorizeSupplierInvoiceMutation();
   const reject = useRejectSupplierInvoiceMutation();
+  const confirmInvoice = useConfirmSupplierInvoiceMutation();
   const [decisionMode, setDecisionMode] = useState<SupplierInvoiceDecisionMode | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [decisionError, setDecisionError] = useState<string>();
   const [notice, setNotice] = useState<string>();
-  const pending = authorize.isPending || reject.isPending;
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [confirmationError, setConfirmationError] = useState<string>();
+  const decisionPending = authorize.isPending || reject.isPending;
+  const pending = decisionPending || confirmInvoice.isPending;
 
   if (!valid)
     return (
@@ -88,11 +99,53 @@ export function SupplierInvoiceDetailPage() {
 
   const invoice = query.data;
   const isObserved = invoice.status === SupplierInvoiceStatus.OBSERVADA;
+  const isConfirmable = invoice.status === SupplierInvoiceStatus.AUTORIZADA;
 
   const closeDecision = () => {
-    if (pending) return;
+    if (decisionPending) return;
     setDecisionMode(null);
     setDecisionError(undefined);
+  };
+
+  const closeConfirmation = () => {
+    if (confirmInvoice.isPending) return;
+    setConfirmationOpen(false);
+    setConfirmationError(undefined);
+  };
+
+  const refreshAfterConfirmationConflict = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: supplierInvoicesKeys.lists() }),
+      queryClient.invalidateQueries({ queryKey: productKeys.all }),
+      queryClient.invalidateQueries({ queryKey: stockKeys.all }),
+      queryClient.invalidateQueries({ queryKey: priceReviewKeys.all }),
+    ]);
+    await query.refetch();
+  };
+
+  const confirmCostAdjustment = async () => {
+    if (confirmInvoice.isPending) return;
+    setConfirmationError(undefined);
+    try {
+      await confirmInvoice.mutateAsync(id);
+      setConfirmationOpen(false);
+      setNotice(
+        'Factura confirmada. Los ajustes de costos y las revisiones de precio quedaron registrados.',
+      );
+    } catch (caught) {
+      const parsed = parseSupplierInvoiceError(caught);
+      if (
+        parsed.kind === 'CONFIRMATION_CONFLICT' ||
+        parsed.kind === 'DECISION_CONFLICT' ||
+        parsed.kind === 'NOT_FOUND'
+      ) {
+        setConfirmationOpen(false);
+        setNotice(`${parsed.message} Se actualizó el detalle autoritativo.`);
+        await refreshAfterConfirmationConflict();
+        return;
+      }
+      setConfirmationError(parsed.message);
+    }
   };
 
   const refreshAfterConflict = async () => {
@@ -180,6 +233,18 @@ export function SupplierInvoiceDetailPage() {
               </Button>
             </>
           )}
+          {isConfirmable && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setConfirmationError(undefined);
+                setConfirmationOpen(true);
+              }}
+              disabled={pending}
+            >
+              <CircleDollarSign className="mr-1.5 h-4 w-4" /> Confirmar factura
+            </Button>
+          )}
           <Link to="/purchases/supplier-invoices">
             <Button variant="outline" size="sm">
               <ArrowLeft className="mr-1.5 h-4 w-4" /> Volver al listado
@@ -199,6 +264,15 @@ export function SupplierInvoiceDetailPage() {
 
       {isObserved && <ObservedBanner invoice={invoice} />}
       {!isObserved && <DecisionEvidence invoice={invoice} />}
+      {invoice.status === SupplierInvoiceStatus.CONFIRMADA && !invoice.confirmation && (
+        <div
+          role="alert"
+          className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"
+        >
+          La factura figura confirmada, pero el detalle de sus ajustes no está disponible. Revise la
+          consistencia de la confirmación antes de continuar.
+        </div>
+      )}
 
       <section className="grid gap-4 md:grid-cols-3">
         <Card title="Proveedor">
@@ -262,6 +336,10 @@ export function SupplierInvoiceDetailPage() {
         <Row label="Total" value={formatMoneyAr(invoice.totalAmount)} strong />
       </section>
 
+      {invoice.confirmation && (
+        <SupplierInvoiceCostAdjustments confirmation={invoice.confirmation} />
+      )}
+
       <SupplierInvoiceDecisionModal
         mode={decisionMode}
         invoiceNumber={invoice.invoiceNumber}
@@ -274,6 +352,14 @@ export function SupplierInvoiceDetailPage() {
         onConfirm={confirmDecision}
         pending={pending}
         error={decisionError}
+      />
+      <SupplierInvoiceConfirmationModal
+        invoice={invoice}
+        isOpen={confirmationOpen}
+        pending={confirmInvoice.isPending}
+        error={confirmationError}
+        onClose={closeConfirmation}
+        onConfirm={confirmCostAdjustment}
       />
     </div>
   );

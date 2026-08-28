@@ -12,10 +12,26 @@ describe('parseSupplierInvoiceError decisions', () => {
     [SupplierInvoiceErrorCode.SUPPLIER_INVOICE_CONCURRENCY_CONFLICT, 'CONCURRENCY'],
     [SupplierInvoiceErrorCode.SUPPLIER_INVOICE_REJECTION_REASON_INVALID, 'REJECTION_REASON'],
     [SupplierInvoiceErrorCode.SUPPLIER_INVOICE_NOT_FOUND, 'NOT_FOUND'],
+    [SupplierInvoiceErrorCode.SUPPLIER_INVOICE_CONFIRMATION_CONFLICT, 'CONFIRMATION_CONFLICT'],
+    [SupplierInvoiceErrorCode.SUPPLIER_INVOICE_LEDGER_INCONSISTENT, 'LEDGER_INCONSISTENT'],
+    [SupplierInvoiceErrorCode.SUPPLIER_INVOICE_ADJUSTMENT_INCONSISTENT, 'ADJUSTMENT_INCONSISTENT'],
   ])('maps %s to %s', (code, kind) => {
     vi.mocked(axios.isAxiosError).mockReturnValue(true);
     expect(
       parseSupplierInvoiceError({ response: { data: { code, requestId: 'req-1' } } }),
     ).toMatchObject({ kind, code, requestId: 'req-1' });
+  });
+
+  it('preserves the request id in an unexpected confirmation error', () => {
+    vi.mocked(axios.isAxiosError).mockReturnValue(true);
+    expect(
+      parseSupplierInvoiceError({
+        response: { data: { message: 'Fallo inesperado', requestId: 'req-confirm' } },
+      }),
+    ).toMatchObject({
+      kind: 'GENERAL',
+      requestId: 'req-confirm',
+      message: expect.stringContaining('req-confirm'),
+    });
   });
 });

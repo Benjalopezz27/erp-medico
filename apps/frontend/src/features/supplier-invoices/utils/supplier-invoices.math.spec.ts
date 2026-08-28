@@ -7,6 +7,7 @@ import {
   calculateInvoiceLine,
   calculateInvoiceTotals,
   formatDecimalAr,
+  formatSignedMoneyAr,
 } from './supplier-invoices.math';
 
 describe('supplier invoice decimal math', () => {
@@ -86,5 +87,11 @@ describe('supplier invoice decimal math', () => {
     );
     expect(totals.taxTotal.toFixed(4)).toBe('36.5400');
     expect(totals.totalAmount.toFixed(4)).toBe('210.5400');
+  });
+
+  it('formats positive, negative and zero monetary adjustments with explicit signs', () => {
+    expect(formatSignedMoneyAr('12.3456')).toBe('+$ 12,35');
+    expect(formatSignedMoneyAr('-12.3456')).toBe('-$ 12,35');
+    expect(formatSignedMoneyAr('0.0000')).toBe('$ 0,00');
   });
 });
