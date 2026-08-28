@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Settings, Plus, CheckCircle2, X } from 'lucide-react';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
+import { Settings, Plus, CheckCircle2, X, SlidersHorizontal, ArrowRight } from 'lucide-react';
 import { UserRole } from '@erp/shared-types';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
@@ -114,6 +114,29 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {isAdmin && (
+        <Link
+          to="/admin/markups"
+          className="group flex items-center justify-between gap-4 rounded-xl border border-blue-200 bg-blue-50/60 p-4 text-left transition-colors hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <span className="flex items-start gap-3">
+            <span className="rounded-lg bg-blue-100 p-2 text-blue-700">
+              <SlidersHorizontal className="h-5 w-5" />
+            </span>
+            <span>
+              <span className="block text-sm font-semibold text-slate-900">
+                Markups y precios sugeridos
+              </span>
+              <span className="mt-0.5 block text-xs text-slate-600">
+                Configure la base global, excepciones y simule su efecto sin cambiar precios
+                activos.
+              </span>
+            </span>
+          </span>
+          <ArrowRight className="h-5 w-5 shrink-0 text-blue-700 transition-transform group-hover:translate-x-0.5" />
+        </Link>
+      )}
 
       {/* Success Feedback Banner */}
       {successNotice && (
