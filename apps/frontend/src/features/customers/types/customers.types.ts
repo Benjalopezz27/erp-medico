@@ -33,6 +33,7 @@ export interface CreateCustomerPayload {
   phone?: string | null;
   address?: string | null;
   creditLimit?: string;
+  generalDiscountPercentage?: string;
 }
 
 export type UpdateCustomerPayload = Partial<CreateCustomerPayload>;

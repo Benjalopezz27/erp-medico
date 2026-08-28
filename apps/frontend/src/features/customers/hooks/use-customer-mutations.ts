@@ -12,10 +12,14 @@ import type {
 } from '../types/customers.types';
 import { parseCustomerError } from '../utils/customers.errors';
 import { customerKeys } from './customer-keys';
+import { customerPricingKeys } from '@/features/customer-pricing/hooks/customer-pricing-keys';
 
 async function reconcileCustomer(queryClient: QueryClient, customer: ICustomer) {
   queryClient.setQueryData(customerKeys.detail(customer.id), customer);
-  await queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: customerKeys.lists() }),
+    queryClient.invalidateQueries({ queryKey: customerPricingKeys.customer(customer.id) }),
+  ]);
 }
 
 function conflictLifecycle(queryClient: QueryClient, id?: string) {
