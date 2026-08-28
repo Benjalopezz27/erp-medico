@@ -2,16 +2,22 @@ import { PriceReviewStatus } from '../enums/pricing.enum';
 
 export interface IPriceReview {
   id: string;
+  supplierInvoiceId: string;
   productId: string;
-  previousCostNet: number;
-  newCostNet: number;
-  previousPriceNet: number;
-  suggestedPriceNet: number;
-  approvedPriceNet?: number | null;
+  productCode: string;
+  productName: string;
+  previousCostNet: string;
+  newCostNet: string;
+  markupPercentageSnapshot: string | null;
+  previousSuggestedPriceNet: string;
+  suggestedPriceNet: string;
+  activePriceNetSnapshot: string;
+  approvedPriceNet: string | null;
   status: PriceReviewStatus;
-  reviewedByUserId?: string | null;
-  reviewedAt?: Date | string | null;
-  createdAt: Date | string;
+  reviewedByUserId: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface IMarkupConfig {

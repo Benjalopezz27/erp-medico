@@ -144,7 +144,10 @@ export class SupplierInvoiceDecisionsService {
         purchaseOrder: true,
         user: true,
         decisionUser: true,
+        confirmedBy: true,
         items: true,
+        costAdjustments: true,
+        priceReviews: true,
       },
     });
     return mapSupplierInvoiceDetail(invoice);

@@ -18,6 +18,8 @@ import { User } from '../../users/entities/user.entity';
 import { GoodsReceipt } from './goods-receipt.entity';
 import { PurchaseOrder } from './purchase-order.entity';
 import { SupplierInvoiceItem } from './supplier-invoice-item.entity';
+import { SupplierCostAdjustment } from './supplier-cost-adjustment.entity';
+import { PriceReview } from './price-review.entity';
 
 @Entity('supplier_invoices')
 export class SupplierInvoice {
@@ -99,6 +101,12 @@ export class SupplierInvoice {
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 
+  @Column({ name: 'confirmed_by_user_id', type: 'uuid', nullable: true })
+  confirmedByUserId: string | null;
+
+  @Column({ name: 'confirmed_at', type: 'timestamptz', nullable: true })
+  confirmedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 
@@ -129,4 +137,17 @@ export class SupplierInvoice {
 
   @OneToMany(() => SupplierInvoiceItem, (item) => item.supplierInvoice)
   items?: SupplierInvoiceItem[];
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'confirmed_by_user_id' })
+  confirmedBy?: User | null;
+
+  @OneToMany(
+    () => SupplierCostAdjustment,
+    (adjustment) => adjustment.supplierInvoice,
+  )
+  costAdjustments?: SupplierCostAdjustment[];
+
+  @OneToMany(() => PriceReview, (review) => review.supplierInvoice)
+  priceReviews?: PriceReview[];
 }
