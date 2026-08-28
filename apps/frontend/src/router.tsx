@@ -13,6 +13,7 @@ import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { UsersPage } from '@/pages/admin/UsersPage';
 import { MarkupsPage } from '@/pages/admin/MarkupsPage';
+import { PriceReviewsPage } from '@/pages/prices/PriceReviewsPage';
 import { SettingsPage, type SettingsTab } from '@/pages/SettingsPage';
 import { ProductsListPage } from '@/pages/products/ProductsListPage';
 import { ProductCreatePage } from '@/pages/products/ProductCreatePage';
@@ -160,6 +161,50 @@ import type {
   ISupplierProductSearchParams,
   SupplierProductSortField,
 } from '@/features/supplier-products/types/supplier-products.types';
+import { PriceReviewStatus } from '@erp/shared-types';
+import type { PriceReviewSearchParams } from '@/features/price-reviews/types/price-reviews.types';
+
+export function validatePriceReviewSearchParams(
+  search: Record<string, unknown>,
+): PriceReviewSearchParams {
+  const page = Number(search.page);
+  const limit = Number(search.limit);
+  const rawStatus = search.status as string | undefined;
+  const status = Object.values(PriceReviewStatus).includes(rawStatus as PriceReviewStatus)
+    ? (rawStatus as PriceReviewStatus)
+    : PriceReviewStatus.PENDIENTE;
+  const uuid = (value: unknown): string | undefined => {
+    if (typeof value !== 'string') return undefined;
+    const trimmed = value.trim();
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimmed)
+      ? trimmed
+      : undefined;
+  };
+  const calendarDate = (value: unknown): string | undefined => {
+    if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+    const date = new Date(`${value}T00:00:00.000Z`);
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+      ? value
+      : undefined;
+  };
+  let dateFrom = calendarDate(search.dateFrom);
+  let dateTo = calendarDate(search.dateTo);
+  if (dateFrom && dateTo && dateFrom > dateTo) {
+    dateFrom = undefined;
+    dateTo = undefined;
+  }
+  return {
+    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    limit: [10, 20, 50].includes(limit) ? limit : 20,
+    status,
+    productId: uuid(search.productId),
+    categoryId: uuid(search.categoryId),
+    supplierId: uuid(search.supplierId),
+    supplierInvoiceId: uuid(search.supplierInvoiceId),
+    dateFrom,
+    dateTo,
+  };
+}
 
 export function validatePurchaseOrderSearchParams(
   search: Record<string, unknown>,
@@ -700,6 +745,14 @@ const adminMarkupsRoute = createRoute({
   component: () => <MarkupsPage />,
 });
 
+const priceReviewsRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/prices/review',
+  validateSearch: validatePriceReviewSearchParams,
+  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
+  component: () => <PriceReviewsPage />,
+});
+
 // 4. Build Route Tree
 const routeTree = rootRoute.addChildren([
   authLayoutRoute.addChildren([loginRoute]),
@@ -733,6 +786,7 @@ const routeTree = rootRoute.addChildren([
     settingsRoute,
     adminUsersRoute,
     adminMarkupsRoute,
+    priceReviewsRoute,
   ]),
 ]);
 
