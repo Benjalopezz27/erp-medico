@@ -163,6 +163,46 @@ import type {
 } from '@/features/supplier-products/types/supplier-products.types';
 import { PriceReviewStatus } from '@erp/shared-types';
 import type { PriceReviewSearchParams } from '@/features/price-reviews/types/price-reviews.types';
+import { CustomersListPage } from '@/pages/customers/CustomersListPage';
+import { CustomerDetailPage } from '@/pages/customers/CustomerDetailPage';
+import type { CustomerSearchParams } from '@/features/customers/types/customers.types';
+import { CustomerSortField, TaxCondition } from '@erp/shared-types';
+
+export function validateCustomerSearchParams(
+  search: Record<string, unknown>,
+): CustomerSearchParams {
+  const page = Number(search.page);
+  const limit = Number(search.limit);
+  const rawSearch = typeof search.search === 'string' ? search.search.trim() : '';
+  const taxCondition = Object.values(TaxCondition).includes(search.taxCondition as TaxCondition)
+    ? (search.taxCondition as TaxCondition)
+    : undefined;
+  const sortFields: CustomerSortField[] = [
+    'businessName',
+    'cuitOrDni',
+    'taxCondition',
+    'creditLimit',
+    'createdAt',
+    'updatedAt',
+  ];
+  const sortBy = sortFields.includes(search.sortBy as CustomerSortField)
+    ? (search.sortBy as CustomerSortField)
+    : undefined;
+  const sortOrder =
+    search.sortOrder === 'ASC' || search.sortOrder === 'DESC' ? search.sortOrder : undefined;
+  let isActive: boolean | undefined;
+  if (search.isActive === true || search.isActive === 'true') isActive = true;
+  if (search.isActive === false || search.isActive === 'false') isActive = false;
+  return {
+    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    limit: [10, 25, 50].includes(limit) ? limit : 10,
+    search: rawSearch || undefined,
+    taxCondition,
+    isActive: isActive ?? true,
+    sortBy,
+    sortOrder,
+  };
+}
 
 export function validatePriceReviewSearchParams(
   search: Record<string, unknown>,
@@ -652,13 +692,14 @@ const salesRoute = createRoute({
 const customersRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/customers',
-  component: () => (
-    <PlaceholderPage
-      title="Clientes y Precios Especiales"
-      description="Administración de cuentas comerciales, límites de crédito y acuerdos"
-      sprint="Sprint 6 — US-23"
-    />
-  ),
+  validateSearch: validateCustomerSearchParams,
+  component: () => <CustomersListPage />,
+});
+
+const customerDetailRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/customers/$id',
+  component: () => <CustomerDetailPage />,
 });
 
 const suppliersRoute = createRoute({
@@ -777,6 +818,7 @@ const routeTree = rootRoute.addChildren([
     salesRoute,
 
     customersRoute,
+    customerDetailRoute,
     suppliersRoute,
     supplierCatalogRoute,
     importerRoute,

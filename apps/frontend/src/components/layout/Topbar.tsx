@@ -30,7 +30,9 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuToggle }) => {
   const routerState = useRouterState();
 
   const currentPath = routerState.location.pathname;
-  const currentTitle = routeTitles[currentPath] || 'Página';
+  const currentTitle =
+    routeTitles[currentPath] ||
+    (currentPath.startsWith('/customers/') ? 'Detalle de Cliente' : 'Página');
 
   const handleLogout = () => void sessionTerminator.terminate('user_logout');
 
