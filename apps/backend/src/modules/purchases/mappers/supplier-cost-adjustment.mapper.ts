@@ -59,6 +59,10 @@ export function mapPriceReview(review: PriceReview): IPriceReview {
       review.markupPercentageSnapshot === null
         ? null
         : fixed(review.markupPercentageSnapshot, 4),
+    effectiveMarkupLevel: review.effectiveMarkupLevel,
+    effectiveMarkupConfigurationId: review.effectiveMarkupConfigurationId,
+    effectiveMarkupTargetId: review.effectiveMarkupTargetId,
+    effectiveMarkupTargetName: review.effectiveMarkupTargetName,
     previousSuggestedPriceNet: fixed(review.previousSuggestedPriceNet, 2),
     suggestedPriceNet: fixed(review.suggestedPriceNet, 2),
     activePriceNetSnapshot: fixed(review.activePriceNetSnapshot, 2),

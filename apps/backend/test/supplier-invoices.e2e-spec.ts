@@ -4,6 +4,7 @@ import * as request from 'supertest';
 import { DataSource } from 'typeorm';
 import {
   ProductStatus,
+  MarkupLevel,
   SupplierInvoiceAdjustmentMode,
   SupplierInvoiceObservationReason,
   SupplierInvoiceStatus,
@@ -27,6 +28,7 @@ import Decimal from 'decimal.js';
 import { Supplier } from '../src/modules/suppliers/entities/supplier.entity';
 import { SupplierProduct } from '../src/modules/suppliers/supplier-products/entities/supplier-product.entity';
 import { Unit } from '../src/modules/units/entities/unit.entity';
+import { MarkupConfiguration } from '../src/modules/prices/entities/markup-configuration.entity';
 
 describe('Supplier invoices (E2E)', () => {
   let app: INestApplication;
@@ -96,10 +98,15 @@ describe('Supplier invoices (E2E)', () => {
       baseUnitId: baseUnit.id,
       minStock: '0.00',
       costNet: '50.0000',
-      markupPercentage: '20.0000',
       suggestedPriceNet: '60.00',
       activePriceNet: '60.00',
       status: ProductStatus.ACTIVE,
+    });
+    await ds.getRepository(MarkupConfiguration).save({
+      level: MarkupLevel.PRODUCT,
+      percentage: '20.0000',
+      categoryId: null,
+      productId: product.id,
     });
     await ds
       .getRepository(Stock)
@@ -702,6 +709,9 @@ describe('Supplier invoices (E2E)', () => {
           previousCostNet: '50.0000',
           newCostNet: '51.0000',
           activePriceNetSnapshot: '60.00',
+          effectiveMarkupLevel: MarkupLevel.PRODUCT,
+          effectiveMarkupTargetId: product.id,
+          effectiveMarkupTargetName: product.name,
         }),
       );
   });

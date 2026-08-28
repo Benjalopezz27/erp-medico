@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { PriceReviewStatus } from '@erp/shared-types';
+import { MarkupLevel, PriceReviewStatus } from '@erp/shared-types';
 import { Product } from '../../products/entities/product.entity';
 import { User } from '../../users/entities/user.entity';
 import { SupplierInvoice } from './supplier-invoice.entity';
@@ -48,6 +48,32 @@ export class PriceReview {
     nullable: true,
   })
   markupPercentageSnapshot: string | null;
+
+  @Column({
+    name: 'effective_markup_level',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
+  effectiveMarkupLevel: MarkupLevel | null;
+
+  @Column({
+    name: 'effective_markup_configuration_id',
+    type: 'uuid',
+    nullable: true,
+  })
+  effectiveMarkupConfigurationId: string | null;
+
+  @Column({ name: 'effective_markup_target_id', type: 'uuid', nullable: true })
+  effectiveMarkupTargetId: string | null;
+
+  @Column({
+    name: 'effective_markup_target_name',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
+  effectiveMarkupTargetName: string | null;
 
   @Column({
     name: 'previous_suggested_price_net',
