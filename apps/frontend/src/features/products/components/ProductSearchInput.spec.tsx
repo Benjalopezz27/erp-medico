@@ -186,4 +186,17 @@ describe('ProductSearchInput', () => {
       expect(screen.getByText('No se encontraron productos activos')).toBeInTheDocument();
     });
   });
+
+  it('excludes configured product ids and explains how to recover', async () => {
+    const user = userEvent.setup();
+    vi.mocked(productsApi.searchProductsTypeaheadApi).mockResolvedValue([mockProduct1]);
+    renderComponent({ excludeIds: ['p-1'] });
+    await user.type(screen.getByRole('combobox'), 'Ibu');
+    expect(
+      await screen.findByText('Los resultados ya tienen una excepción configurada'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Refine la búsqueda para encontrar otro producto.'),
+    ).toBeInTheDocument();
+  });
 });

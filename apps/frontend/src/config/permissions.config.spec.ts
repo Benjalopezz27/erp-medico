@@ -15,6 +15,8 @@ describe('route permissions', () => {
     expect(isRouteAllowed('/admin', UserRole.VENDEDOR)).toBe(false);
     expect(isRouteAllowed('/admin/users', UserRole.ADMINISTRADOR)).toBe(true);
     expect(isRouteAllowed('/admin/users', UserRole.VENDEDOR)).toBe(false);
+    expect(isRouteAllowed('/admin/markups', UserRole.ADMINISTRADOR)).toBe(true);
+    expect(isRouteAllowed('/admin/markups', UserRole.VENDEDOR)).toBe(false);
     expect(isRouteAllowed('/purchases', UserRole.ADMINISTRADOR)).toBe(true);
     expect(isRouteAllowed('/purchases', UserRole.VENDEDOR)).toBe(false);
     expect(isRouteAllowed('/purchases/orders', UserRole.ADMINISTRADOR)).toBe(true);

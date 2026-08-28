@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useId } from 'react';
+import React, { useState, useEffect, useRef, useId, useMemo } from 'react';
 import { Search, X, Loader2, Package, AlertCircle } from 'lucide-react';
 import { useProductSearchQuery } from '../hooks/use-product-search-query';
 import { formatCurrency } from '../utils/products.math';
@@ -14,6 +14,8 @@ export interface ProductSearchInputProps {
   autoFocus?: boolean;
   className?: string;
   ariaLabel?: string;
+  /** Product ids omitted from results, for example targets already configured elsewhere. */
+  excludeIds?: readonly string[];
 }
 
 export const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
@@ -24,6 +26,7 @@ export const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
   autoFocus = false,
   className = '',
   ariaLabel = 'Buscar producto',
+  excludeIds = [],
 }) => {
   const [searchTerm, setSearchTerm] = useState(
     value ? `${value.internalCode} - ${value.name}` : '',
@@ -64,11 +67,17 @@ export const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
 
   // TanStack Query Typeahead Hook
   const {
-    data: results = [],
+    data: queryResults = [],
     isLoading,
     isFetching,
     isError,
   } = useProductSearchQuery(debouncedTerm, { enabled: isOpen && debouncedTerm.trim().length >= 2 });
+
+  const excluded = useMemo(() => new Set(excludeIds), [excludeIds]);
+  const results = useMemo(
+    () => queryResults.filter((product) => !excluded.has(product.id)),
+    [excluded, queryResults],
+  );
 
   useEffect(() => {
     setActiveIndex(-1);
@@ -231,9 +240,15 @@ export const ProductSearchInput: React.FC<ProductSearchInputProps> = ({
           {!isLoading && !isError && results.length === 0 && (
             <div className="p-4 text-center text-slate-500 space-y-1">
               <Package className="w-5 h-5 mx-auto text-slate-400 mb-1" />
-              <p className="font-medium text-slate-800">No se encontraron productos activos</p>
+              <p className="font-medium text-slate-800">
+                {queryResults.length > 0
+                  ? 'Los resultados ya tienen una excepción configurada'
+                  : 'No se encontraron productos activos'}
+              </p>
               <p className="text-[11px] text-slate-400">
-                No hay coincidencias para "{debouncedTerm}"
+                {queryResults.length > 0
+                  ? 'Refine la búsqueda para encontrar otro producto.'
+                  : `No hay coincidencias para "${debouncedTerm}"`}
               </p>
             </div>
           )}

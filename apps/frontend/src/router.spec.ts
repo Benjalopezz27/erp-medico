@@ -82,6 +82,12 @@ describe('authentication route guards', () => {
     expect(redirectDestination(() => requireRole(UserRole.ADMINISTRADOR))).toBeUndefined();
   });
 
+  it('registers the administrator-only markup settings route', () => {
+    expect(router.routesByPath['/admin/markups']).toBeDefined();
+    useAuthStore.getState().setSession(session(UserRole.VENDEDOR));
+    expect(redirectDestination(() => requireRole(UserRole.ADMINISTRADOR))).toBe('/products');
+  });
+
   it('registers the administrative goods receipt route', () => {
     expect(router.routesByPath['/purchases/orders/$id/receive']).toBeDefined();
   });
