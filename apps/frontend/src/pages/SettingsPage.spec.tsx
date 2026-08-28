@@ -98,6 +98,10 @@ describe('SettingsPage master catalog management', () => {
         'aria-selected',
         'false',
       );
+      expect(screen.getByRole('link', { name: /Markups y precios sugeridos/ })).toHaveAttribute(
+        'href',
+        '/admin/markups',
+      );
 
       // Check category list rendered
       expect(await screen.findByText('Analgésicos')).toBeInTheDocument();
@@ -170,6 +174,9 @@ describe('SettingsPage master catalog management', () => {
       ).not.toBeInTheDocument();
       expect(
         screen.queryByRole('button', { name: 'Eliminar unidad Unidad' }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', { name: /Markups y precios sugeridos/ }),
       ).not.toBeInTheDocument();
     });
 
