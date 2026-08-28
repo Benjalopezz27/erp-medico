@@ -43,15 +43,35 @@ describe('CustomerDetailPage', () => {
       ],
       `/customers/${customer.id}`,
     );
-    renderWithRouter({ router });
+    const { user } = renderWithRouter({ router });
     expect(await screen.findByRole('heading', { name: customer.businessName })).toBeInTheDocument();
     expect(screen.getByText(/no es un saldo ni crédito disponible/i)).toBeInTheDocument();
     expect(screen.queryByText(/saldo actual/i)).not.toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /precios especiales/i })).toBeDisabled();
+    const pricingTab = screen.getByRole('tab', { name: /precios especiales/i });
+    expect(pricingTab).toBeEnabled();
     expect(screen.queryByRole('button', { name: /desactivar/i })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: customer.email })).toHaveAttribute(
       'href',
       'mailto:cliente%40example.com',
     );
+    server.use(
+      http.get('*/api/v1/customers/:customerId/special-prices', () =>
+        HttpResponse.json({
+          data: [],
+          meta: {
+            total: 0,
+            page: 1,
+            limit: 10,
+            totalPages: 0,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        }),
+      ),
+    );
+    await user.click(pricingTab);
+    expect(await screen.findByText(/no posee excepciones por producto/i)).toBeInTheDocument();
+    expect(screen.getByText('0.0000%')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /nueva excepción/i })).not.toBeInTheDocument();
   });
 });
