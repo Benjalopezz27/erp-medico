@@ -14,6 +14,7 @@ import {
   SupplierInvoiceStatus,
 } from '@erp/shared-types';
 import { AuditService } from '../../audit/audit.service';
+import { MarkupEngineService } from '../../prices/services/markup-engine.service';
 import { Product } from '../../products/entities/product.entity';
 import { Stock } from '../../stock/entities/stock.entity';
 import { StockMovement } from '../../stock/entities/stock-movement.entity';
@@ -54,6 +55,7 @@ export class SupplierInvoiceConfirmationService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly auditService: AuditService,
+    private readonly markupEngine: MarkupEngineService,
   ) {}
 
   async confirm(id: string, userId: string): Promise<ISupplierInvoiceDetail> {
@@ -240,9 +242,13 @@ export class SupplierInvoiceConfirmationService {
             product.suggestedPriceNet,
           ).toFixed(2);
           const activePrice = new Decimal(product.activePriceNet).toFixed(2);
-          const suggested = this.calculateSuggestedPrice(
+          const effectiveMarkup = await this.markupEngine.resolveForProduct(
+            product,
+            manager,
+          );
+          const suggested = this.markupEngine.calculateSuggestedPrice(
             newCost,
-            product.markupPercentage,
+            effectiveMarkup.percentage,
           );
           product.costNet = newCost;
           product.suggestedPriceNet = suggested;
@@ -257,10 +263,11 @@ export class SupplierInvoiceConfirmationService {
                 productNameSnapshot: product.name,
                 previousCostNet: previousCost,
                 newCostNet: newCost,
-                markupPercentageSnapshot:
-                  product.markupPercentage === null
-                    ? null
-                    : new Decimal(product.markupPercentage).toFixed(4),
+                markupPercentageSnapshot: effectiveMarkup.percentage,
+                effectiveMarkupLevel: effectiveMarkup.level,
+                effectiveMarkupConfigurationId: effectiveMarkup.configurationId,
+                effectiveMarkupTargetId: effectiveMarkup.targetId,
+                effectiveMarkupTargetName: effectiveMarkup.targetName,
                 previousSuggestedPriceNet: previousSuggested,
                 suggestedPriceNet: suggested,
                 activePriceNetSnapshot: activePrice,
@@ -392,21 +399,6 @@ export class SupplierInvoiceConfirmationService {
         new Decimal(row.quantity).toFixed(2),
       ]),
     );
-  }
-
-  private calculateSuggestedPrice(
-    costNet: string,
-    markupPercentage: string | number | null,
-  ): string {
-    const cost = new Decimal(costNet);
-    const markup =
-      markupPercentage === null
-        ? new Decimal(0)
-        : new Decimal(markupPercentage);
-    return cost
-      .times(new Decimal(1).plus(markup.dividedBy(100)))
-      .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
-      .toFixed(2);
   }
 
   private async loadDetail(

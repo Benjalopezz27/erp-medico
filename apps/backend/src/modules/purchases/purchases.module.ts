@@ -22,6 +22,7 @@ import { SupplierProduct } from '../suppliers/supplier-products/entities/supplie
 import { AuditModule } from '../audit/audit.module';
 import { StockModule } from '../stock/stock.module';
 import { SystemConfigModule } from '../config/system-config.module';
+import { PricesModule } from '../prices/prices.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { SystemConfigModule } from '../config/system-config.module';
     AuditModule,
     StockModule,
     SystemConfigModule,
+    PricesModule,
   ],
   controllers: [
     PurchasesController,

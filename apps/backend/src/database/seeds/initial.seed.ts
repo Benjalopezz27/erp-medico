@@ -83,6 +83,16 @@ export async function runInitialSeed(
   let skipped = 0;
 
   try {
+    // The global markup is mandatory application configuration. Keep the
+    // bootstrap idempotent so fresh and test databases cannot lose the
+    // deterministic pricing fallback after a controlled truncate.
+    if (typeof queryRunner.manager.query === 'function') {
+      await queryRunner.manager.query(`
+        INSERT INTO "markup_configurations" ("level", "percentage")
+        VALUES ('GLOBAL', 0.0000)
+        ON CONFLICT ("level") WHERE "level" = 'GLOBAL' DO NOTHING
+      `);
+    }
     const userRepo = queryRunner.manager.getRepository(User);
 
     for (const userData of targetUsers) {

@@ -135,10 +135,10 @@ describe('ProductsController', () => {
   });
 
   describe('update', () => {
-    it('calls service.update with id and dto', async () => {
+    it('calls service.update with id, dto and authenticated actor', async () => {
       const dto = { name: 'Ibuprofeno Modificado' };
-      const result = await controller.update('p-1', dto);
-      expect(service.update).toHaveBeenCalledWith('p-1', dto);
+      const result = await controller.update('p-1', dto, mockAdminUser as any);
+      expect(service.update).toHaveBeenCalledWith('p-1', dto, mockAdminUser);
       expect(result).toBeDefined();
     });
   });
