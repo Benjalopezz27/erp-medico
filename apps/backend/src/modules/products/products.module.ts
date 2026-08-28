@@ -9,10 +9,12 @@ import { StockModule } from '../stock/stock.module';
 import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
 import { UnitConversionEngine } from './services/unit-conversion-engine.service';
+import { PricesModule } from '../prices/prices.module';
 
 @Module({
   imports: [
     StockModule,
+    PricesModule,
     TypeOrmModule.forFeature([
       Product,
       ProductUnitConversion,

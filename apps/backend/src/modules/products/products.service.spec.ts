@@ -14,6 +14,7 @@ import { Category } from '../categories/entities/category.entity';
 import { Unit } from '../units/entities/unit.entity';
 import { UnitConversionEngine } from './services/unit-conversion-engine.service';
 import { StockAdjustmentsService } from '../stock/stock-adjustments.service';
+import { PricesService } from '../prices/prices.service';
 
 describe('ProductsService', () => {
   let service: ProductsService;
@@ -187,6 +188,16 @@ describe('ProductsService', () => {
         {
           provide: DataSource,
           useValue: dataSource,
+        },
+        {
+          provide: PricesService,
+          useValue: {
+            hydrateLegacyMarkup: jest.fn(async (product) => product),
+            applyLegacyProductMarkup: jest.fn().mockResolvedValue(true),
+            calculateSuggestedPrice: jest.fn((cost, percentage) =>
+              (Number(cost) * (1 + Number(percentage) / 100)).toFixed(4),
+            ),
+          },
         },
       ],
     }).compile();
