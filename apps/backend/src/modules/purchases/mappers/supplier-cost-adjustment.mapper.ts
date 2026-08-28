@@ -71,6 +71,8 @@ export function mapPriceReview(review: PriceReview): IPriceReview {
         ? null
         : fixed(review.approvedPriceNet, 2),
     status: review.status,
+    decisionAction: review.decisionAction,
+    decisionReason: review.decisionReason,
     reviewedByUserId: review.reviewedByUserId,
     reviewedAt: review.reviewedAt?.toISOString() ?? null,
     createdAt: review.createdAt.toISOString(),

@@ -104,6 +104,29 @@ describe('AllExceptionsFilter', () => {
     );
   });
 
+  it('preserves sanitized recovery details from domain exceptions', () => {
+    const exception = new ConflictException({
+      code: 'PRICE_REVIEW_STALE',
+      message: 'The review is stale',
+      details: {
+        currentReview: { id: 'review-id', status: 'PENDIENTE' },
+        authorization: 'Bearer secret.payload.signature',
+      },
+    });
+
+    filter.catch(exception, mockHost);
+
+    expect(jsonMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'PRICE_REVIEW_STALE',
+        details: {
+          currentReview: { id: 'review-id', status: 'PENDIENTE' },
+          authorization: '[REDACTED]',
+        },
+      }),
+    );
+  });
+
   it('handles unhandled Error without leaking stack trace to response', () => {
     const error = new Error('Database connection pool timeout');
 
