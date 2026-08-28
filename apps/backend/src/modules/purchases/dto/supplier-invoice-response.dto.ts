@@ -6,6 +6,7 @@ import {
   SupplierInvoiceCostStatus,
   SupplierInvoiceObservationReason,
   PriceReviewStatus,
+  MarkupLevel,
 } from '@erp/shared-types';
 
 export class SupplierCostAdjustmentResponseDto {
@@ -45,6 +46,13 @@ export class PriceReviewResponseDto {
   @ApiProperty() previousCostNet: string;
   @ApiProperty() newCostNet: string;
   @ApiProperty({ nullable: true }) markupPercentageSnapshot: string | null;
+  @ApiProperty({ enum: MarkupLevel, nullable: true })
+  effectiveMarkupLevel: MarkupLevel | null;
+  @ApiProperty({ format: 'uuid', nullable: true })
+  effectiveMarkupConfigurationId: string | null;
+  @ApiProperty({ format: 'uuid', nullable: true }) effectiveMarkupTargetId:
+    string | null;
+  @ApiProperty({ nullable: true }) effectiveMarkupTargetName: string | null;
   @ApiProperty() previousSuggestedPriceNet: string;
   @ApiProperty() suggestedPriceNet: string;
   @ApiProperty() activePriceNetSnapshot: string;

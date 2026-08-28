@@ -191,8 +191,9 @@ export class ProductsController {
   async update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateProductDto,
+    @CurrentUser() actor: AuthenticatedUser,
   ): Promise<ProductAdminResponseDto> {
-    return this.productsService.update(id, dto);
+    return this.productsService.update(id, dto, actor);
   }
 
   @Delete(':id')

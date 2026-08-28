@@ -28,9 +28,9 @@ import {
   PaginatedProductsSellerResponseDto,
 } from './dto/paginated-products-response.dto';
 import { ProductMapper } from './mappers/product.mapper';
-import { UnitConversionEngine } from './services/unit-conversion-engine.service';
 import { StockAdjustmentsService } from '../stock/stock-adjustments.service';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { PricesService } from '../prices/prices.service';
 
 @Injectable()
 export class ProductsService {
@@ -43,9 +43,9 @@ export class ProductsService {
     private readonly categoryRepository: Repository<Category>,
     @InjectRepository(Unit)
     private readonly unitRepository: Repository<Unit>,
-    private readonly unitConversionEngine: UnitConversionEngine,
     private readonly stockAdjustmentsService: StockAdjustmentsService,
     private readonly dataSource: DataSource,
+    private readonly pricesService: PricesService,
   ) {}
 
   async findAll(
@@ -95,6 +95,9 @@ export class ProductsService {
     const [items, total] = await qb.getManyAndCount();
 
     if (userRole === UserRole.ADMINISTRADOR) {
+      await Promise.all(
+        items.map((product) => this.pricesService.hydrateLegacyMarkup(product)),
+      );
       return {
         items: items.map((p) => ProductMapper.toAdminResponse(p)),
         total,
@@ -186,6 +189,8 @@ export class ProductsService {
       throw new NotFoundException('Producto no encontrado.');
     }
 
+    if (userRole === UserRole.ADMINISTRADOR)
+      await this.pricesService.hydrateLegacyMarkup(product);
     return ProductMapper.toResponse(product, userRole);
   }
 
@@ -237,13 +242,7 @@ export class ProductsService {
       }
     }
 
-    // 4. Calculate suggestedPriceNet authoritatively
-    const suggestedPriceNet = this.unitConversionEngine.calculateSuggestedPrice(
-      dto.costNet,
-      dto.markupPercentage,
-    );
-
-    // 5. Execute Transaction. PostgreSQL assigns internalCode from its sequence.
+    // 4. Execute Transaction. PostgreSQL assigns internalCode from its sequence.
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -257,14 +256,31 @@ export class ProductsService {
         baseUnitId: dto.baseUnitId,
         minStock: dto.minStock !== undefined ? dto.minStock : 0,
         costNet: dto.costNet,
-        markupPercentage:
-          dto.markupPercentage !== undefined ? dto.markupPercentage : null,
-        suggestedPriceNet,
+        suggestedPriceNet: 0,
         activePriceNet: dto.activePriceNet,
         status: ProductStatus.ACTIVE,
       });
 
       createdProduct = await queryRunner.manager.save(Product, productEntity);
+
+      if (dto.markupPercentage !== undefined) {
+        await this.pricesService.applyLegacyProductMarkup(
+          queryRunner.manager,
+          createdProduct,
+          dto.markupPercentage,
+          actor.id,
+        );
+      }
+      const effectiveMarkup = await this.pricesService.hydrateLegacyMarkup(
+        createdProduct,
+        queryRunner.manager,
+      );
+      createdProduct.suggestedPriceNet =
+        this.pricesService.calculateSuggestedPrice(
+          dto.costNet,
+          effectiveMarkup.markupPercentage,
+        );
+      await queryRunner.manager.save(Product, createdProduct);
 
       const stockEntity = queryRunner.manager.create(Stock, {
         productId: createdProduct.id,
@@ -329,12 +345,14 @@ export class ProductsService {
       .where('product.id = :id', { id: createdProduct.id })
       .getOne();
 
+    await this.pricesService.hydrateLegacyMarkup(fullProduct!);
     return ProductMapper.toAdminResponse(fullProduct!);
   }
 
   async update(
     id: string,
     dto: UpdateProductDto,
+    actor?: AuthenticatedUser,
   ): Promise<ProductAdminResponseDto> {
     const updated = await this.dataSource.transaction(async (manager) => {
       const productRepository = manager.getRepository(Product);
@@ -440,7 +458,7 @@ export class ProductsService {
         hasChanges = true;
       }
 
-      // Check Cost & Markup -> Recalculate suggestedPriceNet
+      // Check cost, category and transitional product markup -> recalculate suggestion.
       let costChanged = false;
       let newCost = new Decimal(product.costNet).toNumber();
       if (dto.costNet !== undefined) {
@@ -453,26 +471,25 @@ export class ProductsService {
       }
 
       let markupChanged = false;
-      let newMarkup =
-        product.markupPercentage !== null &&
-        product.markupPercentage !== undefined
-          ? new Decimal(product.markupPercentage).toNumber()
-          : null;
-
       if (dto.markupPercentage !== undefined) {
-        const incomingMarkup =
-          dto.markupPercentage !== null ? dto.markupPercentage : null;
-        if (incomingMarkup !== newMarkup) {
-          newMarkup = incomingMarkup;
-          product.markupPercentage = incomingMarkup;
-          markupChanged = true;
-          hasChanges = true;
-        }
+        markupChanged = await this.pricesService.applyLegacyProductMarkup(
+          manager,
+          product,
+          dto.markupPercentage,
+          actor?.id,
+        );
+        hasChanges ||= markupChanged;
       }
 
-      if (costChanged || markupChanged) {
-        product.suggestedPriceNet =
-          this.unitConversionEngine.calculateSuggestedPrice(newCost, newMarkup);
+      if (costChanged || markupChanged || dto.categoryId !== undefined) {
+        const hydrated = await this.pricesService.hydrateLegacyMarkup(
+          product,
+          manager,
+        );
+        product.suggestedPriceNet = this.pricesService.calculateSuggestedPrice(
+          newCost,
+          hydrated.markupPercentage,
+        );
       }
 
       // Check Active Price
@@ -504,6 +521,7 @@ export class ProductsService {
         .getOneOrFail();
     });
 
+    await this.pricesService.hydrateLegacyMarkup(updated);
     return ProductMapper.toAdminResponse(updated);
   }
 
