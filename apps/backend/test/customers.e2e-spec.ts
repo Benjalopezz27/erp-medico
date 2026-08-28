@@ -11,6 +11,7 @@ import { AppModule } from '../src/app.module';
 import dataSource from '../src/database/data-source';
 import { runInitialSeed } from '../src/database/seeds/initial.seed';
 import { CreateCustomersTable1700000000021 } from '../src/database/migrations/1700000000021-CreateCustomersTable';
+import { CreateCustomerSpecialPricesAndDiscounts1700000000022 } from '../src/database/migrations/1700000000022-CreateCustomerSpecialPricesAndDiscounts';
 
 describe('Customers domain and API (E2E)', () => {
   let app: INestApplication;
@@ -28,8 +29,12 @@ describe('Customers domain and API (E2E)', () => {
     const migrationRunner = ds.createQueryRunner();
     await migrationRunner.connect();
     const customerMigration = new CreateCustomersTable1700000000021();
+    const pricingMigration =
+      new CreateCustomerSpecialPricesAndDiscounts1700000000022();
+    await pricingMigration.down(migrationRunner);
     await customerMigration.down(migrationRunner);
     await customerMigration.up(migrationRunner);
+    await pricingMigration.up(migrationRunner);
     await migrationRunner.release();
     await runInitialSeed(ds, {
       adminEmail,
@@ -100,6 +105,7 @@ describe('Customers domain and API (E2E)', () => {
       businessName: 'Farmacia Central',
       cuitOrDni: '30500010912',
       creditLimit: '5000.50',
+      generalDiscountPercentage: '0.0000',
       isActive: true,
     });
     expect(response.body).not.toHaveProperty('currentBalance');

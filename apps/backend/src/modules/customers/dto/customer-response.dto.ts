@@ -34,6 +34,12 @@ export class CustomerResponseDto implements ICustomer {
   @ApiProperty({ example: '0.00', description: 'Decimal canónico' })
   creditLimit: string;
 
+  @ApiProperty({
+    example: '0.0000',
+    description: 'Porcentaje decimal canónico',
+  })
+  generalDiscountPercentage: string;
+
   @ApiProperty()
   isActive: boolean;
 

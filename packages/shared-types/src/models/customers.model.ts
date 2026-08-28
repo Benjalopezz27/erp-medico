@@ -11,6 +11,7 @@ export interface ICustomer {
   phone: string | null;
   address: string | null;
   creditLimit: string;
+  generalDiscountPercentage: string;
   isActive: boolean;
   createdAt: Date | string;
   updatedAt: Date | string;
@@ -26,14 +27,4 @@ export interface IPaginatedCustomersResponse {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
   };
-}
-
-export interface ICustomerSpecialPrice {
-  id: string;
-  customerId: string;
-  productId: string;
-  specialPriceNet?: number | null;
-  discountPercentage?: number | null;
-  createdAt: Date | string;
-  updatedAt: Date | string;
 }

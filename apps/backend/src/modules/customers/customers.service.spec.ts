@@ -60,6 +60,7 @@ describe('CustomersService', () => {
       businessName: 'Farmacia Central',
       cuitOrDni: '30500010912',
       creditLimit: '1500.50',
+      generalDiscountPercentage: '0.0000',
       isActive: true,
     });
     expect(result).not.toHaveProperty('currentBalance');
@@ -85,11 +86,46 @@ describe('CustomersService', () => {
     expect(dataSource.transaction).not.toHaveBeenCalled();
   });
 
+  it('rejects a positive initial general discount for sellers before writing', async () => {
+    await expect(
+      service.create(
+        {
+          businessName: 'Cliente Vendedor',
+          documentType: CustomerDocumentType.DNI,
+          cuitOrDni: '35.123.456',
+          taxCondition: TaxCondition.CONSUMIDOR_FINAL,
+          generalDiscountPercentage: '5.0000',
+        },
+        seller,
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: CustomerErrorCode.CUSTOMER_FORBIDDEN_GENERAL_DISCOUNT,
+      }),
+    });
+    expect(dataSource.transaction).not.toHaveBeenCalled();
+  });
+
   it('rejects sensitive update fields from sellers', async () => {
     await expect(
       service.update(
         '20000000-0000-4000-8000-000000000001',
         { creditLimit: '0.00' },
+        seller,
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: CustomerErrorCode.CUSTOMER_FORBIDDEN_FIELD_UPDATE,
+      }),
+    });
+    expect(dataSource.transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects general discount updates from sellers', async () => {
+    await expect(
+      service.update(
+        '20000000-0000-4000-8000-000000000001',
+        { generalDiscountPercentage: '0.0000' },
         seller,
       ),
     ).rejects.toMatchObject({
