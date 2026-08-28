@@ -26,6 +26,7 @@ import { useCustomerDetailQuery } from '@/features/customers/hooks/use-customers
 import { parseCustomerError } from '@/features/customers/utils/customers.errors';
 import { formatCurrency } from '@/features/products/utils/products.math';
 import { useAuthStore } from '@/stores/authStore';
+import { CustomerPricingPanel } from '@/features/customer-pricing/components/CustomerPricingPanel';
 
 export function CustomerDetailPage() {
   const { id } = useParams({ strict: false }) as { id: string };
@@ -114,9 +115,7 @@ export function CustomerDetailPage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="information">Información</TabsTrigger>
-          <TabsTrigger value="special-prices" disabled title="Disponible en US24-B">
-            Precios especiales · Próximamente
-          </TabsTrigger>
+          <TabsTrigger value="special-prices">Precios especiales</TabsTrigger>
         </TabsList>
         <TabsContent value="information" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
@@ -170,6 +169,9 @@ export function CustomerDetailPage() {
             <Clock3 className="h-3.5 w-3.5" />
             Última actualización: {new Date(customer.updatedAt).toLocaleString('es-AR')}
           </p>
+        </TabsContent>
+        <TabsContent value="special-prices">
+          <CustomerPricingPanel customer={customer} canManage={isAdmin} />
         </TabsContent>
       </Tabs>
       <CustomerFormModal
