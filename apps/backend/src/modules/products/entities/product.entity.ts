@@ -61,13 +61,7 @@ export class Product {
   })
   costNet: string | number;
 
-  @Column({
-    name: 'markup_percentage',
-    type: 'numeric',
-    precision: 8,
-    scale: 4,
-    nullable: true,
-  })
+  // Transitional API field. Persistence moved to markup_configurations in S6-US21-A.
   markupPercentage: string | number | null;
 
   @Column({
