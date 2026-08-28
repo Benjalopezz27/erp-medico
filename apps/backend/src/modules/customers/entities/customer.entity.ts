@@ -42,6 +42,15 @@ export class Customer {
   })
   creditLimit: string;
 
+  @Column({
+    name: 'general_discount_percentage',
+    type: 'numeric',
+    precision: 7,
+    scale: 4,
+    default: '0.0000',
+  })
+  generalDiscountPercentage: string;
+
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 

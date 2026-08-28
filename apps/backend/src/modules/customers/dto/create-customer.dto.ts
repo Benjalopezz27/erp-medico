@@ -1,6 +1,7 @@
 import { Transform } from 'class-transformer';
 import {
   IsEmail,
+  IsDecimal,
   IsEnum,
   IsOptional,
   IsString,
@@ -62,4 +63,9 @@ export class CreateCustomerDto {
   @IsString()
   @MaxLength(20)
   creditLimit?: string;
+
+  @ApiPropertyOptional({ example: '10.0000', default: '0.0000' })
+  @IsOptional()
+  @IsDecimal({ decimal_digits: '0,4', force_decimal: false })
+  generalDiscountPercentage?: string;
 }
