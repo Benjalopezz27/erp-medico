@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { ReceiptText } from 'lucide-react';
 import type { ISupplierInvoiceSummary } from '../types/supplier-invoices.types';
 import { formatMoneyAr } from '../utils/supplier-invoices.math';
@@ -16,6 +16,11 @@ export function SupplierInvoicesTable({
   loading: boolean;
   hasFilters?: boolean;
 }) {
+  const navigate = useNavigate();
+
+  const openInvoice = (id: string) =>
+    navigate({ to: '/purchases/supplier-invoices/$id', params: { id } });
+
   if (loading)
     return (
       <div aria-label="Cargando facturas" className="space-y-2">
@@ -55,7 +60,26 @@ export function SupplierInvoicesTable({
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {invoices.map((invoice) => (
-            <tr key={invoice.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+            <tr
+              key={invoice.id}
+              role="link"
+              tabIndex={0}
+              aria-label={`Ver detalle de la factura ${invoice.invoiceNumber}`}
+              className="cursor-pointer hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-600 dark:hover:bg-slate-800/40"
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest('a, button, input, select, textarea')) {
+                  return;
+                }
+                void openInvoice(invoice.id);
+              }}
+              onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) return;
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  void openInvoice(invoice.id);
+                }
+              }}
+            >
               <td className="px-4 py-3">
                 <Link
                   to="/purchases/supplier-invoices/$id"

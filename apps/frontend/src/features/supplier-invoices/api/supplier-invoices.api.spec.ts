@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '@/services/api.client';
 import {
   createSupplierInvoiceApi,
+  confirmSupplierInvoiceApi,
   authorizeSupplierInvoiceApi,
   rejectSupplierInvoiceApi,
   getPendingInvoiceReceiptsApi,
@@ -62,5 +63,11 @@ describe('supplier invoices API', () => {
     expect(apiClient.patch).toHaveBeenNthCalledWith(2, '/supplier-invoices/invoice/reject', {
       reason: 'Costo incorrecto',
     });
+  });
+
+  it('confirms through the idempotent cost adjustment endpoint', async () => {
+    (apiClient.patch as any).mockResolvedValue({ data: { id: 'invoice', confirmation: {} } });
+    await confirmSupplierInvoiceApi('invoice');
+    expect(apiClient.patch).toHaveBeenCalledWith('/supplier-invoices/invoice/confirm');
   });
 });

@@ -6,8 +6,12 @@ import {
   getSupplierInvoicesApi,
   authorizeSupplierInvoiceApi,
   rejectSupplierInvoiceApi,
+  confirmSupplierInvoiceApi,
 } from '../api/supplier-invoices.api';
 import { supplierInvoicesKeys } from './supplier-invoices-keys';
+import { productKeys } from '@/features/products/hooks/use-products-query';
+import { stockKeys } from '@/features/stock/hooks/stock-keys';
+import { priceReviewKeys } from '@/features/price-reviews/hooks/price-review-keys';
 import type {
   ICreateSupplierInvoicePayload,
   IQueryPendingInvoiceReceiptsParams,
@@ -81,5 +85,22 @@ export function useRejectSupplierInvoiceMutation() {
     mutationFn: ({ id, payload }: { id: string; payload: IRejectSupplierInvoicePayload }) =>
       rejectSupplierInvoiceApi(id, payload),
     onSuccess,
+  });
+}
+
+export function useConfirmSupplierInvoiceMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => confirmSupplierInvoiceApi(id),
+    retry: false,
+    onSuccess: async (invoice) => {
+      queryClient.setQueryData(supplierInvoicesKeys.detail(invoice.id), invoice);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: supplierInvoicesKeys.lists() }),
+        queryClient.invalidateQueries({ queryKey: productKeys.all }),
+        queryClient.invalidateQueries({ queryKey: stockKeys.all }),
+        queryClient.invalidateQueries({ queryKey: priceReviewKeys.all }),
+      ]);
+    },
   });
 }

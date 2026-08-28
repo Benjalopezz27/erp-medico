@@ -6,6 +6,9 @@ export type SupplierInvoiceErrorKind =
   | 'RECEIPT_STALE'
   | 'CONCURRENCY'
   | 'DECISION_CONFLICT'
+  | 'CONFIRMATION_CONFLICT'
+  | 'LEDGER_INCONSISTENT'
+  | 'ADJUSTMENT_INCONSISTENT'
   | 'REJECTION_REASON'
   | 'NOT_FOUND'
   | 'FIELD'
@@ -55,6 +58,30 @@ export function parseSupplierInvoiceError(error: unknown): ParsedSupplierInvoice
       code,
       requestId,
       message: `La factura fue resuelta o cambió de estado mientras la revisaba.${suffix}`,
+    };
+  }
+  if (code === SupplierInvoiceErrorCode.SUPPLIER_INVOICE_CONFIRMATION_CONFLICT) {
+    return {
+      kind: 'CONFIRMATION_CONFLICT',
+      code,
+      requestId,
+      message: `La factura fue confirmada o cambió mientras la revisaba.${suffix}`,
+    };
+  }
+  if (code === SupplierInvoiceErrorCode.SUPPLIER_INVOICE_LEDGER_INCONSISTENT) {
+    return {
+      kind: 'LEDGER_INCONSISTENT',
+      code,
+      requestId,
+      message: `El historial de stock presenta una inconsistencia. Revíselo antes de confirmar la factura.${suffix}`,
+    };
+  }
+  if (code === SupplierInvoiceErrorCode.SUPPLIER_INVOICE_ADJUSTMENT_INCONSISTENT) {
+    return {
+      kind: 'ADJUSTMENT_INCONSISTENT',
+      code,
+      requestId,
+      message: `No se pudo construir un ajuste de costos consistente. Revise la trazabilidad de la factura.${suffix}`,
     };
   }
   if (
