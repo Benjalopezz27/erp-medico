@@ -349,4 +349,60 @@ describe('QuarantineService Unit Tests', () => {
       ).rejects.toThrow(NotFoundException);
     });
   });
+
+  describe('recordQuarantineFromReturn', () => {
+    it('creates a QuarantineStock record with DEVOLUCION_CLIENTE origin and null entryMovementId without touching stock', async () => {
+      const qRepo = {
+        create: jest.fn((val) => ({ id: 'quar-ret-1', ...val })),
+        save: jest.fn(async (val) => val),
+      };
+      const txManager = {
+        queryRunner: { isTransactionActive: true },
+        getRepository: jest.fn(() => qRepo),
+      };
+
+      const result = await service.recordQuarantineFromReturn(
+        txManager as any,
+        {
+          productId: 'prod-uuid-1',
+          quantityBase: '3.00',
+          reason: 'Producto roto por cliente',
+          actorId: 'user-admin-1',
+          saleReturnItemId: 'sri-uuid-1',
+        },
+      );
+
+      expect(result).toMatchObject({
+        productId: 'prod-uuid-1',
+        quantityBase: '3.00',
+        originType: 'DEVOLUCION_CLIENTE',
+        saleReturnItemId: 'sri-uuid-1',
+        entryMovementId: null,
+      });
+      expect(stockService.recordMovement).not.toHaveBeenCalled();
+      expect(auditService.record).toHaveBeenCalledWith(
+        txManager,
+        expect.objectContaining({
+          action: AuditAction.CREATE,
+          entityName: 'QuarantineStock',
+        }),
+      );
+    });
+
+    it('rejects if transaction is not active', async () => {
+      const txManager = {
+        queryRunner: { isTransactionActive: false },
+      };
+
+      await expect(
+        service.recordQuarantineFromReturn(txManager as any, {
+          productId: 'prod-uuid-1',
+          quantityBase: '3.00',
+          reason: 'Producto roto',
+          actorId: 'user-admin-1',
+          saleReturnItemId: 'sri-uuid-1',
+        }),
+      ).rejects.toThrow('requires an active transaction');
+    });
+  });
 });
