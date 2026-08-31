@@ -54,6 +54,9 @@ export class ProductSellerResponseDto {
   })
   activePriceNet: number;
 
+  @ApiProperty({ description: 'VAT rate applied on sale', example: 21 })
+  ivaPercentage: number;
+
   @ApiProperty({
     description: 'Catalog status',
     enum: ProductStatus,

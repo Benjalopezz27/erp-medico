@@ -21,6 +21,7 @@ describe('CustomerPricingService', () => {
     name: 'Producto precios',
     activePriceNet: '120.00',
     suggestedPriceNet: '999.00',
+    ivaPercentage: '10.50',
     status: ProductStatus.ACTIVE,
   } as Product;
   const queryBuilder = (value: unknown) => ({
@@ -29,10 +30,12 @@ describe('CustomerPricingService', () => {
     getOne: jest.fn().mockResolvedValue(value),
   });
   const manager = {
+    queryRunner: { isTransactionActive: true },
     createQueryBuilder: jest.fn((entity) =>
       queryBuilder(entity === Customer ? customer : product),
     ),
     findOne: jest.fn(),
+    findOneByOrFail: jest.fn().mockResolvedValue(product),
   };
   const dataSource = {
     transaction: jest.fn((callback) => callback(manager)),
@@ -176,5 +179,24 @@ describe('CustomerPricingService', () => {
       }),
     });
     expect(repository.save).not.toHaveBeenCalled();
+  });
+
+  it('resolves catalog price and IVA for an anonymous sale', async () => {
+    manager.createQueryBuilder.mockImplementation((entity) =>
+      queryBuilder(entity === Customer ? customer : product),
+    );
+    const result = await service.resolveForSale(
+      null,
+      product.id,
+      manager as any,
+    );
+
+    expect(result).toMatchObject({
+      catalogPriceNet: '120.00',
+      finalPriceNet: '120.00',
+      ruleApplied: CustomerPricingRuleApplied.CATALOG_PRICE,
+      discountAmountNet: '0.00',
+      ivaPercentage: '10.50',
+    });
   });
 });

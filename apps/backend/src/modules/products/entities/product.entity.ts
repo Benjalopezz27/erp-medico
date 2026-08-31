@@ -83,6 +83,15 @@ export class Product {
   activePriceNet: string | number;
 
   @Column({
+    name: 'iva_percentage',
+    type: 'numeric',
+    precision: 5,
+    scale: 2,
+    default: 21,
+  })
+  ivaPercentage: string | number;
+
+  @Column({
     type: 'varchar',
     length: 20,
     default: ProductStatus.ACTIVE,

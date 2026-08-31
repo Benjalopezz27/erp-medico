@@ -9,9 +9,10 @@ export interface IAccountReceivable {
   id: string;
   customerId: string;
   saleId?: string | null;
+  fiscalDocumentId?: string | null;
   documentReference: string;
-  originalAmount: number;
-  remainingBalance: number;
+  originalAmount: string;
+  currentBalance: string;
   status: AccountReceivableStatus;
   dueDate?: Date | string | null;
   createdAt: Date | string;

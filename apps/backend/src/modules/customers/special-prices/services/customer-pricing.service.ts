@@ -32,6 +32,19 @@ type NormalizedRule = {
   discountPercentage: string | null;
 };
 
+export interface SalePriceResolution {
+  productId: string;
+  productCode: string;
+  productName: string;
+  catalogPriceNet: string;
+  ruleApplied: CustomerPricingRuleApplied;
+  ruleId: string | null;
+  discountPercentage: string | null;
+  discountAmountNet: string;
+  finalPriceNet: string;
+  ivaPercentage: string;
+}
+
 @Injectable()
 export class CustomerPricingService {
   constructor(
@@ -101,6 +114,60 @@ export class CustomerPricingService {
     return this.dataSource.transaction((transactionManager) =>
       this.resolveWithManager(transactionManager, customerId, productId, true),
     );
+  }
+
+  async resolveForSale(
+    customerId: string | null,
+    productId: string,
+    manager: EntityManager,
+  ): Promise<SalePriceResolution> {
+    if (!manager.queryRunner?.isTransactionActive) {
+      throw new Error(
+        'CustomerPricingService.resolveForSale requires an active transaction.',
+      );
+    }
+
+    if (customerId) {
+      const resolved = await this.resolveWithManager(
+        manager,
+        customerId,
+        productId,
+        true,
+      );
+      const product = await manager.findOneByOrFail(Product, { id: productId });
+      const catalog = new Decimal(resolved.basePriceNet);
+      const finalPrice = new Decimal(resolved.finalPriceNet);
+      return {
+        productId: resolved.productId,
+        productCode: resolved.productCode,
+        productName: resolved.productName,
+        catalogPriceNet: catalog.toFixed(2),
+        ruleApplied: resolved.ruleApplied,
+        ruleId: resolved.ruleId,
+        discountPercentage: resolved.discountPercentage,
+        discountAmountNet: Decimal.max(0, catalog.minus(finalPrice)).toFixed(2),
+        finalPriceNet: finalPrice.toFixed(2),
+        ivaPercentage: new Decimal(product.ivaPercentage).toFixed(2),
+      };
+    }
+
+    const product = await this.loadProduct(manager, productId, true, true);
+    const catalog = new Decimal(product.activePriceNet).toDecimalPlaces(
+      2,
+      Decimal.ROUND_HALF_UP,
+    );
+    return {
+      productId: product.id,
+      productCode: product.internalCode,
+      productName: product.name,
+      catalogPriceNet: catalog.toFixed(2),
+      ruleApplied: CustomerPricingRuleApplied.CATALOG_PRICE,
+      ruleId: null,
+      discountPercentage: null,
+      discountAmountNet: '0.00',
+      finalPriceNet: catalog.toFixed(2),
+      ivaPercentage: new Decimal(product.ivaPercentage).toFixed(2),
+    };
   }
 
   createSpecialPrice(

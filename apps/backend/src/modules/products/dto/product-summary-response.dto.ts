@@ -57,4 +57,7 @@ export class ProductSummaryResponseDto implements IProductSummary {
     example: 1500.5,
   })
   activePriceNet: number;
+
+  @ApiProperty({ description: 'VAT rate applied on sale', example: 21 })
+  ivaPercentage: number;
 }

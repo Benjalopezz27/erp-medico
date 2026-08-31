@@ -152,6 +152,23 @@ export class CreateProductDto {
   activePriceNet: number;
 
   @ApiPropertyOptional({
+    description: 'VAT rate applied when selling the product',
+    example: 21,
+    default: 21,
+    minimum: 0,
+    maximum: 100,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber(
+    { maxDecimalPlaces: 2 },
+    { message: 'La alícuota de IVA debe tener hasta 2 decimales.' },
+  )
+  @Min(0, { message: 'La alícuota de IVA no puede ser negativa.' })
+  @Max(100, { message: 'La alícuota de IVA no puede superar el 100%.' })
+  ivaPercentage?: number;
+
+  @ApiPropertyOptional({
     description: 'Optional initial unit conversions',
     type: [CreateProductConversionNestedDto],
   })
