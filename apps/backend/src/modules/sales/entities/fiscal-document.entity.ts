@@ -3,20 +3,25 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  ManyToOne,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { ArcaStatus, FiscalDocumentType } from '@erp/shared-types';
 import { Sale } from './sale.entity';
+import { SaleReturn } from '../returns/entities/sale-return.entity';
 
 @Entity('fiscal_documents')
 export class FiscalDocument {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'sale_id', type: 'uuid', unique: true })
+  @Column({ name: 'sale_id', type: 'uuid' })
   saleId: string;
+
+  @Column({ name: 'sale_return_id', type: 'uuid', nullable: true })
+  saleReturnId: string | null;
 
   @Column({
     name: 'document_type',
@@ -61,7 +66,16 @@ export class FiscalDocument {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 
-  @OneToOne(() => Sale, (sale) => sale.fiscalDocument, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => Sale, (sale) => sale.fiscalDocuments, {
+    onDelete: 'RESTRICT',
+  })
   @JoinColumn({ name: 'sale_id' })
   sale?: Sale;
+
+  @OneToOne(() => SaleReturn, (sr) => sr.fiscalDocument, {
+    nullable: true,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'sale_return_id' })
+  saleReturn?: SaleReturn | null;
 }

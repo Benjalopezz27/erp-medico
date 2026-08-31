@@ -384,7 +384,11 @@ export class SalesService {
       .innerJoinAndSelect('sale.user', 'user')
       .leftJoinAndSelect('sale.items', 'items')
       .leftJoinAndSelect('items.product', 'product')
-      .leftJoinAndSelect('sale.fiscalDocument', 'fiscalDocument')
+      .leftJoinAndSelect(
+        'sale.fiscalDocuments',
+        'fiscalDocument',
+        'fiscalDocument.saleReturnId IS NULL',
+      )
       .where('sale.id = :id', { id })
       .orderBy('items.itemIndex', 'ASC')
       .getOne();
