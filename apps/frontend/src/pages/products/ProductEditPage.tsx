@@ -114,7 +114,14 @@ export const ProductEditPage: React.FC = () => {
       hasProductChanges = true;
     }
 
-    if (values.taxTreatment !== product.taxTreatment) {
+    // Products created before tax treatment was exposed by the API are
+    // equivalent to the backwards-compatible GRAVADO 21% defaults used by
+    // the form. Normalize that legacy shape before calculating the delta so
+    // opening and saving an unchanged product remains a no-op.
+    const initialTaxTreatment = product.taxTreatment ?? ProductTaxTreatment.GRAVADO;
+    const initialIvaPercentage = product.ivaPercentage ?? 21;
+
+    if (values.taxTreatment !== initialTaxTreatment) {
       delta.taxTreatment = values.taxTreatment;
       if (values.taxTreatment === ProductTaxTreatment.GRAVADO) {
         delta.ivaPercentage = values.ivaPercentage;
@@ -122,7 +129,7 @@ export const ProductEditPage: React.FC = () => {
       hasProductChanges = true;
     } else if (
       values.taxTreatment === ProductTaxTreatment.GRAVADO &&
-      Number(values.ivaPercentage) !== Number(product.ivaPercentage)
+      Number(values.ivaPercentage) !== Number(initialIvaPercentage)
     ) {
       delta.ivaPercentage = values.ivaPercentage;
       hasProductChanges = true;
