@@ -67,9 +67,7 @@ export const SaleReturnsHistoryTable: React.FC<SaleReturnsHistoryTableProps> = (
         >
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/70 px-4 py-3 text-xs">
             <div className="flex items-center gap-3">
-              <span className="font-semibold text-slate-900">
-                Devolución #{ret.id.slice(0, 8)}
-              </span>
+              <span className="font-semibold text-slate-900">Devolución #{ret.id.slice(0, 8)}</span>
               <span className="text-slate-500">
                 {new Intl.DateTimeFormat('es-AR', {
                   dateStyle: 'medium',
@@ -112,7 +110,9 @@ export const SaleReturnsHistoryTable: React.FC<SaleReturnsHistoryTableProps> = (
                 {ret.items.map((item) => (
                   <tr key={item.id}>
                     <td className="py-2">
-                      <span className="font-medium text-slate-800">{item.product?.name ?? '—'}</span>
+                      <span className="font-medium text-slate-800">
+                        {item.product?.name ?? '—'}
+                      </span>
                       <span className="block font-mono text-[10px] text-slate-400">
                         {item.product?.internalCode ?? '—'}
                       </span>
@@ -149,9 +149,7 @@ export const SaleReturnsHistoryTable: React.FC<SaleReturnsHistoryTableProps> = (
                         </div>
                       )}
                     </td>
-                    <td className="py-2 text-slate-500 italic">
-                      {item.notes || '—'}
-                    </td>
+                    <td className="py-2 text-slate-500 italic">{item.notes || '—'}</td>
                   </tr>
                 ))}
               </tbody>

@@ -53,7 +53,11 @@ const mockSale: ISale = {
       ivaPercentage: '21.00',
       ivaAmount: '10.50',
       subtotalGross: '60.50',
-      product: { id: '30000000-0000-4000-8000-000000000001', internalCode: 'P001', name: 'Ibuprofeno 400mg' },
+      product: {
+        id: '30000000-0000-4000-8000-000000000001',
+        internalCode: 'P001',
+        name: 'Ibuprofeno 400mg',
+      },
     },
   ],
 };
@@ -75,12 +79,7 @@ describe('SaleReturnModal', () => {
       {
         path: '/',
         component: () => (
-          <SaleReturnModal
-            isOpen={true}
-            onClose={onClose}
-            sale={mockSale}
-            returns={[]}
-          />
+          <SaleReturnModal isOpen={true} onClose={onClose} sale={mockSale} returns={[]} />
         ),
       },
     ]);
