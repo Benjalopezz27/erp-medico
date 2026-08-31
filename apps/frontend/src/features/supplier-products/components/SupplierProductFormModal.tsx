@@ -13,6 +13,7 @@ import {
 } from '../schemas/supplier-product.schema';
 import type { IProductSummary } from '@/features/products/types/products.types';
 import type { ISupplierProduct } from '../types/supplier-products.types';
+import { ProductTaxTreatment } from '@erp/shared-types';
 
 interface SupplierProductFormModalProps {
   isOpen: boolean;
@@ -43,6 +44,8 @@ export const SupplierProductFormModal: React.FC<SupplierProductFormModalProps> =
           baseUnit: supplierProduct.product.baseUnit,
           currentStock: null,
           activePriceNet: 0,
+          taxTreatment: ProductTaxTreatment.GRAVADO,
+          ivaPercentage: 21,
         }
       : null,
   );
@@ -91,6 +94,8 @@ export const SupplierProductFormModal: React.FC<SupplierProductFormModalProps> =
           },
           currentStock: null,
           activePriceNet: 0,
+          taxTreatment: ProductTaxTreatment.GRAVADO,
+          ivaPercentage: 21,
         };
         setSelectedProduct(prodSummary);
         reset({

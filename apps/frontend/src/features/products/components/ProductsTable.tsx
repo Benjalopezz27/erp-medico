@@ -1,6 +1,6 @@
 import React from 'react';
 import { Edit, Trash2, RotateCcw, Package, Loader2 } from 'lucide-react';
-import { ProductStatus } from '@erp/shared-types';
+import { ProductStatus, ProductTaxTreatment } from '@erp/shared-types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDecimal } from '../utils/products.math';
@@ -76,7 +76,10 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
               Unidad Base
             </th>
             <th scope="col" className="py-3 px-4 text-right">
-              Precio Activo
+              Precio Neto
+            </th>
+            <th scope="col" className="py-3 px-4 text-center">
+              IVA
             </th>
             <th scope="col" className="py-3 px-4 text-center">
               Estado
@@ -141,6 +144,16 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                 {/* Active Price */}
                 <td className="py-3 px-4 text-right font-medium text-slate-900 whitespace-nowrap">
                   {formatCurrency(product.activePriceNet)}
+                </td>
+
+                <td className="py-3 px-4 text-center whitespace-nowrap">
+                  <Badge variant="outline" className="text-[10px]">
+                    {product.taxTreatment === ProductTaxTreatment.GRAVADO
+                      ? `${formatDecimal(product.ivaPercentage ?? 0, 2)}%`
+                      : product.taxTreatment === ProductTaxTreatment.EXENTO
+                        ? 'Exento'
+                        : 'No gravado'}
+                  </Badge>
                 </td>
 
                 {/* Status */}

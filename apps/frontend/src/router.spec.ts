@@ -18,6 +18,7 @@ import {
   validateSupplierInvoiceSearchParams,
   validateSettingsSearchParams,
   validatePriceReviewSearchParams,
+  validateSaleSearchParams,
   router,
 } from './router';
 import { PurchaseOrderStatus } from '@/features/purchase-orders/types/purchase-orders.types';
@@ -95,6 +96,16 @@ describe('authentication route guards', () => {
 
   it('registers the administrative goods receipt route', () => {
     expect(router.routesByPath['/purchases/orders/$id/receive']).toBeDefined();
+  });
+
+  it('registers sales list, POS and detail routes for authenticated users', () => {
+    expect(router.routesByPath['/sales']).toBeDefined();
+    expect(router.routesByPath['/sales/new']).toBeDefined();
+    expect(router.routesByPath['/sales/$id']).toBeDefined();
+    expect(validateSaleSearchParams({ page: '2', limit: '50' })).toMatchObject({
+      page: 2,
+      limit: 50,
+    });
   });
 
   it('registers the administrative backorders route', () => {

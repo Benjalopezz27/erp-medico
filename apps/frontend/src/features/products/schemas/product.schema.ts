@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PRODUCT_IVA_RATES, ProductTaxTreatment } from '@erp/shared-types';
 
 export const productConversionSchema = z.object({
   id: z.string().optional(),
@@ -114,7 +115,32 @@ export const productFormSchema = z
           { message: 'El precio activo puede tener como máximo 2 decimales.' },
         ),
     ),
+    taxTreatment: z.nativeEnum(ProductTaxTreatment).default(ProductTaxTreatment.GRAVADO),
+    ivaPercentage: z.preprocess(
+      (val) => (val === undefined ? 21 : val === '' || val === null ? null : Number(val)),
+      z.number().nullable(),
+    ),
     conversions: z.array(productConversionSchema).default([]),
+  })
+  .superRefine((data, ctx) => {
+    if (data.taxTreatment === ProductTaxTreatment.GRAVADO) {
+      if (
+        data.ivaPercentage === null ||
+        !(PRODUCT_IVA_RATES as readonly number[]).includes(data.ivaPercentage)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['ivaPercentage'],
+          message: 'Seleccione una alícuota válida de IVA.',
+        });
+      }
+    } else if (data.ivaPercentage !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['ivaPercentage'],
+        message: 'Los productos exentos o no gravados no llevan alícuota.',
+      });
+    }
   })
   .refine(
     (data) => {

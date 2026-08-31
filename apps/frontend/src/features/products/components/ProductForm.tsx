@@ -9,6 +9,7 @@ import { productFormSchema, type ProductFormSchemaValues } from '../schemas/prod
 import { calculateSuggestedPrice, formatCurrency } from '../utils/products.math';
 import { ProductConversionsGrid, type ConversionRowItem } from './ProductConversionsGrid';
 import type { ICategory, IProduct, IUnit, ProductFormValues } from '../types/products.types';
+import { PRODUCT_IVA_RATES, ProductTaxTreatment } from '@erp/shared-types';
 
 interface ProductFormProps {
   mode: 'create' | 'edit';
@@ -58,6 +59,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       costNet: 0,
       markupPercentage: null,
       activePriceNet: 0,
+      taxTreatment: ProductTaxTreatment.GRAVADO,
+      ivaPercentage: 21,
       conversions: [],
     },
   });
@@ -83,6 +86,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         costNet: initialProduct.costNet,
         markupPercentage: initialProduct.markupPercentage ?? null,
         activePriceNet: initialProduct.activePriceNet,
+        taxTreatment: initialProduct.taxTreatment,
+        ivaPercentage: initialProduct.ivaPercentage,
         conversions: convs.map((c) => ({
           id: c.id,
           presentationUnitId: c.presentationUnitId,
@@ -130,9 +135,25 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const watchedCost = watch('costNet');
   const watchedMarkup = watch('markupPercentage');
   const watchedBaseUnitId = watch('baseUnitId');
+  const watchedActivePrice = watch('activePriceNet');
+  const watchedTaxTreatment = watch('taxTreatment');
+  const watchedIvaPercentage = watch('ivaPercentage');
   const selectedBaseUnit = units.find((unit) => unit.id === watchedBaseUnitId);
 
   const liveSuggestedPrice = calculateSuggestedPrice(watchedCost, watchedMarkup);
+  const liveFinalPrice =
+    Number(watchedActivePrice || 0) *
+    (watchedTaxTreatment === ProductTaxTreatment.GRAVADO
+      ? 1 + Number(watchedIvaPercentage || 0) / 100
+      : 1);
+
+  useEffect(() => {
+    if (watchedTaxTreatment !== ProductTaxTreatment.GRAVADO) {
+      setValue('ivaPercentage', null, { shouldValidate: true, shouldDirty: true });
+    } else if (watchedIvaPercentage === null) {
+      setValue('ivaPercentage', 21, { shouldValidate: true, shouldDirty: true });
+    }
+  }, [setValue, watchedIvaPercentage, watchedTaxTreatment]);
 
   const handleFormSubmit = async (data: ProductFormSchemaValues) => {
     await onSubmit({
@@ -366,7 +387,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               htmlFor="activePriceNet"
               className="block text-xs font-semibold text-slate-700 mb-1"
             >
-              Precio Activo ($) *
+              Precio Activo Neto ($) *
             </label>
             <Input
               id="activePriceNet"
@@ -382,6 +403,61 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             {errors.activePriceNet && (
               <p className="text-[11px] text-red-600 mt-1">{errors.activePriceNet.message}</p>
             )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 border-t border-slate-100 pt-4 sm:grid-cols-3">
+          <div>
+            <label
+              htmlFor="taxTreatment"
+              className="mb-1 block text-xs font-semibold text-slate-700"
+            >
+              Tratamiento de IVA *
+            </label>
+            <Select id="taxTreatment" {...register('taxTreatment')} disabled={isSubmitting}>
+              <option value={ProductTaxTreatment.GRAVADO}>Gravado</option>
+              <option value={ProductTaxTreatment.EXENTO}>Exento</option>
+              <option value={ProductTaxTreatment.NO_GRAVADO}>No gravado</option>
+            </Select>
+            <p className="mt-1 text-[10px] text-slate-400">
+              Exento y no gravado se informan por separado en la facturación fiscal.
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="ivaPercentage"
+              className="mb-1 block text-xs font-semibold text-slate-700"
+            >
+              Alícuota de IVA {watchedTaxTreatment === ProductTaxTreatment.GRAVADO && '*'}
+            </label>
+            <Select
+              id="ivaPercentage"
+              {...register('ivaPercentage')}
+              disabled={isSubmitting || watchedTaxTreatment !== ProductTaxTreatment.GRAVADO}
+              aria-invalid={Boolean(errors.ivaPercentage)}
+            >
+              {PRODUCT_IVA_RATES.map((rate) => (
+                <option key={rate} value={rate}>
+                  {String(rate).replace('.', ',')}%
+                </option>
+              ))}
+            </Select>
+            {errors.ivaPercentage && (
+              <p className="mt-1 text-[11px] text-red-600">{errors.ivaPercentage.message}</p>
+            )}
+          </div>
+
+          <div>
+            <span className="mb-1 block text-xs font-semibold text-slate-500">
+              Precio final estimado
+            </span>
+            <div className="flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 font-mono text-xs font-bold text-slate-700">
+              {formatCurrency(liveFinalPrice)}
+            </div>
+            <p className="mt-1 text-[10px] text-slate-400">
+              Precio activo neto más el IVA correspondiente.
+            </p>
           </div>
         </div>
       </div>

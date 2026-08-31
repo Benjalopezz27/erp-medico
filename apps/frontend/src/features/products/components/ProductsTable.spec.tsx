@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ProductStatus } from '@erp/shared-types';
+import { ProductStatus, ProductTaxTreatment } from '@erp/shared-types';
 import { ProductsTable } from './ProductsTable';
 import type { IProduct, IProductSellerView } from '../types/products.types';
 
@@ -18,6 +18,8 @@ describe('ProductsTable', () => {
     markupPercentage: 35.5,
     suggestedPriceNet: 1355,
     activePriceNet: 1355,
+    taxTreatment: ProductTaxTreatment.GRAVADO,
+    ivaPercentage: 21,
     status: ProductStatus.ACTIVE,
     category: { id: 'c-1', name: 'Medicamentos', createdAt: '', updatedAt: '' },
     baseUnit: { id: 'u-1', name: 'Unidad', symbol: 'u', createdAt: '', updatedAt: '' },
@@ -34,6 +36,8 @@ describe('ProductsTable', () => {
     baseUnitId: 'u-1',
     minStock: 20,
     activePriceNet: 800,
+    taxTreatment: ProductTaxTreatment.EXENTO,
+    ivaPercentage: null,
     status: ProductStatus.INACTIVE,
     category: { id: 'c-1', name: 'Medicamentos', createdAt: '', updatedAt: '' },
     baseUnit: { id: 'u-1', name: 'Unidad', symbol: 'u', createdAt: '', updatedAt: '' },

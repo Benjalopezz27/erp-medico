@@ -1,5 +1,6 @@
 import {
   ProductStatus,
+  ProductTaxTreatment,
   type IProduct,
   type IProductSellerView,
   type IProductSummary,
@@ -10,6 +11,7 @@ import {
 } from '@erp/shared-types';
 
 export { ProductStatus };
+export { ProductTaxTreatment };
 export type {
   IProduct,
   IProductSellerView,
@@ -69,6 +71,8 @@ export interface ProductFormValues {
   costNet: number;
   markupPercentage?: number | null;
   activePriceNet: number;
+  taxTreatment: ProductTaxTreatment;
+  ivaPercentage: number | null;
   conversions: ProductConversionRow[];
 }
 
@@ -82,6 +86,8 @@ export interface CreateProductPayload {
   costNet: number;
   markupPercentage?: number | null;
   activePriceNet: number;
+  taxTreatment?: ProductTaxTreatment;
+  ivaPercentage?: number | null;
   conversions?: Array<{
     presentationUnitId: string;
     conversionFactor: number;
@@ -97,6 +103,8 @@ export interface UpdateProductPayload {
   costNet?: number;
   markupPercentage?: number | null;
   activePriceNet?: number;
+  taxTreatment?: ProductTaxTreatment;
+  ivaPercentage?: number | null;
   status?: ProductStatus;
 }
 

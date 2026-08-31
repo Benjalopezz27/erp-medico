@@ -17,6 +17,9 @@ export class SalesMapper {
       requiresFiscalInvoice: sale.requiresFiscalInvoice,
       paymentMethod: sale.paymentMethod,
       totalNet: new Decimal(sale.totalNet).toFixed(2),
+      taxableNet: new Decimal(sale.taxableNet).toFixed(2),
+      exemptAmount: new Decimal(sale.exemptAmount).toFixed(2),
+      nonTaxedAmount: new Decimal(sale.nonTaxedAmount).toFixed(2),
       ivaTotal: new Decimal(sale.ivaTotal).toFixed(2),
       totalGross: new Decimal(sale.totalGross).toFixed(2),
       userId: sale.userId,
@@ -42,7 +45,11 @@ export class SalesMapper {
           discountAmountNet: new Decimal(item.discountAmountNet).toFixed(2),
           unitPriceNet: new Decimal(item.unitPriceNet).toFixed(2),
           subtotalNet: new Decimal(item.subtotalNet).toFixed(2),
-          ivaPercentage: new Decimal(item.ivaPercentage).toFixed(2),
+          taxTreatment: item.taxTreatment,
+          ivaPercentage:
+            item.ivaPercentage === null
+              ? null
+              : new Decimal(item.ivaPercentage).toFixed(2),
           ivaAmount: new Decimal(item.ivaAmount).toFixed(2),
           subtotalGross: new Decimal(item.subtotalGross).toFixed(2),
           product: {

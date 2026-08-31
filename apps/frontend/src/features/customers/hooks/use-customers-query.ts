@@ -3,11 +3,16 @@ import { getCustomerByIdApi, getCustomersApi } from '../api/customers.api';
 import type { CustomerSearchParams } from '../types/customers.types';
 import { customerKeys } from './customer-keys';
 
-export function useCustomersQuery(params: CustomerSearchParams) {
+export function useCustomersQuery(
+  params: CustomerSearchParams,
+  enabled = true,
+  preservePreviousData = true,
+) {
   return useQuery({
     queryKey: customerKeys.list(params),
     queryFn: () => getCustomersApi(params),
-    placeholderData: keepPreviousData,
+    placeholderData: preservePreviousData ? keepPreviousData : undefined,
+    enabled,
   });
 }
 

@@ -6,7 +6,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { UserRole, ProductStatus, StockMovementType } from '@erp/shared-types';
+import {
+  PRODUCT_IVA_RATES,
+  AuditAction,
+  ProductStatus,
+  ProductTaxErrorCode,
+  ProductTaxTreatment,
+  StockMovementType,
+  UserRole,
+} from '@erp/shared-types';
 import Decimal from 'decimal.js';
 import { Product } from './entities/product.entity';
 import { ProductUnitConversion } from './entities/product-unit-conversion.entity';
@@ -31,6 +39,7 @@ import { ProductMapper } from './mappers/product.mapper';
 import { StockAdjustmentsService } from '../stock/stock-adjustments.service';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PricesService } from '../prices/prices.service';
+import { AuditService } from '../audit/audit.service';
 
 @Injectable()
 export class ProductsService {
@@ -46,7 +55,42 @@ export class ProductsService {
     private readonly stockAdjustmentsService: StockAdjustmentsService,
     private readonly dataSource: DataSource,
     private readonly pricesService: PricesService,
+    private readonly auditService: AuditService,
   ) {}
+
+  private invalidTaxConfiguration(message: string): never {
+    throw new BadRequestException({
+      code: ProductTaxErrorCode.PRODUCT_TAX_CONFIGURATION_INVALID,
+      message,
+    });
+  }
+
+  private isAllowedIvaRate(value: number): boolean {
+    return (PRODUCT_IVA_RATES as readonly number[]).includes(value);
+  }
+
+  private normalizeCreateTax(dto: CreateProductDto): {
+    taxTreatment: ProductTaxTreatment;
+    ivaPercentage: number | null;
+  } {
+    const taxTreatment = dto.taxTreatment ?? ProductTaxTreatment.GRAVADO;
+    if (taxTreatment !== ProductTaxTreatment.GRAVADO) {
+      if (dto.ivaPercentage !== undefined && dto.ivaPercentage !== null) {
+        this.invalidTaxConfiguration(
+          'Los productos exentos o no gravados no admiten una alícuota de IVA.',
+        );
+      }
+      return { taxTreatment, ivaPercentage: null };
+    }
+
+    const ivaPercentage = dto.ivaPercentage ?? 21;
+    if (!this.isAllowedIvaRate(ivaPercentage)) {
+      this.invalidTaxConfiguration(
+        'La alícuota de IVA debe ser 0, 2.5, 5, 10.5, 21 o 27.',
+      );
+    }
+    return { taxTreatment, ivaPercentage };
+  }
 
   async findAll(
     query: QueryProductsDto,
@@ -140,6 +184,7 @@ export class ProductsService {
         'product.internalCode',
         'product.name',
         'product.activePriceNet',
+        'product.taxTreatment',
         'product.ivaPercentage',
         'baseUnit.id',
         'baseUnit.name',
@@ -243,6 +288,8 @@ export class ProductsService {
       }
     }
 
+    const taxConfiguration = this.normalizeCreateTax(dto);
+
     // 4. Execute Transaction. PostgreSQL assigns internalCode from its sequence.
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -259,7 +306,8 @@ export class ProductsService {
         costNet: dto.costNet,
         suggestedPriceNet: 0,
         activePriceNet: dto.activePriceNet,
-        ivaPercentage: dto.ivaPercentage ?? 21,
+        taxTreatment: taxConfiguration.taxTreatment,
+        ivaPercentage: taxConfiguration.ivaPercentage,
         status: ProductStatus.ACTIVE,
       });
 
@@ -317,6 +365,20 @@ export class ProductsService {
           conversionEntities,
         );
       }
+
+      await this.auditService.record(queryRunner.manager, {
+        actorId: actor.id,
+        action: AuditAction.CREATE,
+        entityName: 'Product',
+        entityId: createdProduct.id,
+        previousValues: null,
+        newValues: {
+          internalCode: createdProduct.internalCode,
+          name: createdProduct.name,
+          taxTreatment: createdProduct.taxTreatment,
+          ivaPercentage: createdProduct.ivaPercentage,
+        },
+      });
 
       await queryRunner.commitTransaction();
     } catch (error: any) {
@@ -386,6 +448,11 @@ export class ProductsService {
       }
 
       let hasChanges = false;
+      let taxChanged = false;
+      const previousTaxConfiguration = {
+        taxTreatment: product.taxTreatment,
+        ivaPercentage: product.ivaPercentage,
+      };
 
       // Check Name
       if (dto.name !== undefined) {
@@ -505,13 +572,60 @@ export class ProductsService {
         }
       }
 
-      if (dto.ivaPercentage !== undefined) {
-        const currentIvaPercentage = new Decimal(
-          product.ivaPercentage,
-        ).toNumber();
-        if (dto.ivaPercentage !== currentIvaPercentage) {
-          product.ivaPercentage = dto.ivaPercentage;
+      const targetTaxTreatment = dto.taxTreatment ?? product.taxTreatment;
+      if (targetTaxTreatment !== ProductTaxTreatment.GRAVADO) {
+        if (dto.ivaPercentage !== undefined && dto.ivaPercentage !== null) {
+          this.invalidTaxConfiguration(
+            'Los productos exentos o no gravados no admiten una alícuota de IVA.',
+          );
+        }
+        if (product.taxTreatment !== targetTaxTreatment) {
+          product.taxTreatment = targetTaxTreatment;
           hasChanges = true;
+          taxChanged = true;
+        }
+        if (product.ivaPercentage !== null) {
+          product.ivaPercentage = null;
+          hasChanges = true;
+          taxChanged = true;
+        }
+      } else {
+        if (
+          product.taxTreatment !== ProductTaxTreatment.GRAVADO &&
+          (dto.ivaPercentage === undefined || dto.ivaPercentage === null)
+        ) {
+          this.invalidTaxConfiguration(
+            'Al cambiar un producto a gravado debe indicar explícitamente la alícuota de IVA.',
+          );
+        }
+        const rawTargetIvaPercentage =
+          dto.ivaPercentage === undefined
+            ? product.ivaPercentage
+            : dto.ivaPercentage;
+        const targetIvaPercentage =
+          rawTargetIvaPercentage === null
+            ? null
+            : Number(rawTargetIvaPercentage);
+        if (
+          targetIvaPercentage === null ||
+          !this.isAllowedIvaRate(targetIvaPercentage)
+        ) {
+          this.invalidTaxConfiguration(
+            'Todo producto gravado debe tener una alícuota válida: 0, 2.5, 5, 10.5, 21 o 27.',
+          );
+        }
+        if (product.taxTreatment !== ProductTaxTreatment.GRAVADO) {
+          product.taxTreatment = ProductTaxTreatment.GRAVADO;
+          hasChanges = true;
+          taxChanged = true;
+        }
+        const currentIvaPercentage = new Decimal(
+          product.ivaPercentage ?? 0,
+        ).toNumber();
+        if (targetIvaPercentage !== currentIvaPercentage) {
+          product.ivaPercentage = targetIvaPercentage;
+          hasChanges = true;
+          taxChanged = true;
         }
       }
 
@@ -522,6 +636,20 @@ export class ProductsService {
       }
 
       await productRepository.save(product);
+
+      if (taxChanged && actor) {
+        await this.auditService.record(manager, {
+          actorId: actor.id,
+          action: AuditAction.UPDATE,
+          entityName: 'Product',
+          entityId: product.id,
+          previousValues: previousTaxConfiguration,
+          newValues: {
+            taxTreatment: product.taxTreatment,
+            ivaPercentage: product.ivaPercentage,
+          },
+        });
+      }
 
       return productRepository
         .createQueryBuilder('product')

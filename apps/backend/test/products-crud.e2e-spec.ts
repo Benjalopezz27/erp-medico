@@ -6,7 +6,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from '../src/app.module';
 import dataSource from '../src/database/data-source';
 import { runInitialSeed } from '../src/database/seeds/initial.seed';
-import { ProductStatus } from '@erp/shared-types';
+import { ProductStatus, ProductTaxTreatment } from '@erp/shared-types';
 
 describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
   let app: INestApplication;
@@ -175,9 +175,60 @@ describe('Products Catalog & Unit Conversions Domain API (E2E)', () => {
       // 1000 * (1 + 35.5 / 100) = 1355.00
       expect(res.body.suggestedPriceNet).toBe(1355);
       expect(res.body.status).toBe(ProductStatus.ACTIVE);
+      expect(res.body.taxTreatment).toBe(ProductTaxTreatment.GRAVADO);
+      expect(res.body.ivaPercentage).toBe(21);
       expect(res.body.conversions).toHaveLength(1);
       expect(res.body.conversions[0].presentationUnitId).toBe(testBoxUnitId);
       expect(res.body.conversions[0].conversionFactor).toBe(100);
+    });
+
+    it('creates exempt products without a rate and rejects conflicting tax data', async () => {
+      const exempt = await request(app.getHttpServer())
+        .post('/api/v1/products')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Producto exento',
+          categoryId: testCategoryId,
+          baseUnitId: testBaseUnitId,
+          costNet: 100,
+          activePriceNet: 120,
+          taxTreatment: ProductTaxTreatment.EXENTO,
+        })
+        .expect(201);
+      expect(exempt.body).toMatchObject({
+        taxTreatment: ProductTaxTreatment.EXENTO,
+        ivaPercentage: null,
+      });
+
+      const invalid = await request(app.getHttpServer())
+        .post('/api/v1/products')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Producto fiscal inválido',
+          categoryId: testCategoryId,
+          baseUnitId: testBaseUnitId,
+          costNet: 100,
+          activePriceNet: 120,
+          taxTreatment: ProductTaxTreatment.NO_GRAVADO,
+          ivaPercentage: 21,
+        })
+        .expect(400);
+      expect(invalid.body.code).toBe('PRODUCT_TAX_CONFIGURATION_INVALID');
+
+      const invalidRate = await request(app.getHttpServer())
+        .post('/api/v1/products')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Producto con alícuota inválida',
+          categoryId: testCategoryId,
+          baseUnitId: testBaseUnitId,
+          costNet: 100,
+          activePriceNet: 120,
+          taxTreatment: ProductTaxTreatment.GRAVADO,
+          ivaPercentage: 13,
+        })
+        .expect(400);
+      expect(invalidRate.body.code).toBe('PRODUCT_TAX_CONFIGURATION_INVALID');
     });
 
     it('rejects a client-supplied internalCode because it is generated automatically', async () => {

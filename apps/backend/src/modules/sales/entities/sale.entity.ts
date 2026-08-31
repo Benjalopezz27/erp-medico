@@ -41,6 +41,20 @@ export class Sale {
   @Column({ name: 'total_net', type: 'numeric', precision: 14, scale: 2 })
   totalNet: string;
 
+  @Column({ name: 'taxable_net', type: 'numeric', precision: 14, scale: 2 })
+  taxableNet: string;
+
+  @Column({ name: 'exempt_amount', type: 'numeric', precision: 14, scale: 2 })
+  exemptAmount: string;
+
+  @Column({
+    name: 'non_taxed_amount',
+    type: 'numeric',
+    precision: 14,
+    scale: 2,
+  })
+  nonTaxedAmount: string;
+
   @Column({ name: 'iva_total', type: 'numeric', precision: 14, scale: 2 })
   ivaTotal: string;
 

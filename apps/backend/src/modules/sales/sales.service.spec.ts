@@ -5,6 +5,7 @@ import {
   PaymentMethod,
   SaleStatus,
   SalesErrorCode,
+  ProductTaxTreatment,
 } from '@erp/shared-types';
 import { AuditService } from '../audit/audit.service';
 import { CustomerPricingService } from '../customers/special-prices/services/customer-pricing.service';
@@ -128,6 +129,7 @@ describe('SalesService', () => {
         discountPercentage: null,
         discountAmountNet: '0.00',
         finalPriceNet: '10.00',
+        taxTreatment: ProductTaxTreatment.GRAVADO,
         ivaPercentage: '21.00',
       }),
     };
@@ -178,6 +180,81 @@ describe('SalesService', () => {
       manager,
     );
     expect(auditService.record).toHaveBeenCalledTimes(1);
+  });
+
+  it('separates taxable, exempt and non-taxed amounts in a mixed sale', async () => {
+    customerPricingService.resolveForSale
+      .mockResolvedValueOnce({
+        productId,
+        productCode: 'P0001',
+        productName: 'Gravado',
+        catalogPriceNet: '100.00',
+        ruleApplied: CustomerPricingRuleApplied.CATALOG_PRICE,
+        ruleId: null,
+        discountPercentage: null,
+        discountAmountNet: '0.00',
+        finalPriceNet: '100.00',
+        taxTreatment: ProductTaxTreatment.GRAVADO,
+        ivaPercentage: '21.00',
+      })
+      .mockResolvedValueOnce({
+        productId: '20000000-0000-4000-8000-000000000002',
+        productCode: 'P0002',
+        productName: 'Exento',
+        catalogPriceNet: '20.00',
+        ruleApplied: CustomerPricingRuleApplied.CATALOG_PRICE,
+        ruleId: null,
+        discountPercentage: null,
+        discountAmountNet: '0.00',
+        finalPriceNet: '20.00',
+        taxTreatment: ProductTaxTreatment.EXENTO,
+        ivaPercentage: null,
+      })
+      .mockResolvedValueOnce({
+        productId: '20000000-0000-4000-8000-000000000003',
+        productCode: 'P0003',
+        productName: 'No gravado',
+        catalogPriceNet: '10.00',
+        ruleApplied: CustomerPricingRuleApplied.CATALOG_PRICE,
+        ruleId: null,
+        discountPercentage: null,
+        discountAmountNet: '0.00',
+        finalPriceNet: '10.00',
+        taxTreatment: ProductTaxTreatment.NO_GRAVADO,
+        ivaPercentage: null,
+      });
+
+    const result = await service.create(
+      {
+        ...baseDto,
+        items: [
+          { productId, quantityBase: 1 },
+          {
+            productId: '20000000-0000-4000-8000-000000000002',
+            quantityBase: 1,
+          },
+          {
+            productId: '20000000-0000-4000-8000-000000000003',
+            quantityBase: 1,
+          },
+        ],
+      },
+      userId,
+    );
+
+    expect(result).toMatchObject({
+      totalNet: '130.00',
+      taxableNet: '100.00',
+      exemptAmount: '20.00',
+      nonTaxedAmount: '10.00',
+      ivaTotal: '21.00',
+      totalGross: '151.00',
+    });
+    expect(items.map((item) => item.taxTreatment)).toEqual([
+      ProductTaxTreatment.GRAVADO,
+      ProductTaxTreatment.EXENTO,
+      ProductTaxTreatment.NO_GRAVADO,
+    ]);
   });
 
   it('creates a pending fiscal document and debt for a credit sale', async () => {
