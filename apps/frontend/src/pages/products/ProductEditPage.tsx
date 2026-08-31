@@ -12,6 +12,7 @@ import type {
   ProductFormValues,
   UpdateProductPayload,
 } from '@/features/products/types/products.types';
+import { ProductTaxTreatment } from '@erp/shared-types';
 
 export const ProductEditPage: React.FC = () => {
   const navigate = useNavigate();
@@ -110,6 +111,27 @@ export const ProductEditPage: React.FC = () => {
 
     if (Number(values.activePriceNet) !== Number(product.activePriceNet)) {
       delta.activePriceNet = Number(values.activePriceNet);
+      hasProductChanges = true;
+    }
+
+    // Products created before tax treatment was exposed by the API are
+    // equivalent to the backwards-compatible GRAVADO 21% defaults used by
+    // the form. Normalize that legacy shape before calculating the delta so
+    // opening and saving an unchanged product remains a no-op.
+    const initialTaxTreatment = product.taxTreatment ?? ProductTaxTreatment.GRAVADO;
+    const initialIvaPercentage = product.ivaPercentage ?? 21;
+
+    if (values.taxTreatment !== initialTaxTreatment) {
+      delta.taxTreatment = values.taxTreatment;
+      if (values.taxTreatment === ProductTaxTreatment.GRAVADO) {
+        delta.ivaPercentage = values.ivaPercentage;
+      }
+      hasProductChanges = true;
+    } else if (
+      values.taxTreatment === ProductTaxTreatment.GRAVADO &&
+      Number(values.ivaPercentage) !== Number(initialIvaPercentage)
+    ) {
+      delta.ivaPercentage = values.ivaPercentage;
       hasProductChanges = true;
     }
 

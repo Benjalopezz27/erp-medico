@@ -10,11 +10,13 @@ import { ProductsService } from './products.service';
 import { ProductsController } from './products.controller';
 import { UnitConversionEngine } from './services/unit-conversion-engine.service';
 import { PricesModule } from '../prices/prices.module';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
     StockModule,
     PricesModule,
+    AuditModule,
     TypeOrmModule.forFeature([
       Product,
       ProductUnitConversion,

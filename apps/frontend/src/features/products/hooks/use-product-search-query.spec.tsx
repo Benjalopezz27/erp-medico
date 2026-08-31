@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import { useProductSearchQuery } from './use-product-search-query';
 import * as productsApi from '../api/products.api';
+import { ProductTaxTreatment } from '@erp/shared-types';
 
 vi.mock('../api/products.api');
 
@@ -36,6 +37,8 @@ describe('useProductSearchQuery', () => {
         baseUnit: { id: 'u-1', name: 'Unidad', symbol: 'u' },
         currentStock: null,
         activePriceNet: 1200,
+        taxTreatment: ProductTaxTreatment.GRAVADO,
+        ivaPercentage: 21,
       },
     ];
 

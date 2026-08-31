@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { productFormSchema } from './product.schema';
+import { ProductTaxTreatment } from '@erp/shared-types';
 
 describe('product.schema', () => {
   const validData = {
@@ -89,6 +90,42 @@ describe('product.schema', () => {
         conversions: [
           { presentationUnitId: 'c2eebc99-9c0b-4ef8-bb6d-6bb9bd380a33', conversionFactor: 0 },
         ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts controlled ARCA rates for taxable products', () => {
+    for (const ivaPercentage of [0, 2.5, 5, 10.5, 21, 27]) {
+      expect(
+        productFormSchema.safeParse({
+          ...validData,
+          taxTreatment: ProductTaxTreatment.GRAVADO,
+          ivaPercentage,
+        }).success,
+      ).toBe(true);
+    }
+    expect(
+      productFormSchema.safeParse({
+        ...validData,
+        taxTreatment: ProductTaxTreatment.GRAVADO,
+        ivaPercentage: 13,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('requires a null rate for exempt and non-taxed products', () => {
+    expect(
+      productFormSchema.safeParse({
+        ...validData,
+        taxTreatment: ProductTaxTreatment.EXENTO,
+        ivaPercentage: null,
+      }).success,
+    ).toBe(true);
+    expect(
+      productFormSchema.safeParse({
+        ...validData,
+        taxTreatment: ProductTaxTreatment.NO_GRAVADO,
+        ivaPercentage: 0,
       }).success,
     ).toBe(false);
   });

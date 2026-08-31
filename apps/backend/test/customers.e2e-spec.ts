@@ -13,6 +13,7 @@ import { runInitialSeed } from '../src/database/seeds/initial.seed';
 import { CreateCustomersTable1700000000021 } from '../src/database/migrations/1700000000021-CreateCustomersTable';
 import { CreateCustomerSpecialPricesAndDiscounts1700000000022 } from '../src/database/migrations/1700000000022-CreateCustomerSpecialPricesAndDiscounts';
 import { CreateSalesFiscalAndReceivablesTables1700000000023 } from '../src/database/migrations/1700000000023-CreateSalesFiscalAndReceivablesTables';
+import { AddProductTaxTreatment1700000000024 } from '../src/database/migrations/1700000000024-AddProductTaxTreatment';
 
 describe('Customers domain and API (E2E)', () => {
   let app: INestApplication;
@@ -34,12 +35,15 @@ describe('Customers domain and API (E2E)', () => {
       new CreateCustomerSpecialPricesAndDiscounts1700000000022();
     const salesMigration =
       new CreateSalesFiscalAndReceivablesTables1700000000023();
+    const taxTreatmentMigration = new AddProductTaxTreatment1700000000024();
+    await taxTreatmentMigration.down(migrationRunner);
     await salesMigration.down(migrationRunner);
     await pricingMigration.down(migrationRunner);
     await customerMigration.down(migrationRunner);
     await customerMigration.up(migrationRunner);
     await pricingMigration.up(migrationRunner);
     await salesMigration.up(migrationRunner);
+    await taxTreatmentMigration.up(migrationRunner);
     await migrationRunner.release();
     await runInitialSeed(ds, {
       adminEmail,

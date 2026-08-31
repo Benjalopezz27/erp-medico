@@ -63,7 +63,8 @@ export class ProductMapper {
       markupPercentage: this.parseNullableDecimal(product.markupPercentage, 4),
       suggestedPriceNet: this.parseDecimal(product.suggestedPriceNet, 2),
       activePriceNet: this.parseDecimal(product.activePriceNet, 2),
-      ivaPercentage: this.parseDecimal(product.ivaPercentage, 2),
+      taxTreatment: product.taxTreatment,
+      ivaPercentage: this.parseNullableDecimal(product.ivaPercentage, 2),
       status: product.status,
       category: product.category
         ? toCategoryResponseDto(product.category)
@@ -89,7 +90,8 @@ export class ProductMapper {
       baseUnitId: product.baseUnitId,
       minStock: this.parseDecimal(product.minStock, 2),
       activePriceNet: this.parseDecimal(product.activePriceNet, 2),
-      ivaPercentage: this.parseDecimal(product.ivaPercentage, 2),
+      taxTreatment: product.taxTreatment,
+      ivaPercentage: this.parseNullableDecimal(product.ivaPercentage, 2),
       status: product.status,
       category: product.category
         ? toCategoryResponseDto(product.category)
@@ -119,7 +121,8 @@ export class ProductMapper {
         ? this.parseDecimal(product.stock.currentBaseStock, 2)
         : 0,
       activePriceNet: this.parseDecimal(product.activePriceNet, 2),
-      ivaPercentage: this.parseDecimal(product.ivaPercentage, 2),
+      taxTreatment: product.taxTreatment,
+      ivaPercentage: this.parseNullableDecimal(product.ivaPercentage, 2),
     };
   }
 

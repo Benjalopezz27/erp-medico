@@ -11,7 +11,7 @@ import {
   BeforeInsert,
   BeforeUpdate,
 } from 'typeorm';
-import { ProductStatus } from '@erp/shared-types';
+import { ProductStatus, ProductTaxTreatment } from '@erp/shared-types';
 import { Category } from '../../categories/entities/category.entity';
 import { Unit } from '../../units/entities/unit.entity';
 import { ProductUnitConversion } from './product-unit-conversion.entity';
@@ -83,13 +83,22 @@ export class Product {
   activePriceNet: string | number;
 
   @Column({
+    name: 'tax_treatment',
+    type: 'varchar',
+    length: 20,
+    default: ProductTaxTreatment.GRAVADO,
+  })
+  taxTreatment: ProductTaxTreatment;
+
+  @Column({
     name: 'iva_percentage',
     type: 'numeric',
     precision: 5,
     scale: 2,
     default: 21,
+    nullable: true,
   })
-  ivaPercentage: string | number;
+  ivaPercentage: string | number | null;
 
   @Column({
     type: 'varchar',

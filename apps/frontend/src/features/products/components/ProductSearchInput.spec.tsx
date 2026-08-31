@@ -6,6 +6,7 @@ import React from 'react';
 import { ProductSearchInput } from './ProductSearchInput';
 import * as productsApi from '../api/products.api';
 import type { IProductSummary } from '../types/products.types';
+import { ProductTaxTreatment } from '@erp/shared-types';
 
 vi.mock('../api/products.api');
 
@@ -19,6 +20,8 @@ describe('ProductSearchInput', () => {
     baseUnit: { id: 'u-1', name: 'Unidad', symbol: 'u' },
     currentStock: null,
     activePriceNet: 1200,
+    taxTreatment: ProductTaxTreatment.GRAVADO,
+    ivaPercentage: 21,
   };
 
   const mockProduct2: IProductSummary = {
@@ -28,6 +31,8 @@ describe('ProductSearchInput', () => {
     baseUnit: { id: 'u-1', name: 'Unidad', symbol: 'u' },
     currentStock: 0,
     activePriceNet: 800,
+    taxTreatment: ProductTaxTreatment.EXENTO,
+    ivaPercentage: null,
   };
 
   const mockProduct3: IProductSummary = {
@@ -37,6 +42,8 @@ describe('ProductSearchInput', () => {
     baseUnit: { id: 'u-1', name: 'Unidad', symbol: 'u' },
     currentStock: 150,
     activePriceNet: 2500,
+    taxTreatment: ProductTaxTreatment.NO_GRAVADO,
+    ivaPercentage: null,
   };
 
   beforeEach(() => {

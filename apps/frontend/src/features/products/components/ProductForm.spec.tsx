@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ProductStatus } from '@erp/shared-types';
+import { ProductStatus, ProductTaxTreatment } from '@erp/shared-types';
 import { ProductForm } from './ProductForm';
 import type { ICategory, IProduct, IUnit } from '../types/products.types';
 
@@ -27,6 +27,8 @@ describe('ProductForm', () => {
     markupPercentage: 35.5,
     suggestedPriceNet: 1355,
     activePriceNet: 1355,
+    taxTreatment: ProductTaxTreatment.GRAVADO,
+    ivaPercentage: 21,
     status: ProductStatus.ACTIVE,
     conversions: [
       {
@@ -133,5 +135,27 @@ describe('ProductForm', () => {
     const cancelBtn = screen.getByRole('button', { name: /Cancelar/i });
     await user.click(cancelBtn);
     expect(handleCancel).toHaveBeenCalled();
+  });
+
+  it('clears and disables the VAT rate for exempt products', async () => {
+    const user = userEvent.setup();
+    render(
+      <ProductForm
+        mode="create"
+        categories={mockCategories}
+        units={mockUnits}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+        isSubmitting={false}
+      />,
+    );
+
+    const rate = screen.getByLabelText(/Alícuota de IVA/i);
+    expect(rate).toBeEnabled();
+    await user.selectOptions(
+      screen.getByLabelText(/Tratamiento de IVA/i),
+      ProductTaxTreatment.EXENTO,
+    );
+    await waitFor(() => expect(rate).toBeDisabled());
   });
 });

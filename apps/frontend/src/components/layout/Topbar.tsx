@@ -15,7 +15,7 @@ const routeTitles: Record<string, string> = {
   '/products': 'Productos',
   '/stock': 'Stock e Inventario',
   '/purchases': 'Compras y Recepción',
-  '/sales': 'Ventas y Punto de Venta',
+  '/sales': 'Historial de Ventas',
   '/customers': 'Clientes',
   '/suppliers': 'Proveedores',
   '/importer': 'Importador de Proveedores',
@@ -31,6 +31,8 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuToggle }) => {
 
   const currentPath = routerState.location.pathname;
   const currentTitle =
+    (currentPath === '/sales/new' ? 'Punto de Venta' : undefined) ||
+    (currentPath.startsWith('/sales/') ? 'Detalle de Venta' : undefined) ||
     routeTitles[currentPath] ||
     (currentPath.startsWith('/customers/') ? 'Detalle de Cliente' : 'Página');
 

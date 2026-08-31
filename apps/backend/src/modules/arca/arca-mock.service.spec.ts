@@ -76,8 +76,18 @@ describe('ArcaMockService', () => {
         pointOfSale: 1,
         documentNumber: 101,
         totalAmount: 1500,
-        netAmount: 1239.67,
+        taxableNetAmount: 1239.67,
+        exemptAmount: 0,
+        nonTaxedAmount: 0,
         ivaAmount: 260.33,
+        ivaBreakdown: [
+          {
+            arcaRateId: 5,
+            percentage: 21,
+            taxableBase: 1239.67,
+            amount: 260.33,
+          },
+        ],
       });
 
       expect(response.cae).toBe('99999999999999');
@@ -97,8 +107,18 @@ describe('ArcaMockService', () => {
         pointOfSale: 1,
         documentNumber: 101,
         totalAmount: 1500,
-        netAmount: 1239.67,
+        taxableNetAmount: 1239.67,
+        exemptAmount: 0,
+        nonTaxedAmount: 0,
         ivaAmount: 260.33,
+        ivaBreakdown: [
+          {
+            arcaRateId: 5,
+            percentage: 21,
+            taxableBase: 1239.67,
+            amount: 260.33,
+          },
+        ],
       });
 
       jest.advanceTimersByTime(200);
@@ -123,8 +143,13 @@ describe('ArcaMockService', () => {
           pointOfSale: 0,
           documentNumber: 1,
           totalAmount: 100,
-          netAmount: 100,
+          taxableNetAmount: 100,
+          exemptAmount: 0,
+          nonTaxedAmount: 0,
           ivaAmount: 0,
+          ivaBreakdown: [
+            { arcaRateId: 3, percentage: 0, taxableBase: 100, amount: 0 },
+          ],
         }),
       ).rejects.toThrow(BadRequestException);
 
@@ -134,8 +159,13 @@ describe('ArcaMockService', () => {
           pointOfSale: 1.5,
           documentNumber: 1,
           totalAmount: 100,
-          netAmount: 100,
+          taxableNetAmount: 100,
+          exemptAmount: 0,
+          nonTaxedAmount: 0,
           ivaAmount: 0,
+          ivaBreakdown: [
+            { arcaRateId: 3, percentage: 0, taxableBase: 100, amount: 0 },
+          ],
         }),
       ).rejects.toThrow(BadRequestException);
     });
@@ -149,8 +179,13 @@ describe('ArcaMockService', () => {
           pointOfSale: 1,
           documentNumber: -5,
           totalAmount: 100,
-          netAmount: 100,
+          taxableNetAmount: 100,
+          exemptAmount: 0,
+          nonTaxedAmount: 0,
           ivaAmount: 0,
+          ivaBreakdown: [
+            { arcaRateId: 3, percentage: 0, taxableBase: 100, amount: 0 },
+          ],
         }),
       ).rejects.toThrow(BadRequestException);
     });
@@ -164,8 +199,11 @@ describe('ArcaMockService', () => {
           pointOfSale: 1,
           documentNumber: 1,
           totalAmount: -10,
-          netAmount: 0,
+          taxableNetAmount: 0,
+          exemptAmount: 0,
+          nonTaxedAmount: 0,
           ivaAmount: 0,
+          ivaBreakdown: [],
         }),
       ).rejects.toThrow(BadRequestException);
 
@@ -175,8 +213,11 @@ describe('ArcaMockService', () => {
           pointOfSale: 1,
           documentNumber: 1,
           totalAmount: NaN,
-          netAmount: 0,
+          taxableNetAmount: 0,
+          exemptAmount: 0,
+          nonTaxedAmount: 0,
           ivaAmount: 0,
+          ivaBreakdown: [],
         }),
       ).rejects.toThrow(BadRequestException);
     });

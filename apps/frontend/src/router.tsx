@@ -167,6 +167,11 @@ import { CustomersListPage } from '@/pages/customers/CustomersListPage';
 import { CustomerDetailPage } from '@/pages/customers/CustomerDetailPage';
 import type { CustomerSearchParams } from '@/features/customers/types/customers.types';
 import { CustomerSortField, TaxCondition } from '@erp/shared-types';
+import { SalesListPage } from '@/pages/sales/SalesListPage';
+import { SalesNewPage } from '@/pages/sales/SalesNewPage';
+import { SaleDetailPage } from '@/pages/sales/SaleDetailPage';
+import { validateSaleSearchParams } from '@/features/sales/schemas/sales.schema';
+export { validateSaleSearchParams };
 
 export function validateCustomerSearchParams(
   search: Record<string, unknown>,
@@ -680,13 +685,20 @@ const purchaseOrderReceiveRoute = createRoute({
 const salesRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/sales',
-  component: () => (
-    <PlaceholderPage
-      title="Punto de Venta y Facturación"
-      description="Registro rápido de ventas, descuento de stock y comprobantes fiscales ARCA"
-      sprint="Sprint 7 — US-25"
-    />
-  ),
+  validateSearch: validateSaleSearchParams,
+  component: () => <SalesListPage />,
+});
+
+const salesNewRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/sales/new',
+  component: () => <SalesNewPage />,
+});
+
+const saleDetailRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/sales/$id',
+  component: () => <SaleDetailPage />,
 });
 
 const customersRoute = createRoute({
@@ -816,6 +828,8 @@ const routeTree = rootRoute.addChildren([
     purchaseOrderDetailRoute,
     purchaseOrderReceiveRoute,
     salesRoute,
+    salesNewRoute,
+    saleDetailRoute,
 
     customersRoute,
     customerDetailRoute,

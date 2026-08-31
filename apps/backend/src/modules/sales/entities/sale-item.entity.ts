@@ -6,7 +6,10 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { CustomerPricingRuleApplied } from '@erp/shared-types';
+import {
+  CustomerPricingRuleApplied,
+  ProductTaxTreatment,
+} from '@erp/shared-types';
 import { Product } from '../../products/entities/product.entity';
 import { Sale } from './sale.entity';
 
@@ -64,8 +67,17 @@ export class SaleItem {
   @Column({ name: 'subtotal_net', type: 'numeric', precision: 14, scale: 2 })
   subtotalNet: string;
 
-  @Column({ name: 'iva_percentage', type: 'numeric', precision: 5, scale: 2 })
-  ivaPercentage: string;
+  @Column({ name: 'tax_treatment', type: 'varchar', length: 20 })
+  taxTreatment: ProductTaxTreatment;
+
+  @Column({
+    name: 'iva_percentage',
+    type: 'numeric',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
+  ivaPercentage: string | null;
 
   @Column({ name: 'iva_amount', type: 'numeric', precision: 14, scale: 2 })
   ivaAmount: string;
