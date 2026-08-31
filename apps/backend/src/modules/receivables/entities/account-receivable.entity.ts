@@ -4,6 +4,7 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -12,6 +13,7 @@ import { AccountReceivableStatus } from '@erp/shared-types';
 import { Customer } from '../../customers/entities/customer.entity';
 import { FiscalDocument } from '../../sales/entities/fiscal-document.entity';
 import { Sale } from '../../sales/entities/sale.entity';
+import { AccountReceivableMovement } from './account-receivable-movement.entity';
 
 @Entity('account_receivables')
 export class AccountReceivable {
@@ -63,4 +65,7 @@ export class AccountReceivable {
   @OneToOne(() => FiscalDocument, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'fiscal_document_id' })
   fiscalDocument?: FiscalDocument;
+
+  @OneToMany(() => AccountReceivableMovement, (m) => m.accountReceivable)
+  movements?: AccountReceivableMovement[];
 }

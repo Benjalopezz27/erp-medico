@@ -1,3 +1,4 @@
+import { SaleReturn } from '../returns/entities/sale-return.entity';
 import {
   Column,
   CreateDateColumn,
@@ -81,6 +82,9 @@ export class Sale {
   @OneToMany(() => SaleItem, (item) => item.sale)
   items?: SaleItem[];
 
-  @OneToOne(() => FiscalDocument, (document) => document.sale)
-  fiscalDocument?: FiscalDocument | null;
+  @OneToMany(() => FiscalDocument, (document) => document.sale)
+  fiscalDocuments?: FiscalDocument[];
+
+  @OneToMany(() => SaleReturn, (sr) => sr.sale)
+  returns?: SaleReturn[];
 }
