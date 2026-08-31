@@ -66,11 +66,16 @@ export class FiscalDocument {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
   updatedAt: Date;
 
-  @ManyToOne(() => Sale, (sale) => sale.fiscalDocuments, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => Sale, (sale) => sale.fiscalDocuments, {
+    onDelete: 'RESTRICT',
+  })
   @JoinColumn({ name: 'sale_id' })
   sale?: Sale;
 
-  @OneToOne(() => SaleReturn, (sr) => sr.fiscalDocument, { nullable: true, onDelete: 'RESTRICT' })
+  @OneToOne(() => SaleReturn, (sr) => sr.fiscalDocument, {
+    nullable: true,
+    onDelete: 'RESTRICT',
+  })
   @JoinColumn({ name: 'sale_return_id' })
   saleReturn?: SaleReturn | null;
 }

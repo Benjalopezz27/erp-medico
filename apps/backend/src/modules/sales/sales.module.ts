@@ -35,4 +35,3 @@ import { SaleReturnsService } from './returns/services/sale-returns.service';
   exports: [SalesService, SaleReturnsService],
 })
 export class SalesModule {}
-

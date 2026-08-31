@@ -204,6 +204,7 @@ describe('SaleReturnsService', () => {
     };
 
     const fiscalRepo = {
+      find: jest.fn(async () => sale.fiscalDocuments || []),
       create: jest.fn((val) => ({ id: 'fiscal-nc-1', ...val })),
       save: jest.fn(async (val) => ({ id: 'fiscal-nc-1', ...val })),
     };

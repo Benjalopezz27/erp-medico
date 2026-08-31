@@ -59,7 +59,10 @@ export class SalesMapper {
           },
         })),
       fiscalDocument: (() => {
-        const doc = (sale.fiscalDocuments ?? []).find((d) => !d.saleReturnId) ?? null;
+        const doc =
+          (sale.fiscalDocuments ?? []).find((d) => !d.saleReturnId) ??
+          (sale as any).fiscalDocument ??
+          null;
         if (!doc) return null;
         return {
           id: doc.id,

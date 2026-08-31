@@ -181,4 +181,3 @@ export interface ICreateSaleReturnPayload {
   idempotencyKey?: string | null;
   items: ICreateSaleReturnItemPayload[];
 }
-
