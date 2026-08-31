@@ -2,12 +2,16 @@ import { useParams } from '@tanstack/react-router';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SaleDetailView } from '@/features/sales/components/SaleDetailView';
+import { SaleReturnsSection } from '@/features/sales/components/returns/SaleReturnsSection';
 import { useSaleDetailQuery } from '@/features/sales/hooks/use-sales-query';
+import { useSaleReturnsQuery } from '@/features/sales/hooks/use-sale-returns-query';
 import { parseSalesError } from '@/features/sales/utils/sales.errors';
 
 export function SaleDetailPage() {
   const { id } = useParams({ strict: false }) as { id: string };
   const query = useSaleDetailQuery(id);
+  const returnsQuery = useSaleReturnsQuery(id);
+
   if (query.isLoading)
     return (
       <div className="flex min-h-64 items-center justify-center text-sm text-slate-500">
@@ -36,5 +40,11 @@ export function SaleDetailPage() {
         </Button>
       </div>
     );
-  return <SaleDetailView sale={query.data} />;
+
+  return (
+    <SaleDetailView
+      sale={query.data}
+      extension={<SaleReturnsSection sale={query.data} returnsQuery={returnsQuery} />}
+    />
+  );
 }
