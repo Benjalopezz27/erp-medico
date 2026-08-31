@@ -14,6 +14,7 @@ import { CreateCustomersTable1700000000021 } from '../src/database/migrations/17
 import { CreateCustomerSpecialPricesAndDiscounts1700000000022 } from '../src/database/migrations/1700000000022-CreateCustomerSpecialPricesAndDiscounts';
 import { CreateSalesFiscalAndReceivablesTables1700000000023 } from '../src/database/migrations/1700000000023-CreateSalesFiscalAndReceivablesTables';
 import { AddProductTaxTreatment1700000000024 } from '../src/database/migrations/1700000000024-AddProductTaxTreatment';
+import { CreateCustomerReturnsAndAdaptQuarantine1700000000025 } from '../src/database/migrations/1700000000025-CreateCustomerReturnsAndAdaptQuarantine';
 
 describe('Customers domain and API (E2E)', () => {
   let app: INestApplication;
@@ -36,6 +37,9 @@ describe('Customers domain and API (E2E)', () => {
     const salesMigration =
       new CreateSalesFiscalAndReceivablesTables1700000000023();
     const taxTreatmentMigration = new AddProductTaxTreatment1700000000024();
+    const customerReturnsMigration =
+      new CreateCustomerReturnsAndAdaptQuarantine1700000000025();
+    await customerReturnsMigration.down(migrationRunner);
     await taxTreatmentMigration.down(migrationRunner);
     await salesMigration.down(migrationRunner);
     await pricingMigration.down(migrationRunner);
@@ -44,6 +48,7 @@ describe('Customers domain and API (E2E)', () => {
     await pricingMigration.up(migrationRunner);
     await salesMigration.up(migrationRunner);
     await taxTreatmentMigration.up(migrationRunner);
+    await customerReturnsMigration.up(migrationRunner);
     await migrationRunner.release();
     await runInitialSeed(ds, {
       adminEmail,

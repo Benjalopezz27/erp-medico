@@ -5,7 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, EntityManager } from 'typeorm';
 import Decimal from 'decimal.js';
 import {
   ProductStatus,
@@ -109,6 +109,60 @@ export class QuarantineService {
 
     const fullEntity = await this.findOneWithRelations(savedId);
     return this.mapToResponseDto(fullEntity);
+  }
+
+  /**
+   * Records a quarantine entry originated from a customer return (NO_APTO quality).
+   * Does NOT alter available stock (no stock movement) and links to saleReturnItemId.
+   */
+  async recordQuarantineFromReturn(
+    manager: EntityManager,
+    input: {
+      productId: string;
+      quantityBase: string | number;
+      reason: string;
+      actorId: string;
+      saleReturnItemId: string;
+    },
+  ): Promise<QuarantineStock> {
+    if (!manager.queryRunner?.isTransactionActive) {
+      throw new Error(
+        'QuarantineService.recordQuarantineFromReturn requires an active transaction.',
+      );
+    }
+
+    const quarantineRepo = manager.getRepository(QuarantineStock);
+    const quarantine = quarantineRepo.create({
+      productId: input.productId,
+      quantityBase: new Decimal(input.quantityBase).toFixed(2),
+      reason: input.reason.trim(),
+      status: QuarantineStatus.EN_CUARENTENA,
+      originType: 'DEVOLUCION_CLIENTE',
+      saleReturnItemId: input.saleReturnItemId,
+      entryActorId: input.actorId,
+      entryMovementId: null,
+    });
+
+    const saved = await quarantineRepo.save(quarantine);
+
+    await this.auditService.record(manager, {
+      actorId: input.actorId,
+      action: AuditAction.CREATE,
+      entityName: 'QuarantineStock',
+      entityId: saved.id,
+      previousValues: null,
+      newValues: {
+        productId: saved.productId,
+        quantityBase: saved.quantityBase,
+        reason: saved.reason,
+        status: saved.status,
+        originType: saved.originType,
+        saleReturnItemId: saved.saleReturnItemId,
+        entryActorId: saved.entryActorId,
+      },
+    });
+
+    return saved;
   }
 
   /**

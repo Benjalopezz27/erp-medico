@@ -68,6 +68,7 @@ describe('SalesService', () => {
                   name: 'Producto',
                 },
               })),
+              fiscalDocuments: fiscalDocument ? [fiscalDocument] : [],
               fiscalDocument,
             }
           : null,

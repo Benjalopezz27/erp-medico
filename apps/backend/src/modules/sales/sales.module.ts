@@ -9,17 +9,29 @@ import { CustomersModule } from '../customers/customers.module';
 import { StockModule } from '../stock/stock.module';
 import { AuditModule } from '../audit/audit.module';
 import { ReceivablesModule } from '../receivables/receivables.module';
+import { QuarantineModule } from '../quarantine/quarantine.module';
+import { SaleReturn } from './returns/entities/sale-return.entity';
+import { SaleReturnItem } from './returns/entities/sale-return-item.entity';
+import { SaleReturnsController } from './returns/sale-returns.controller';
+import { SaleReturnsService } from './returns/services/sale-returns.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Sale, SaleItem, FiscalDocument]),
+    TypeOrmModule.forFeature([
+      Sale,
+      SaleItem,
+      FiscalDocument,
+      SaleReturn,
+      SaleReturnItem,
+    ]),
     CustomersModule,
     StockModule,
     AuditModule,
     ReceivablesModule,
+    QuarantineModule,
   ],
-  controllers: [SalesController],
-  providers: [SalesService],
-  exports: [SalesService],
+  controllers: [SalesController, SaleReturnsController],
+  providers: [SalesService, SaleReturnsService],
+  exports: [SalesService, SaleReturnsService],
 })
 export class SalesModule {}

@@ -5,12 +5,14 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  OneToOne,
   JoinColumn,
 } from 'typeorm';
 import { QuarantineStatus } from '@erp/shared-types';
 import { Product } from '../../products/entities/product.entity';
 import { User } from '../../users/entities/user.entity';
 import { StockMovement } from '../../stock/entities/stock-movement.entity';
+import { SaleReturnItem } from '../../sales/returns/entities/sale-return-item.entity';
 
 @Entity('quarantine_stocks')
 export class QuarantineStock {
@@ -42,6 +44,24 @@ export class QuarantineStock {
   })
   status: QuarantineStatus;
 
+  @Column({
+    name: 'origin_type',
+    type: 'varchar',
+    length: 50,
+    default: 'AJUSTE_MANUAL',
+  })
+  originType: string;
+
+  @Column({ name: 'sale_return_item_id', type: 'uuid', nullable: true })
+  saleReturnItemId: string | null;
+
+  @OneToOne(() => SaleReturnItem, (sri) => sri.quarantineStock, {
+    nullable: true,
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'sale_return_item_id' })
+  saleReturnItem?: SaleReturnItem | null;
+
   @Column({ name: 'entry_actor_id', type: 'uuid' })
   entryActorId: string;
 
@@ -49,12 +69,12 @@ export class QuarantineStock {
   @JoinColumn({ name: 'entry_actor_id' })
   entryActor: User;
 
-  @Column({ name: 'entry_movement_id', type: 'uuid' })
-  entryMovementId: string;
+  @Column({ name: 'entry_movement_id', type: 'uuid', nullable: true })
+  entryMovementId: string | null;
 
-  @ManyToOne(() => StockMovement)
+  @ManyToOne(() => StockMovement, { nullable: true })
   @JoinColumn({ name: 'entry_movement_id' })
-  entryMovement: StockMovement;
+  entryMovement: StockMovement | null;
 
   @Column({ name: 'resolved_by_actor_id', type: 'uuid', nullable: true })
   resolvedByActorId: string | null;
