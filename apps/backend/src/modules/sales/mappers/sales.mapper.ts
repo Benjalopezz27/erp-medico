@@ -58,17 +58,19 @@ export class SalesMapper {
             name: item.product?.name ?? '',
           },
         })),
-      fiscalDocument: sale.fiscalDocument
-        ? {
-            id: sale.fiscalDocument.id,
-            saleId: sale.fiscalDocument.saleId,
-            documentType: sale.fiscalDocument.documentType,
-            pointOfSale: sale.fiscalDocument.pointOfSale,
-            documentNumber: sale.fiscalDocument.documentNumber,
-            arcaStatus: sale.fiscalDocument.arcaStatus,
-            cae: sale.fiscalDocument.cae,
-          }
-        : null,
+      fiscalDocument: (() => {
+        const doc = (sale.fiscalDocuments ?? []).find((d) => !d.saleReturnId) ?? null;
+        if (!doc) return null;
+        return {
+          id: doc.id,
+          saleId: doc.saleId,
+          documentType: doc.documentType,
+          pointOfSale: doc.pointOfSale,
+          documentNumber: doc.documentNumber,
+          arcaStatus: doc.arcaStatus,
+          cae: doc.cae,
+        };
+      })(),
       accountReceivable: accountReceivable
         ? {
             id: accountReceivable.id,
