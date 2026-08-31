@@ -6,6 +6,7 @@ import {
   CustomerDocumentType,
   PaymentMethod,
   ProductStatus,
+  ProductTaxTreatment,
   StockMovementType,
   TaxCondition,
 } from '@erp/shared-types';
@@ -28,6 +29,7 @@ describe('Sales domain and API (E2E)', () => {
   let adminToken: string;
   let sellerToken: string;
   let seller: User;
+  let productSequence = 0;
 
   beforeAll(async () => {
     ds = await dataSource.initialize();
@@ -70,6 +72,7 @@ describe('Sales domain and API (E2E)', () => {
   });
 
   beforeEach(async () => {
+    productSequence = 0;
     await ds.query(`
       TRUNCATE TABLE account_receivables, fiscal_documents, sale_items, sales,
         stock_movements, stocks, customer_special_prices, customers, products,
@@ -89,19 +92,21 @@ describe('Sales domain and API (E2E)', () => {
     id: string,
     stock: number,
     activePriceNet = '100.00',
-    ivaPercentage = '21.00',
+    ivaPercentage: string | null = '21.00',
+    taxTreatment = ProductTaxTreatment.GRAVADO,
   ): Promise<Product> {
+    productSequence += 1;
     const category = await ds.getRepository(Category).save({
       name: `Categoría ${id}`,
       description: null,
     });
     const unit = await ds.getRepository(Unit).save({
       name: `Unidad ${id}`,
-      symbol: id.slice(0, 4),
+      symbol: `s${productSequence}`,
     });
     const product = await ds.getRepository(Product).save({
       id,
-      internalCode: `SALE-${id.slice(0, 4)}`,
+      internalCode: `SALE-${productSequence}`,
       name: `Producto ${id}`,
       description: null,
       categoryId: category.id,
@@ -110,6 +115,7 @@ describe('Sales domain and API (E2E)', () => {
       costNet: '50.0000',
       suggestedPriceNet: activePriceNet,
       activePriceNet,
+      taxTreatment,
       ivaPercentage,
       status: ProductStatus.ACTIVE,
     });
@@ -182,6 +188,63 @@ describe('Sales domain and API (E2E)', () => {
       unitPriceNet: '100.00',
       ivaPercentage: '10.50',
     });
+  });
+
+  it('persists and totals a mixed taxable, exempt and non-taxed sale', async () => {
+    const taxable = await createProduct(
+      '11000000-0000-4000-8000-000000000001',
+      10,
+      '100.00',
+      '21.00',
+      ProductTaxTreatment.GRAVADO,
+    );
+    const exempt = await createProduct(
+      '11000000-0000-4000-8000-000000000002',
+      10,
+      '20.00',
+      null,
+      ProductTaxTreatment.EXENTO,
+    );
+    const nonTaxed = await createProduct(
+      '11000000-0000-4000-8000-000000000003',
+      10,
+      '10.00',
+      null,
+      ProductTaxTreatment.NO_GRAVADO,
+    );
+
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .set('Authorization', `Bearer ${sellerToken}`)
+      .send({
+        customerId: null,
+        isCreditSale: false,
+        requiresFiscalInvoice: false,
+        paymentMethod: PaymentMethod.EFECTIVO,
+        items: [taxable, exempt, nonTaxed].map((product) => ({
+          productId: product.id,
+          quantityBase: 1,
+        })),
+      })
+      .expect(201);
+
+    expect(created.body).toMatchObject({
+      totalNet: '130.00',
+      taxableNet: '100.00',
+      exemptAmount: '20.00',
+      nonTaxedAmount: '10.00',
+      ivaTotal: '21.00',
+      totalGross: '151.00',
+    });
+    expect(
+      created.body.items.map(
+        (item: { taxTreatment: ProductTaxTreatment }) => item.taxTreatment,
+      ),
+    ).toEqual([
+      ProductTaxTreatment.GRAVADO,
+      ProductTaxTreatment.EXENTO,
+      ProductTaxTreatment.NO_GRAVADO,
+    ]);
   });
 
   it('rejects frontend prices and creates fiscal debt only for valid credit', async () => {

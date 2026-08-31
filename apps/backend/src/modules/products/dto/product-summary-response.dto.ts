@@ -1,5 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { IProductSummary, IUnitSummary } from '@erp/shared-types';
+import {
+  ProductTaxTreatment,
+  type IProductSummary,
+  type IUnitSummary,
+} from '@erp/shared-types';
 
 export class UnitSummaryResponseDto implements IUnitSummary {
   @ApiProperty({
@@ -58,6 +62,13 @@ export class ProductSummaryResponseDto implements IProductSummary {
   })
   activePriceNet: number;
 
-  @ApiProperty({ description: 'VAT rate applied on sale', example: 21 })
-  ivaPercentage: number;
+  @ApiProperty({ enum: ProductTaxTreatment })
+  taxTreatment: ProductTaxTreatment;
+
+  @ApiProperty({
+    description: 'VAT rate applied on sale',
+    example: 21,
+    nullable: true,
+  })
+  ivaPercentage: number | null;
 }

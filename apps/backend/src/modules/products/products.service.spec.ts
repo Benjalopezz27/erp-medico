@@ -6,7 +6,12 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
-import { UserRole, ProductStatus, StockMovementType } from '@erp/shared-types';
+import {
+  ProductStatus,
+  ProductTaxTreatment,
+  StockMovementType,
+  UserRole,
+} from '@erp/shared-types';
 import { ProductsService } from './products.service';
 import { Product } from './entities/product.entity';
 import { ProductUnitConversion } from './entities/product-unit-conversion.entity';
@@ -15,6 +20,7 @@ import { Unit } from '../units/entities/unit.entity';
 import { UnitConversionEngine } from './services/unit-conversion-engine.service';
 import { StockAdjustmentsService } from '../stock/stock-adjustments.service';
 import { PricesService } from '../prices/prices.service';
+import { AuditService } from '../audit/audit.service';
 
 describe('ProductsService', () => {
   let service: ProductsService;
@@ -63,6 +69,7 @@ describe('ProductsService', () => {
     markupPercentage: '35.0000',
     suggestedPriceNet: '2025.68',
     activePriceNet: '2025.68',
+    taxTreatment: ProductTaxTreatment.GRAVADO,
     ivaPercentage: '21.00',
     status: ProductStatus.ACTIVE,
     category: mockCategory,
@@ -200,6 +207,10 @@ describe('ProductsService', () => {
             ),
           },
         },
+        {
+          provide: AuditService,
+          useValue: { record: jest.fn().mockResolvedValue({}) },
+        },
       ],
     }).compile();
 
@@ -278,6 +289,34 @@ describe('ProductsService', () => {
       );
       expect(result).toBeDefined();
       expect(stockAdjustmentsService.createAdjustment).not.toHaveBeenCalled();
+    });
+
+    it('creates an exempt product with a null IVA rate', async () => {
+      await service.create(
+        { ...validDto, taxTreatment: ProductTaxTreatment.EXENTO },
+        mockActor,
+      );
+
+      expect(queryRunner.manager.create).toHaveBeenCalledWith(
+        Product,
+        expect.objectContaining({
+          taxTreatment: ProductTaxTreatment.EXENTO,
+          ivaPercentage: null,
+        }),
+      );
+    });
+
+    it('rejects a VAT rate for a non-taxed product', async () => {
+      await expect(
+        service.create(
+          {
+            ...validDto,
+            taxTreatment: ProductTaxTreatment.NO_GRAVADO,
+            ivaPercentage: 21,
+          },
+          mockActor,
+        ),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('records optional initial stock inside the product transaction', async () => {

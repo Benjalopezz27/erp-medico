@@ -8,6 +8,7 @@ import {
   ArcaStatus,
   AuditAction,
   PaymentMethod,
+  ProductTaxTreatment,
   SaleStatus,
   SalesErrorCode,
   StockMovementType,
@@ -64,6 +65,9 @@ export class SalesService {
             requiresFiscalInvoice: dto.requiresFiscalInvoice,
             paymentMethod: dto.paymentMethod,
             totalNet: '0.00',
+            taxableNet: '0.00',
+            exemptAmount: '0.00',
+            nonTaxedAmount: '0.00',
             ivaTotal: '0.00',
             totalGross: '0.00',
             userId,
@@ -71,6 +75,9 @@ export class SalesService {
         );
 
         let totalNet = new Decimal(0);
+        let taxableNet = new Decimal(0);
+        let exemptAmount = new Decimal(0);
+        let nonTaxedAmount = new Decimal(0);
         let ivaTotal = new Decimal(0);
         let totalGross = new Decimal(0);
         const savedItems: SaleItem[] = [];
@@ -90,11 +97,17 @@ export class SalesService {
           const subtotalNet = unitPrice
             .times(quantity)
             .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
-          const ivaPercentage = new Decimal(price.ivaPercentage);
-          const ivaAmount = subtotalNet
-            .times(ivaPercentage)
-            .dividedBy(100)
-            .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+          const ivaPercentage =
+            price.ivaPercentage === null
+              ? null
+              : new Decimal(price.ivaPercentage);
+          const ivaAmount =
+            price.taxTreatment === ProductTaxTreatment.GRAVADO
+              ? subtotalNet
+                  .times(ivaPercentage!)
+                  .dividedBy(100)
+                  .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+              : new Decimal(0);
           const subtotalGross = subtotalNet
             .plus(ivaAmount)
             .toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
@@ -125,13 +138,21 @@ export class SalesService {
                 discountAmountNet: price.discountAmountNet,
                 unitPriceNet: unitPrice.toFixed(2),
                 subtotalNet: subtotalNet.toFixed(2),
-                ivaPercentage: ivaPercentage.toFixed(2),
+                taxTreatment: price.taxTreatment,
+                ivaPercentage: ivaPercentage?.toFixed(2) ?? null,
                 ivaAmount: ivaAmount.toFixed(2),
                 subtotalGross: subtotalGross.toFixed(2),
               }),
             ),
           );
           totalNet = totalNet.plus(subtotalNet);
+          if (price.taxTreatment === ProductTaxTreatment.GRAVADO) {
+            taxableNet = taxableNet.plus(subtotalNet);
+          } else if (price.taxTreatment === ProductTaxTreatment.EXENTO) {
+            exemptAmount = exemptAmount.plus(subtotalNet);
+          } else {
+            nonTaxedAmount = nonTaxedAmount.plus(subtotalNet);
+          }
           ivaTotal = ivaTotal.plus(ivaAmount);
           totalGross = totalGross.plus(subtotalGross);
         }
@@ -167,6 +188,9 @@ export class SalesService {
         }
 
         sale.totalNet = totalNet.toFixed(2);
+        sale.taxableNet = taxableNet.toFixed(2);
+        sale.exemptAmount = exemptAmount.toFixed(2);
+        sale.nonTaxedAmount = nonTaxedAmount.toFixed(2);
         sale.ivaTotal = ivaTotal.toFixed(2);
         sale.totalGross = totalGross.toFixed(2);
         sale.status = SaleStatus.CONFIRMADA;
@@ -186,6 +210,9 @@ export class SalesService {
             requiresFiscalInvoice: sale.requiresFiscalInvoice,
             paymentMethod: sale.paymentMethod,
             totalNet: sale.totalNet,
+            taxableNet: sale.taxableNet,
+            exemptAmount: sale.exemptAmount,
+            nonTaxedAmount: sale.nonTaxedAmount,
             ivaTotal: sale.ivaTotal,
             totalGross: sale.totalGross,
             fiscalDocumentId: fiscalDocument?.id ?? null,
@@ -196,6 +223,8 @@ export class SalesService {
               quantityBase: savedItem.quantityBase,
               pricingRuleApplied: savedItem.pricingRuleApplied,
               unitPriceNet: savedItem.unitPriceNet,
+              taxTreatment: savedItem.taxTreatment,
+              ivaPercentage: savedItem.ivaPercentage,
             })),
           },
         });
@@ -295,7 +324,14 @@ export class SalesService {
   }
 
   private validateAuthoritativeFields(dto: CreateSaleDto): void {
-    const saleFields = [dto.totalNet, dto.ivaTotal, dto.totalGross];
+    const saleFields = [
+      dto.totalNet,
+      dto.taxableNet,
+      dto.exemptAmount,
+      dto.nonTaxedAmount,
+      dto.ivaTotal,
+      dto.totalGross,
+    ];
     const itemHasAuthoritativeField = dto.items.some((item) =>
       [
         item.unitPriceNet,
@@ -303,6 +339,7 @@ export class SalesService {
         item.discountPercentage,
         item.discountAmountNet,
         item.subtotalNet,
+        item.taxTreatment,
         item.ivaPercentage,
         item.ivaAmount,
         item.subtotalGross,

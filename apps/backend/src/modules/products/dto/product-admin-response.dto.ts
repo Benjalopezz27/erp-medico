@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ProductStatus } from '@erp/shared-types';
+import { ProductStatus, ProductTaxTreatment } from '@erp/shared-types';
 import { CategoryResponseDto } from '../../categories/dto/category-response.dto';
 import { UnitResponseDto } from '../../units/dto/unit-response.dto';
 import { ProductUnitConversionResponseDto } from './product-unit-conversion-response.dto';
@@ -74,8 +74,15 @@ export class ProductAdminResponseDto {
   })
   activePriceNet: number;
 
-  @ApiProperty({ description: 'VAT rate applied on sale', example: 21 })
-  ivaPercentage: number;
+  @ApiProperty({ enum: ProductTaxTreatment })
+  taxTreatment: ProductTaxTreatment;
+
+  @ApiPropertyOptional({
+    description: 'VAT rate applied on sale',
+    example: 21,
+    nullable: true,
+  })
+  ivaPercentage: number | null;
 
   @ApiProperty({
     description: 'Catalog status',

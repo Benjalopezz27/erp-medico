@@ -12,7 +12,7 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
-import { ProductStatus } from '@erp/shared-types';
+import { ProductStatus, ProductTaxTreatment } from '@erp/shared-types';
 
 export class UpdateProductDto {
   @ApiPropertyOptional({
@@ -139,6 +139,16 @@ export class UpdateProductDto {
   activePriceNet?: number;
 
   @ApiPropertyOptional({
+    description: 'VAT treatment applied when selling the product',
+    enum: ProductTaxTreatment,
+  })
+  @ValidateIf((_object, value) => value !== undefined)
+  @IsEnum(ProductTaxTreatment, {
+    message: 'El tratamiento fiscal debe ser GRAVADO, EXENTO o NO_GRAVADO.',
+  })
+  taxTreatment?: ProductTaxTreatment;
+
+  @ApiPropertyOptional({
     description: 'VAT rate applied when selling the product',
     example: 10.5,
     minimum: 0,
@@ -152,7 +162,7 @@ export class UpdateProductDto {
   )
   @Min(0, { message: 'La alícuota de IVA no puede ser negativa.' })
   @Max(100, { message: 'La alícuota de IVA no puede superar el 100%.' })
-  ivaPercentage?: number;
+  ivaPercentage?: number | null;
 
   @ApiPropertyOptional({
     description: 'Catalog state of the product (ACTIVE or INACTIVE)',

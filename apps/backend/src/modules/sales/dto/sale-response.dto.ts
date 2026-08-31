@@ -5,6 +5,7 @@ import {
   CustomerPricingRuleApplied,
   FiscalDocumentType,
   PaymentMethod,
+  ProductTaxTreatment,
   SaleStatus,
 } from '@erp/shared-types';
 
@@ -39,7 +40,9 @@ export class SaleItemResponseDto {
   @ApiProperty() discountAmountNet: string;
   @ApiProperty() unitPriceNet: string;
   @ApiProperty() subtotalNet: string;
-  @ApiProperty() ivaPercentage: string;
+  @ApiProperty({ enum: ProductTaxTreatment })
+  taxTreatment: ProductTaxTreatment;
+  @ApiPropertyOptional({ nullable: true }) ivaPercentage: string | null;
   @ApiProperty() ivaAmount: string;
   @ApiProperty() subtotalGross: string;
   @ApiProperty({ type: SaleProductResponseDto })
@@ -80,6 +83,9 @@ export class SaleResponseDto {
   @ApiProperty() requiresFiscalInvoice: boolean;
   @ApiProperty({ enum: PaymentMethod }) paymentMethod: PaymentMethod;
   @ApiProperty() totalNet: string;
+  @ApiProperty() taxableNet: string;
+  @ApiProperty() exemptAmount: string;
+  @ApiProperty() nonTaxedAmount: string;
   @ApiProperty() ivaTotal: string;
   @ApiProperty() totalGross: string;
   @ApiProperty({ format: 'uuid' }) userId: string;

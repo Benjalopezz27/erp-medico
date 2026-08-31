@@ -55,6 +55,8 @@ export const ProductCreatePage: React.FC = () => {
             ? Number(values.markupPercentage)
             : null,
         activePriceNet: Number(values.activePriceNet),
+        taxTreatment: values.taxTreatment,
+        ivaPercentage: values.ivaPercentage,
         conversions:
           values.conversions && values.conversions.length > 0
             ? values.conversions.map((c) => ({

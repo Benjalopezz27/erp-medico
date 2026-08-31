@@ -12,6 +12,7 @@ import type {
   ProductFormValues,
   UpdateProductPayload,
 } from '@/features/products/types/products.types';
+import { ProductTaxTreatment } from '@erp/shared-types';
 
 export const ProductEditPage: React.FC = () => {
   const navigate = useNavigate();
@@ -110,6 +111,20 @@ export const ProductEditPage: React.FC = () => {
 
     if (Number(values.activePriceNet) !== Number(product.activePriceNet)) {
       delta.activePriceNet = Number(values.activePriceNet);
+      hasProductChanges = true;
+    }
+
+    if (values.taxTreatment !== product.taxTreatment) {
+      delta.taxTreatment = values.taxTreatment;
+      if (values.taxTreatment === ProductTaxTreatment.GRAVADO) {
+        delta.ivaPercentage = values.ivaPercentage;
+      }
+      hasProductChanges = true;
+    } else if (
+      values.taxTreatment === ProductTaxTreatment.GRAVADO &&
+      Number(values.ivaPercentage) !== Number(product.ivaPercentage)
+    ) {
+      delta.ivaPercentage = values.ivaPercentage;
       hasProductChanges = true;
     }
 

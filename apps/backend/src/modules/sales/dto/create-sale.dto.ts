@@ -40,6 +40,9 @@ export class CreateSaleItemDto {
   subtotalNet?: unknown;
 
   @IsOptional()
+  taxTreatment?: unknown;
+
+  @IsOptional()
   ivaPercentage?: unknown;
 
   @IsOptional()
@@ -76,6 +79,15 @@ export class CreateSaleDto {
 
   @IsOptional()
   totalNet?: unknown;
+
+  @IsOptional()
+  taxableNet?: unknown;
+
+  @IsOptional()
+  exemptAmount?: unknown;
+
+  @IsOptional()
+  nonTaxedAmount?: unknown;
 
   @IsOptional()
   ivaTotal?: unknown;

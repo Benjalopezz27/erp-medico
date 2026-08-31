@@ -10,8 +10,10 @@ import {
   Max,
   ValidateNested,
   IsArray,
+  IsEnum,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
+import { ProductTaxTreatment } from '@erp/shared-types';
 import { CreateProductConversionNestedDto } from './create-product-conversion-nested.dto';
 
 export class CreateProductDto {
@@ -152,6 +154,17 @@ export class CreateProductDto {
   activePriceNet: number;
 
   @ApiPropertyOptional({
+    description: 'VAT treatment applied when selling the product',
+    enum: ProductTaxTreatment,
+    default: ProductTaxTreatment.GRAVADO,
+  })
+  @IsOptional()
+  @IsEnum(ProductTaxTreatment, {
+    message: 'El tratamiento fiscal debe ser GRAVADO, EXENTO o NO_GRAVADO.',
+  })
+  taxTreatment?: ProductTaxTreatment;
+
+  @ApiPropertyOptional({
     description: 'VAT rate applied when selling the product',
     example: 21,
     default: 21,
@@ -166,7 +179,7 @@ export class CreateProductDto {
   )
   @Min(0, { message: 'La alícuota de IVA no puede ser negativa.' })
   @Max(100, { message: 'La alícuota de IVA no puede superar el 100%.' })
-  ivaPercentage?: number;
+  ivaPercentage?: number | null;
 
   @ApiPropertyOptional({
     description: 'Optional initial unit conversions',

@@ -10,6 +10,7 @@ import {
   CustomerPricingRuleApplied,
   CustomerSpecialPriceMode,
   ProductStatus,
+  ProductTaxTreatment,
 } from '@erp/shared-types';
 import Decimal from 'decimal.js';
 import { DataSource, EntityManager } from 'typeorm';
@@ -42,7 +43,8 @@ export interface SalePriceResolution {
   discountPercentage: string | null;
   discountAmountNet: string;
   finalPriceNet: string;
-  ivaPercentage: string;
+  taxTreatment: ProductTaxTreatment;
+  ivaPercentage: string | null;
 }
 
 @Injectable()
@@ -147,7 +149,11 @@ export class CustomerPricingService {
         discountPercentage: resolved.discountPercentage,
         discountAmountNet: Decimal.max(0, catalog.minus(finalPrice)).toFixed(2),
         finalPriceNet: finalPrice.toFixed(2),
-        ivaPercentage: new Decimal(product.ivaPercentage).toFixed(2),
+        taxTreatment: product.taxTreatment,
+        ivaPercentage:
+          product.ivaPercentage === null
+            ? null
+            : new Decimal(product.ivaPercentage).toFixed(2),
       };
     }
 
@@ -166,7 +172,11 @@ export class CustomerPricingService {
       discountPercentage: null,
       discountAmountNet: '0.00',
       finalPriceNet: catalog.toFixed(2),
-      ivaPercentage: new Decimal(product.ivaPercentage).toFixed(2),
+      taxTreatment: product.taxTreatment,
+      ivaPercentage:
+        product.ivaPercentage === null
+          ? null
+          : new Decimal(product.ivaPercentage).toFixed(2),
     };
   }
 

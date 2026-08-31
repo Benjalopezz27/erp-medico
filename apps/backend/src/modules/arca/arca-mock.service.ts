@@ -6,6 +6,7 @@ import {
   ArcaFiscalDocument,
 } from '@erp/shared-types';
 import { IArcaService } from './interfaces/arca-service.interface';
+import { validateFiscalAmounts } from './utils/fiscal-amounts.util';
 
 export interface ArcaMockOptions {
   latencyMs?: number;
@@ -30,7 +31,6 @@ export class ArcaMockService implements IArcaService {
         `[SECURITY] ArcaMockService is strictly prohibited in production or homologation environments (NODE_ENV=${nodeEnv}, ARCA_ENV=${arcaEnv}).`,
       );
     }
-
     this.latencyMs = options?.latencyMs ?? 200;
     this.now = options?.now ?? (() => new Date());
   }
@@ -71,6 +71,7 @@ export class ArcaMockService implements IArcaService {
         'Total amount must be a non-negative number.',
       );
     }
+    validateFiscalAmounts(data);
 
     if (this.latencyMs > 0) {
       await new Promise((resolve) => setTimeout(resolve, this.latencyMs));

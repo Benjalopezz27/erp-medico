@@ -1,4 +1,4 @@
-import type { ProductStatus } from '../enums/catalog.enum';
+import type { ProductStatus, ProductTaxTreatment } from '../enums/catalog.enum';
 
 export interface ICategory {
   id: string;
@@ -46,7 +46,8 @@ export interface IProduct {
   markupPercentage?: number | null;
   suggestedPriceNet: number;
   activePriceNet: number;
-  ivaPercentage?: number;
+  taxTreatment: ProductTaxTreatment;
+  ivaPercentage: number | null;
   status: ProductStatus;
   category?: ICategory;
   baseUnit?: IUnit;
@@ -64,7 +65,8 @@ export interface IProductSellerView {
   baseUnitId: string;
   minStock: number;
   activePriceNet: number;
-  ivaPercentage?: number;
+  taxTreatment: ProductTaxTreatment;
+  ivaPercentage: number | null;
   status: ProductStatus;
   category?: ICategory;
   baseUnit?: IUnit;
@@ -80,7 +82,8 @@ export interface IProductSummary {
   baseUnit: IUnitSummary;
   currentStock: number | null;
   activePriceNet: number;
-  ivaPercentage?: number;
+  taxTreatment: ProductTaxTreatment;
+  ivaPercentage: number | null;
 }
 
 export interface PaginatedProductsResponse<T = IProduct> {
