@@ -1,4 +1,9 @@
-import { SaleStatus, FiscalDocumentType, ArcaStatus } from '../enums/sales.enum';
+import {
+  SaleStatus,
+  FiscalDocumentType,
+  ArcaStatus,
+  SaleReturnItemQuality,
+} from '../enums/sales.enum';
 import { AccountReceivableStatus, PaymentMethod } from '../enums/financial.enum';
 import { CustomerPricingRuleApplied } from '../enums/customer-pricing.enum';
 import { ProductTaxTreatment } from '../enums/catalog.enum';
@@ -42,6 +47,7 @@ export interface ISaleItem {
 export interface IFiscalDocument {
   id: string;
   saleId: string;
+  saleReturnId?: string | null;
   documentType: FiscalDocumentType | null;
   pointOfSale: number | null;
   documentNumber: number | null;
@@ -124,3 +130,55 @@ export interface IPaginatedSalesResponse {
   data: ISale[];
   meta: ISalesPaginationMeta;
 }
+
+export interface ISaleReturnItem {
+  id: string;
+  saleReturnId: string;
+  saleItemId: string;
+  productId: string;
+  quantityBase: number;
+  quality: SaleReturnItemQuality;
+  unitPriceNet: string;
+  taxTreatment: ProductTaxTreatment;
+  ivaPercentage: string | null;
+  subtotalNet: string;
+  ivaAmount: string;
+  subtotalGross: string;
+  stockMovementId?: string | null;
+  quarantineStockId?: string | null;
+  notes?: string | null;
+  product?: ISaleProductSummary;
+  createdAt: Date | string;
+}
+
+export interface ISaleReturn {
+  id: string;
+  saleId: string;
+  userId: string;
+  reason: string;
+  taxableNet: string;
+  exemptAmount: string;
+  nonTaxedAmount: string;
+  totalNet: string;
+  ivaTotal: string;
+  totalGross: string;
+  idempotencyKey?: string | null;
+  fiscalDocument?: IFiscalDocument | null;
+  user?: ISalePartySummary;
+  items: ISaleReturnItem[];
+  createdAt: Date | string;
+}
+
+export interface ICreateSaleReturnItemPayload {
+  saleItemId: string;
+  quantityBase: number | string;
+  quality: SaleReturnItemQuality;
+  notes?: string | null;
+}
+
+export interface ICreateSaleReturnPayload {
+  reason: string;
+  idempotencyKey?: string | null;
+  items: ICreateSaleReturnItemPayload[];
+}
+
