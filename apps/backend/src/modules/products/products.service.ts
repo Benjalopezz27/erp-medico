@@ -140,6 +140,7 @@ export class ProductsService {
         'product.internalCode',
         'product.name',
         'product.activePriceNet',
+        'product.ivaPercentage',
         'baseUnit.id',
         'baseUnit.name',
         'baseUnit.symbol',
@@ -258,6 +259,7 @@ export class ProductsService {
         costNet: dto.costNet,
         suggestedPriceNet: 0,
         activePriceNet: dto.activePriceNet,
+        ivaPercentage: dto.ivaPercentage ?? 21,
         status: ProductStatus.ACTIVE,
       });
 
@@ -499,6 +501,16 @@ export class ProductsService {
         ).toNumber();
         if (dto.activePriceNet !== currentActivePrice) {
           product.activePriceNet = dto.activePriceNet;
+          hasChanges = true;
+        }
+      }
+
+      if (dto.ivaPercentage !== undefined) {
+        const currentIvaPercentage = new Decimal(
+          product.ivaPercentage,
+        ).toNumber();
+        if (dto.ivaPercentage !== currentIvaPercentage) {
+          product.ivaPercentage = dto.ivaPercentage;
           hasChanges = true;
         }
       }

@@ -46,6 +46,7 @@ export interface IProduct {
   markupPercentage?: number | null;
   suggestedPriceNet: number;
   activePriceNet: number;
+  ivaPercentage?: number;
   status: ProductStatus;
   category?: ICategory;
   baseUnit?: IUnit;
@@ -63,6 +64,7 @@ export interface IProductSellerView {
   baseUnitId: string;
   minStock: number;
   activePriceNet: number;
+  ivaPercentage?: number;
   status: ProductStatus;
   category?: ICategory;
   baseUnit?: IUnit;
@@ -78,6 +80,7 @@ export interface IProductSummary {
   baseUnit: IUnitSummary;
   currentStock: number | null;
   activePriceNet: number;
+  ivaPercentage?: number;
 }
 
 export interface PaginatedProductsResponse<T = IProduct> {
