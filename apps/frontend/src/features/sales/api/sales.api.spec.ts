@@ -1,10 +1,12 @@
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { PaymentMethod, SaleStatus } from '@erp/shared-types';
+import { PaymentMethod, SaleReturnItemQuality, SaleStatus } from '@erp/shared-types';
 import { server } from '@/test/mocks/server';
-import { createSaleApi, getSalesApi } from './sales.api';
+import { createSaleApi, createSaleReturnApi, getSaleReturnsApi, getSalesApi } from './sales.api';
 
 const productId = '30000000-0000-4000-8000-000000000001';
+const saleId = '40000000-0000-4000-8000-000000000001';
+const saleItemId = '60000000-0000-4000-8000-000000000001';
 
 describe('sales API', () => {
   it('maps date filters to inclusive local-day ISO boundaries', async () => {
@@ -51,5 +53,64 @@ describe('sales API', () => {
       paymentMethod: PaymentMethod.EFECTIVO,
       items: [{ productId, quantityBase: 2 }],
     });
+  });
+
+  it('fetches returns for a sale via GET /sales/:id/returns', async () => {
+    server.use(
+      http.get(`*/api/v1/sales/${saleId}/returns`, () => {
+        return HttpResponse.json([
+          {
+            id: 'ret-1',
+            saleId,
+            reason: 'Producto defectuoso',
+            items: [],
+          },
+        ]);
+      }),
+    );
+    const result = await getSaleReturnsApi(saleId);
+    expect(result).toHaveLength(1);
+    expect(result[0].reason).toBe('Producto defectuoso');
+  });
+
+  it('submits return payload via POST /sales/:id/returns', async () => {
+    server.use(
+      http.post(`*/api/v1/sales/${saleId}/returns`, async ({ request }) => {
+        expect(await request.json()).toEqual({
+          reason: 'Devolución parcial',
+          idempotencyKey: 'key-123',
+          items: [
+            {
+              saleItemId,
+              quantityBase: 1,
+              quality: SaleReturnItemQuality.APTO,
+              notes: 'Sin abrir',
+            },
+          ],
+        });
+        return HttpResponse.json(
+          {
+            id: 'ret-2',
+            saleId,
+            reason: 'Devolución parcial',
+          },
+          { status: 201 },
+        );
+      }),
+    );
+
+    const result = await createSaleReturnApi(saleId, {
+      reason: 'Devolución parcial',
+      idempotencyKey: 'key-123',
+      items: [
+        {
+          saleItemId,
+          quantityBase: 1,
+          quality: SaleReturnItemQuality.APTO,
+          notes: 'Sin abrir',
+        },
+      ],
+    });
+    expect(result.id).toBe('ret-2');
   });
 });
