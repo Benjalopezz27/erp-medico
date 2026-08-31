@@ -1,24 +1,30 @@
 import { SaleStatus, FiscalDocumentType, ArcaStatus } from '../enums/sales.enum';
 import { PaymentMethod } from '../enums/financial.enum';
+import { CustomerPricingRuleApplied } from '../enums/customer-pricing.enum';
 
 export interface ISaleItem {
   id: string;
   saleId: string;
   productId: string;
   quantityBase: number;
-  unitPriceNet: number;
-  subtotalNet: number;
-  ivaPercentage: number;
-  ivaAmount: number;
-  subtotalGross: number;
+  catalogPriceNet: string;
+  pricingRuleApplied: CustomerPricingRuleApplied;
+  pricingRuleId: string | null;
+  discountPercentage: string | null;
+  discountAmountNet: string;
+  unitPriceNet: string;
+  subtotalNet: string;
+  ivaPercentage: string;
+  ivaAmount: string;
+  subtotalGross: string;
 }
 
 export interface IFiscalDocument {
   id: string;
   saleId: string;
-  documentType: FiscalDocumentType;
-  pointOfSale: number;
-  documentNumber: number;
+  documentType: FiscalDocumentType | null;
+  pointOfSale: number | null;
+  documentNumber: number | null;
   cae?: string | null;
   caeExpirationDate?: string | null;
   arcaStatus: ArcaStatus;
@@ -35,9 +41,9 @@ export interface ISale {
   isCreditSale: boolean;
   requiresFiscalInvoice: boolean;
   paymentMethod: PaymentMethod;
-  totalNet: number;
-  ivaTotal: number;
-  totalGross: number;
+  totalNet: string;
+  ivaTotal: string;
+  totalGross: string;
   items?: ISaleItem[];
   fiscalDocument?: IFiscalDocument | null;
   userId: string;
