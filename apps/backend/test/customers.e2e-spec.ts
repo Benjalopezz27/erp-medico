@@ -12,6 +12,7 @@ import dataSource from '../src/database/data-source';
 import { runInitialSeed } from '../src/database/seeds/initial.seed';
 import { CreateCustomersTable1700000000021 } from '../src/database/migrations/1700000000021-CreateCustomersTable';
 import { CreateCustomerSpecialPricesAndDiscounts1700000000022 } from '../src/database/migrations/1700000000022-CreateCustomerSpecialPricesAndDiscounts';
+import { CreateSalesFiscalAndReceivablesTables1700000000023 } from '../src/database/migrations/1700000000023-CreateSalesFiscalAndReceivablesTables';
 
 describe('Customers domain and API (E2E)', () => {
   let app: INestApplication;
@@ -31,10 +32,14 @@ describe('Customers domain and API (E2E)', () => {
     const customerMigration = new CreateCustomersTable1700000000021();
     const pricingMigration =
       new CreateCustomerSpecialPricesAndDiscounts1700000000022();
+    const salesMigration =
+      new CreateSalesFiscalAndReceivablesTables1700000000023();
+    await salesMigration.down(migrationRunner);
     await pricingMigration.down(migrationRunner);
     await customerMigration.down(migrationRunner);
     await customerMigration.up(migrationRunner);
     await pricingMigration.up(migrationRunner);
+    await salesMigration.up(migrationRunner);
     await migrationRunner.release();
     await runInitialSeed(ds, {
       adminEmail,

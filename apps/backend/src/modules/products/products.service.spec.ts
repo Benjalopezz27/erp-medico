@@ -63,6 +63,7 @@ describe('ProductsService', () => {
     markupPercentage: '35.0000',
     suggestedPriceNet: '2025.68',
     activePriceNet: '2025.68',
+    ivaPercentage: '21.00',
     status: ProductStatus.ACTIVE,
     category: mockCategory,
     baseUnit: mockBaseUnit,
