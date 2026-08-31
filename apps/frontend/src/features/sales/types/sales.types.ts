@@ -46,3 +46,33 @@ export interface ParsedSalesError {
   isAmbiguousNetworkError: boolean;
   canRetryDirectly: boolean;
 }
+
+export interface ISaleReturnLineForm {
+  saleItemId: string;
+  productId: string;
+  productName: string;
+  internalCode: string;
+  soldQuantity: number;
+  returnedQuantity: number;
+  remainingQuantity: number;
+  selected: boolean;
+  quantityBase: number;
+  quality: import('@erp/shared-types').SaleReturnItemQuality;
+  notes?: string;
+}
+
+export interface ISaleReturnSummary {
+  totalUnits: number;
+  aptoUnits: number;
+  noAptoUnits: number;
+}
+
+export interface ParsedSaleReturnError {
+  status?: number;
+  code?: string;
+  message: string;
+  requestId?: string;
+  isAmbiguousNetworkError: boolean;
+  canRetryDirectly: boolean;
+  isConflict: boolean;
+}

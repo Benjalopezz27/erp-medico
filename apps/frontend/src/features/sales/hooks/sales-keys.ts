@@ -6,4 +6,5 @@ export const salesKeys = {
   list: (params: ISaleSearchParams) => [...salesKeys.lists(), params] as const,
   details: () => [...salesKeys.all, 'detail'] as const,
   detail: (id: string) => [...salesKeys.details(), id] as const,
+  returns: (saleId: string) => [...salesKeys.detail(saleId), 'returns'] as const,
 };

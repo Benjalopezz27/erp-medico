@@ -100,7 +100,10 @@ describe('sales history and detail pages', () => {
   });
 
   it('renders immutable item snapshots and authoritative totals', async () => {
-    server.use(http.get('*/api/v1/sales/:id', () => HttpResponse.json(sale)));
+    server.use(
+      http.get('*/api/v1/sales/:id', () => HttpResponse.json(sale)),
+      http.get('*/api/v1/sales/:id/returns', () => HttpResponse.json([])),
+    );
     const router = createTestRouter(
       [{ path: '/sales/$id', component: SaleDetailPage }],
       `/sales/${sale.id}`,
@@ -110,5 +113,7 @@ describe('sales history and detail pages', () => {
     expect(screen.getByText('Desc. producto')).toBeInTheDocument();
     expect(screen.getByText('Vendedor Uno')).toBeInTheDocument();
     expect(screen.getAllByText(/121,00/).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: /Registrar devolución/i })).toBeInTheDocument();
+    expect(screen.getByText(/Historial de devoluciones y control de calidad/i)).toBeInTheDocument();
   });
 });

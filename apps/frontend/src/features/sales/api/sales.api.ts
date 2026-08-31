@@ -1,7 +1,9 @@
 import type {
   ICreateSalePayload,
+  ICreateSaleReturnPayload,
   IPaginatedSalesResponse,
   ISale,
+  ISaleReturn,
   ISaleSearchParams,
 } from '@erp/shared-types';
 import { apiClient } from '@/services/api.client';
@@ -48,4 +50,15 @@ export async function createSaleApi(payload: ICreateSalePayload): Promise<ISale>
     items: payload.items.map(({ productId, quantityBase }) => ({ productId, quantityBase })),
   };
   return (await apiClient.post<ISale>('/sales', body)).data;
+}
+
+export async function getSaleReturnsApi(saleId: string): Promise<ISaleReturn[]> {
+  return (await apiClient.get<ISaleReturn[]>(`/sales/${saleId}/returns`)).data;
+}
+
+export async function createSaleReturnApi(
+  saleId: string,
+  payload: ICreateSaleReturnPayload,
+): Promise<ISaleReturn> {
+  return (await apiClient.post<ISaleReturn>(`/sales/${saleId}/returns`, payload)).data;
 }
