@@ -68,7 +68,8 @@ describe('arcaServiceProvider', () => {
       if (key === 'NODE_ENV') return 'test';
       if (key === 'ARCA_CUIT') return '20123456789';
       if (key === 'ARCA_PUNTO_VENTA') return 1;
-      if (key === 'ARCA_WSAA_URL') return 'https://wsaahomo.afip.gov.ar/ws/services/LoginCms';
+      if (key === 'ARCA_WSAA_URL')
+        return 'https://wsaahomo.afip.gov.ar/ws/services/LoginCms';
       return undefined;
     });
 
