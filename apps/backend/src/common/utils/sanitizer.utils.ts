@@ -6,13 +6,15 @@ export const REDACTED_VALUE = '[REDACTED]';
  * are NOT inadvertently redacted.
  */
 export const SENSITIVE_KEY_REGEX =
-  /^(password|currentpassword|current_password|newpassword|new_password|passwordhash|password_hash|seed_admin_password|seed_vendedor_password|authorization|cookie|set-cookie|token|accesstoken|access_token|refreshtoken|refresh_token|jwt|jwt_secret|secret|credentials|authheader|apikey|api_key|privatekey|private_key|db_password|database_password|postgres_password|certificate|cert|p12|pfx|arca_cert_password)$/i;
+  /^(password|currentpassword|current_password|newpassword|new_password|passwordhash|password_hash|seed_admin_password|seed_vendedor_password|authorization|cookie|set-cookie|token|accesstoken|access_token|refreshtoken|refresh_token|jwt|jwt_secret|secret|credentials|authheader|apikey|api_key|privatekey|private_key|db_password|database_password|postgres_password|certificate|cert|p12|pfx|arca_cert_password|arca_cert_base64|arca_cert_path|arca_wsaa_url|arca_wsfe_url|wsaa_token|wsaa_sign|tra_cms|auth_ticket|redis_password|redis_url|sign)$/i;
 
 export const BEARER_TOKEN_REGEX =
   /Bearer\s+[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*/gi;
 
 export const PEM_PRIVATE_KEY_REGEX =
   /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/gi;
+
+export const XML_CREDENTIAL_TAGS_REGEX = /<(token|sign)>[\s\S]*?<\/\1>/gi;
 
 export interface SanitizeOptions {
   mode?: 'redact' | 'strip';
@@ -33,19 +35,23 @@ export function redactSecrets<T>(
   }
 
   if (typeof data === 'string') {
-    if (BEARER_TOKEN_REGEX.test(data)) {
-      return data.replace(
+    let sanitized = data as string;
+    if (BEARER_TOKEN_REGEX.test(sanitized)) {
+      sanitized = sanitized.replace(
         BEARER_TOKEN_REGEX,
         `Bearer ${REDACTED_VALUE}`,
-      ) as unknown as T;
+      );
     }
-    if (PEM_PRIVATE_KEY_REGEX.test(data)) {
-      return data.replace(
-        PEM_PRIVATE_KEY_REGEX,
-        REDACTED_VALUE,
-      ) as unknown as T;
+    if (PEM_PRIVATE_KEY_REGEX.test(sanitized)) {
+      sanitized = sanitized.replace(PEM_PRIVATE_KEY_REGEX, REDACTED_VALUE);
     }
-    return data;
+    if (XML_CREDENTIAL_TAGS_REGEX.test(sanitized)) {
+      sanitized = sanitized.replace(
+        XML_CREDENTIAL_TAGS_REGEX,
+        `<$1>${REDACTED_VALUE}</$1>`,
+      );
+    }
+    return sanitized as unknown as T;
   }
 
   if (typeof data !== 'object') {

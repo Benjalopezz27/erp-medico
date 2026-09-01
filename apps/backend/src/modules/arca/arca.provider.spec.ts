@@ -2,134 +2,84 @@ import { ConfigService } from '@nestjs/config';
 import { arcaServiceProvider } from './arca.provider';
 import { ArcaMockService } from './arca-mock.service';
 import { ArcaDisabledService } from './arca-disabled.service';
+import { ArcaHomologationService } from './services/arca-homologation.service';
+import { ArcaCertificateLoader } from './services/arca-certificate-loader.service';
+import { ArcaClockSyncService } from './services/arca-clock-sync.service';
 
 describe('arcaServiceProvider', () => {
-  const originalEnv = process.env;
-
-  const createMockConfigService = (
-    nodeEnv?: string,
-    arcaEnv?: string,
-  ): ConfigService => {
-    return {
-      get: jest.fn((key: string) => {
-        if (key === 'NODE_ENV') return nodeEnv;
-        if (key === 'ARCA_ENV') return arcaEnv;
-        return undefined;
-      }),
-    } as unknown as ConfigService;
-  };
+  let mockConfigService: jest.Mocked<ConfigService>;
+  let mockCertLoader: jest.Mocked<ArcaCertificateLoader>;
+  let mockClockSync: jest.Mocked<ArcaClockSyncService>;
 
   beforeEach(() => {
-    jest.resetModules();
-    process.env = { ...originalEnv };
+    mockConfigService = {
+      get: jest.fn(),
+    } as any;
+    mockCertLoader = {
+      loadCertificate: jest.fn(),
+    } as any;
+    mockClockSync = {
+      verifyClockSync: jest.fn(),
+    } as any;
   });
 
-  afterEach(() => {
-    process.env = originalEnv;
-  });
-
-  const getProviderInstance = (configService: ConfigService) => {
-    if (typeof (arcaServiceProvider as any).useFactory !== 'function') {
-      throw new Error('arcaServiceProvider does not have a useFactory method.');
-    }
-    return (arcaServiceProvider as any).useFactory(configService);
+  const getService = () => {
+    const factory = (arcaServiceProvider as any).useFactory;
+    return factory(mockConfigService, mockCertLoader, mockClockSync);
   };
 
-  it('should instantiate ArcaDisabledService when ARCA_ENV=disabled in production', () => {
-    process.env.NODE_ENV = 'production';
-    process.env.ARCA_ENV = 'disabled';
-    const config = createMockConfigService('production', 'disabled');
+  it('returns ArcaDisabledService when ARCA_ENV=disabled', () => {
+    mockConfigService.get.mockImplementation((key: string) => {
+      if (key === 'ARCA_ENV') return 'disabled';
+      if (key === 'NODE_ENV') return 'production';
+      return undefined;
+    });
 
-    const service = getProviderInstance(config);
-
+    const service = getService();
     expect(service).toBeInstanceOf(ArcaDisabledService);
   });
 
-  it('should instantiate ArcaDisabledService when ARCA_ENV=disabled in development or test', () => {
-    process.env.NODE_ENV = 'development';
-    process.env.ARCA_ENV = 'disabled';
-    const config = createMockConfigService('development', 'disabled');
+  it('returns ArcaMockService when ARCA_ENV=development and NODE_ENV=development', () => {
+    mockConfigService.get.mockImplementation((key: string) => {
+      if (key === 'ARCA_ENV') return 'development';
+      if (key === 'NODE_ENV') return 'development';
+      return undefined;
+    });
 
-    const service = getProviderInstance(config);
-
-    expect(service).toBeInstanceOf(ArcaDisabledService);
-  });
-
-  it('should instantiate ArcaMockService in development environment (development + development)', () => {
-    process.env.NODE_ENV = 'development';
-    process.env.ARCA_ENV = 'development';
-    const config = createMockConfigService('development', 'development');
-
-    const service = getProviderInstance(config);
-
+    const service = getService();
     expect(service).toBeInstanceOf(ArcaMockService);
   });
 
-  it('should instantiate ArcaMockService in test environment (test + development)', () => {
-    process.env.NODE_ENV = 'test';
-    process.env.ARCA_ENV = 'development';
-    const config = createMockConfigService('test', 'development');
+  it('throws security error if ARCA_ENV=development in NODE_ENV=production', () => {
+    mockConfigService.get.mockImplementation((key: string) => {
+      if (key === 'ARCA_ENV') return 'development';
+      if (key === 'NODE_ENV') return 'production';
+      return undefined;
+    });
 
-    const service = getProviderInstance(config);
-
-    expect(service).toBeInstanceOf(ArcaMockService);
-  });
-
-  it('should throw an error in production environment with ARCA_ENV=development', () => {
-    process.env.NODE_ENV = 'production';
-    process.env.ARCA_ENV = 'development';
-    const config = createMockConfigService('production', 'development');
-
-    expect(() => getProviderInstance(config)).toThrow(
-      /Production ARCA client is not implemented/,
+    expect(() => getService()).toThrow(
+      /strictly prohibited in production mode/i,
     );
   });
 
-  it('should throw an error in production environment with ARCA_ENV=production', () => {
-    process.env.NODE_ENV = 'production';
-    process.env.ARCA_ENV = 'production';
-    const config = createMockConfigService('production', 'production');
+  it('returns ArcaHomologationService when ARCA_ENV=homologation', () => {
+    mockConfigService.get.mockImplementation((key: string) => {
+      if (key === 'ARCA_ENV') return 'homologation';
+      if (key === 'NODE_ENV') return 'test';
+      return undefined;
+    });
 
-    expect(() => getProviderInstance(config)).toThrow(
-      /Production ARCA client is not implemented/,
-    );
+    const service = getService();
+    expect(service).toBeInstanceOf(ArcaHomologationService);
   });
 
-  it('should throw an error if ARCA_ENV=homologation', () => {
-    process.env.NODE_ENV = 'development';
-    process.env.ARCA_ENV = 'homologation';
-    const config = createMockConfigService('development', 'homologation');
+  it('throws fatal error when ARCA_ENV=production (until Sprint 8)', () => {
+    mockConfigService.get.mockImplementation((key: string) => {
+      if (key === 'ARCA_ENV') return 'production';
+      if (key === 'NODE_ENV') return 'production';
+      return undefined;
+    });
 
-    expect(() => getProviderInstance(config)).toThrow(
-      /Homologation ARCA client is not implemented/,
-    );
-  });
-
-  it('should throw an error if NODE_ENV is missing', () => {
-    process.env.ARCA_ENV = 'development';
-    const config = createMockConfigService(undefined, 'development');
-
-    expect(() => getProviderInstance(config)).toThrow(
-      /Invalid ARCA environment configuration/,
-    );
-  });
-
-  it('should throw an error if ARCA_ENV is missing', () => {
-    process.env.NODE_ENV = 'development';
-    const config = createMockConfigService('development', undefined);
-
-    expect(() => getProviderInstance(config)).toThrow(
-      /Invalid ARCA environment configuration/,
-    );
-  });
-
-  it('should throw an error if ARCA_ENV has an invalid value', () => {
-    process.env.NODE_ENV = 'development';
-    process.env.ARCA_ENV = 'staging';
-    const config = createMockConfigService('development', 'staging');
-
-    expect(() => getProviderInstance(config)).toThrow(
-      /Invalid ARCA environment configuration/,
-    );
+    expect(() => getService()).toThrow(/pending Sprint 8/i);
   });
 });

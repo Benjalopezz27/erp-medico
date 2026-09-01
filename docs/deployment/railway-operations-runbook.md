@@ -121,7 +121,14 @@ If a secret or credential is suspected to be compromised:
 
 1. **JWT Secret**: Update `JWT_SECRET` in Railway dashboard and redeploy. All active sessions will be invalidated immediately.
 2. **Database Password**: Update PostgreSQL password, update backend `DB_PASSWORD`, and redeploy backend.
-3. **Audit Snapshot Integrity**: Confirm that audit logs did not store compromised keys (verified by automated `stripSensitiveKeys`).
+3. **ARCA Certificate / Password**:
+   - Immediately revoke compromised certificate in AFIP / ARCA portal if necessary.
+   - Generate new CSR / download new X.509 PKCS#12 certificate.
+   - Encode new certificate as Base64: `base64 -w 0 new_cert.p12 > cert_base64.txt`.
+   - Update `ARCA_CERT_BASE64` and `ARCA_CERT_PASSWORD` in Railway staging variables.
+   - Trigger redeploy of backend and worker services.
+   - Never commit or paste raw certificate files in Git or logs.
+4. **Audit Snapshot Integrity**: Confirm that audit logs did not store compromised keys (verified by automated `stripSensitiveKeys`).
 
 ---
 
@@ -137,3 +144,60 @@ When the repository owner provisions Railway staging in **Issue #114**, the foll
    - Verify external alert is received in the approved channel.
    - Restore service and verify recovery notification.
    - Document timings in the operations issue and close #68.
+
+---
+
+## 10. ARCA Certificate Lifecycle & Expiration Monitoring
+
+ARCA homologation and production X.509 certificates expire after 1 to 2 years.
+
+### Inspecting Certificate Status (Without Exposing Secrets)
+
+1. Authenticate as `ADMINISTRADOR` and invoke diagnostic probe:
+   ```bash
+   GET /api/v1/arca/probe
+   ```
+2. The endpoint returns sanitized metadata:
+   - `certificate.subject`
+   - `certificate.validTo`
+   - `certificate.daysRemaining`
+   - `certificate.isExpired`
+3. If `daysRemaining < 30`, schedule rotation before expiration.
+
+### Routine Certificate Rotation Procedure
+
+1. Request renewed certificate from client AFIP delegate.
+2. Convert PKCS#12 (.p12) to Base64 in local secure terminal:
+   ```bash
+   base64 -w 0 homo_cert_2027.p12 > /tmp/cert_b64.txt
+   ```
+3. Update `ARCA_CERT_BASE64` and `ARCA_CERT_PASSWORD` in Railway variables as sealed values.
+4. Restart backend and worker services.
+5. Verify `GET /api/v1/arca/probe` reports updated expiration date and healthy WSAA authentication.
+
+---
+
+## 11. ARCA Clock Drift Triage & Time Synchronization
+
+AFIP WSAA rejects authentication requests if the server clock drifts from official AFIP time by more than ~600 seconds (and issues warnings above 60s).
+
+### Diagnosing Clock Drift
+
+1. Railway containers run on managed host VMs; container NTP daemon cannot modify host clock.
+2. Check `GET /api/v1/arca/probe` output:
+   - Inspect `clockSync.driftSeconds` and `clockSync.isSynchronized`.
+3. If `isSynchronized: false` (drift > 60s):
+   - Check Railway system status page for host node clock skew.
+   - Restart container instance to migrate to a synchronized Railway worker node.
+
+---
+
+## 12. BullMQ Worker & Redis Queue Operations
+
+### Worker Health & Restart Recovery
+
+1. The background worker runs as a standalone process via `node dist/worker.js`.
+2. Job persistence is backed by Redis 7. If the worker process restarts:
+   - In-flight jobs are recovered or retried based on BullMQ lock expiration.
+   - Completed and failed jobs are retained up to configured limits for telemetry.
+3. To verify worker processing, trigger an `ops-probe` test job via internal queue dispatcher.
