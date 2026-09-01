@@ -18,22 +18,25 @@ frontend (Nginx, public, port 8080)
   v
 backend (NestJS, private, backend.railway.internal:3000)
   |
-  | Railway private networking
-  v
-PostgreSQL (managed service, no public TCP proxy)
+  +-- PostgreSQL (managed service, private)
+  |
+  +-- Redis 7 (managed / private service, redis.railway.internal:6379)
+  |     ^
+  |     | BullMQ queues
+  +-----+
+  |
+Worker (NestJS background worker, dist/worker.js, private)
 ```
-
-Redis is intentionally omitted until the application has a runtime dependency
-on it. Adding an unused persistent service increases cost and operational scope.
 
 ## Deployment model
 
-- Both application services use the private GitHub repository as their source.
+- All application services use the private GitHub repository as their source.
 - Staging tracks the `dev` branch.
-- Railway `Wait for CI` must be enabled for both services. A failed GitHub check
+- Railway `Wait for CI` must be enabled for all services. A failed GitHub check
   therefore skips the corresponding deployment.
 - Railway builds the existing production Dockerfiles from the repository root:
-  - backend: `/apps/backend/Dockerfile`
+  - backend: `/apps/backend/Dockerfile` (CMD: `node dist/main.js`)
+  - worker: `/apps/backend/Dockerfile` (CMD: `node dist/worker.js`)
   - frontend: `/apps/frontend/Dockerfile`
 - The backend pre-deploy command is
   `node dist/database/run-migrations.js`. A non-zero exit blocks the release.
@@ -49,7 +52,7 @@ can verify an externally deployed revision without holding Railway credentials.
 
 ## Service configuration
 
-Keep the source root at `/` for both services because this pnpm monorepo shares
+Keep the source root at `/` for all services because this pnpm monorepo shares
 root manifests and `packages/shared-types`.
 
 ### Backend
@@ -74,7 +77,49 @@ DB_PORT=${{Postgres.PGPORT}}
 DB_USER=${{Postgres.PGUSER}}
 DB_PASSWORD=${{Postgres.PGPASSWORD}}
 DB_NAME=${{Postgres.PGDATABASE}}
+REDIS_HOST=${{Redis.REDISHOST}}
+REDIS_PORT=${{Redis.REDISPORT}}
+REDIS_PASSWORD=${{Redis.REDISPASSWORD}}
 JWT_SECRET=<unique random secret>
+JWT_EXPIRATION=8h
+ARCA_ENV=disabled
+```
+
+When activating ARCA Homologation in staging (after customer credentials gate):
+
+```text
+ARCA_ENV=homologation
+ARCA_CUIT=<11-digit-authorized-cuit>
+ARCA_PUNTO_VENTA=1
+ARCA_CERT_BASE64=<sealed-base64-pkcs12-cert>
+ARCA_CERT_PASSWORD=<sealed-cert-password>
+ARCA_WSAA_URL=https://wsaahomo.afip.gov.ar/ws/services/LoginCms
+```
+
+### Worker (BullMQ Background Worker)
+
+| Setting           | Value                        |
+| ----------------- | ---------------------------- |
+| Source branch     | `dev`                        |
+| Dockerfile path   | `/apps/backend/Dockerfile`   |
+| Custom Start CMD  | `node dist/worker.js`        |
+| Healthcheck CMD   | `node dist/worker-health.js` |
+| Public networking | Disabled                     |
+| Restart policy    | On failure                   |
+
+Required variables:
+
+```text
+NODE_ENV=production
+DB_HOST=${{Postgres.PGHOST}}
+DB_PORT=${{Postgres.PGPORT}}
+DB_USER=${{Postgres.PGUSER}}
+DB_PASSWORD=${{Postgres.PGPASSWORD}}
+DB_NAME=${{Postgres.PGDATABASE}}
+REDIS_HOST=${{Redis.REDISHOST}}
+REDIS_PORT=${{Redis.REDISPORT}}
+REDIS_PASSWORD=${{Redis.REDISPASSWORD}}
+JWT_SECRET=${{Backend.JWT_SECRET}}
 JWT_EXPIRATION=8h
 ARCA_ENV=disabled
 ```

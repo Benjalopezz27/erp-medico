@@ -118,6 +118,50 @@ services:
         max-size: '10m'
         max-file: '3'
 
+  worker:
+    profiles:
+      - worker
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE is required}
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-erp_user}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      DB_NAME: ${DB_NAME:-erp_medico}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-8h}
+      ARCA_ENV: disabled
+    command: ['node', 'dist/worker.js']
+    healthcheck:
+      test: ['CMD', 'node', 'dist/worker-health.js']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '10m'
+        max-file: '3'
+
   frontend:
     image: ${FRONTEND_IMAGE:?FRONTEND_IMAGE is required}
     pull_policy: never
