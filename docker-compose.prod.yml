@@ -137,6 +137,11 @@ services:
       JWT_EXPIRATION: ${JWT_EXPIRATION:-8h}
       ARCA_ENV: disabled
     command: ['node', 'dist/worker.js']
+    healthcheck:
+      test: ['CMD', 'node', 'dist/worker-health.js']
+      interval: 10s
+      timeout: 5s
+      retries: 3
     depends_on:
       postgres:
         condition: service_healthy

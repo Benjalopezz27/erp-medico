@@ -185,19 +185,64 @@ AFIP WSAA rejects authentication requests if the server clock drifts from offici
 
 1. Railway containers run on managed host VMs; container NTP daemon cannot modify host clock.
 2. Check `GET /api/v1/arca/probe` output:
-   - Inspect `clockSync.driftSeconds` and `clockSync.isSynchronized`.
-3. If `isSynchronized: false` (drift > 60s):
-   - Check Railway system status page for host node clock skew.
+   - `clockSync.status`: `synchronized`, `drift_exceeded`, or `unreachable`.
+   - `clockSync.driftSeconds`: integer drift in seconds (or `null` if unreachable).
+   - `clockSync.isSynchronized`: `true` ONLY if reference is reachable AND drift ≤ 60s.
+3. If `status: "drift_exceeded"`:
+   - Check Railway host node clock skew.
    - Restart container instance to migrate to a synchronized Railway worker node.
+4. If `status: "unreachable"`:
+   - Verify outbound HTTPS connectivity to AFIP endpoints or DNS resolution.
 
 ---
 
 ## 12. BullMQ Worker & Redis Queue Operations
 
-### Worker Health & Restart Recovery
+### Worker Health & Heartbeat Architecture
 
-1. The background worker runs as a standalone process via `node dist/worker.js`.
-2. Job persistence is backed by Redis 7. If the worker process restarts:
-   - In-flight jobs are recovered or retried based on BullMQ lock expiration.
-   - Completed and failed jobs are retained up to configured limits for telemetry.
-3. To verify worker processing, trigger an `ops-probe` test job via internal queue dispatcher.
+1. The background worker runs as a dedicated decoupled process (`node dist/worker.js`) booted via `WorkerModule` (does not bind HTTP port 3000).
+2. The worker maintains an active file heartbeat at `/tmp/erp-worker-heartbeat.json` updated every 5 seconds.
+3. Container health check executes `node dist/worker-health.js`, verifying worker PID liveness and heartbeat freshness (< 25s age).
+
+### Triggering and Monitoring Operational Test Jobs
+
+To verify Redis queue dispatch, worker processing, and retry recovery in staging:
+
+1. **Enqueue an Operational Probe Job**:
+
+   ```bash
+   POST /api/v1/ops/queue/probe
+   Authorization: Bearer <ADMIN_TOKEN>
+   Content-Type: application/json
+
+   {
+     "message": "Manual staging worker verification",
+     "failAttempts": 0
+   }
+   ```
+
+   Response returns `{ "statusCode": 201, "data": { "jobId": "1", "probeId": "probe-...", "enqueuedAt": "..." } }`.
+
+2. **Inspect Job State and Processing Results**:
+
+   ```bash
+   GET /api/v1/ops/queue/probe/1
+   Authorization: Bearer <ADMIN_TOKEN>
+   ```
+
+   Response returns state (`completed`, `active`, `waiting`, `failed`), `attemptsMade`, `durationMs`, and returned payload.
+
+3. **Inspect Real-Time Queue Metrics**:
+   ```bash
+   GET /api/v1/ops/queue/metrics
+   Authorization: Bearer <ADMIN_TOKEN>
+   ```
+   Response returns job counts for `waiting`, `active`, `completed`, `failed`, `delayed`, and `paused` status.
+
+### Worker Restart & Failover Recovery Verification Drill
+
+1. Enqueue a probe job with simulated failure: `{ "message": "Test retry", "failAttempts": 1 }`.
+2. Observe BullMQ exponential retry backoff in `GET /api/v1/ops/queue/probe/<jobId>`.
+3. Restart the Railway Worker container during active processing:
+   - Redis retains queue state.
+   - Upon restart, the worker re-acquires stalled jobs and completes execution.

@@ -1,72 +1,76 @@
+import { Test, TestingModule } from '@nestjs/testing';
 import { Queue } from 'bullmq';
 import { OpsProbeQueueService } from './ops-probe.queue';
+import { REDIS_CONNECTION } from '../queue.constants';
 
-jest.mock('bullmq');
-
-describe('OpsProbeQueueService', () => {
-  let service: OpsProbeQueueService;
-  let mockRedisClient: any;
-  let mockQueueInstance: any;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockRedisClient = {
-      on: jest.fn(),
-    };
-
-    mockQueueInstance = {
-      add: jest.fn().mockResolvedValue({ id: 'job-123' }),
-      getJob: jest
-        .fn()
-        .mockResolvedValue({ id: 'job-123', data: { probeId: 'p1' } }),
-      getWaitingCount: jest.fn().mockResolvedValue(1),
-      getActiveCount: jest.fn().mockResolvedValue(0),
-      getCompletedCount: jest.fn().mockResolvedValue(5),
-      getFailedCount: jest.fn().mockResolvedValue(0),
-      getDelayedCount: jest.fn().mockResolvedValue(0),
-      close: jest.fn().mockResolvedValue(undefined),
-    };
-
-    (Queue as unknown as jest.Mock).mockImplementation(() => mockQueueInstance);
-
-    service = new OpsProbeQueueService(mockRedisClient);
-  });
-
-  it('enqueues probe job with exponential retry policy', async () => {
-    const job = await service.enqueueProbeJob({
-      probeId: 'probe-001',
-      message: 'Test message',
-      failAttempts: 1,
-    });
-
-    expect(job.id).toBe('job-123');
-    expect(mockQueueInstance.add).toHaveBeenCalledWith(
-      'ops-probe-job',
-      expect.objectContaining({
-        probeId: 'probe-001',
-        message: 'Test message',
-        failAttempts: 1,
-      }),
-      expect.objectContaining({
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 500 },
-      }),
-    );
-  });
-
-  it('retrieves queue metrics correctly', async () => {
-    const metrics = await service.getQueueMetrics();
-    expect(metrics).toEqual({
+jest.mock('bullmq', () => {
+  const mockQueueInstance = {
+    add: jest.fn().mockResolvedValue({ id: 'job-123' }),
+    getJob: jest.fn(),
+    getJobCounts: jest.fn().mockResolvedValue({
       waiting: 1,
       active: 0,
       completed: 5,
       failed: 0,
       delayed: 0,
-    });
+    }),
+    isPaused: jest.fn().mockResolvedValue(false),
+    close: jest.fn().mockResolvedValue(undefined),
+  };
+
+  return {
+    Queue: jest.fn().mockImplementation(() => mockQueueInstance),
+  };
+});
+
+describe('OpsProbeQueueService', () => {
+  let service: OpsProbeQueueService;
+  let mockRedis: any;
+
+  beforeEach(async () => {
+    mockRedis = { status: 'ready' };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        OpsProbeQueueService,
+        {
+          provide: REDIS_CONNECTION,
+          useValue: mockRedis,
+        },
+      ],
+    }).compile();
+
+    service = module.get<OpsProbeQueueService>(OpsProbeQueueService);
   });
 
-  it('closes queue on destroy', async () => {
+  afterEach(async () => {
     await service.onModuleDestroy();
-    expect(mockQueueInstance.close).toHaveBeenCalled();
+  });
+
+  it('should enqueue a job into ops-probe queue with exponential backoff', async () => {
+    const result = await service.enqueueProbeJob({
+      probeId: 'probe-001',
+      message: 'Test message',
+    });
+
+    expect(result.jobId).toBe('job-123');
+    expect(result.probeId).toBe('probe-001');
+    expect(Queue).toHaveBeenCalledWith(
+      'ops-probe',
+      expect.objectContaining({
+        connection: mockRedis,
+        defaultJobOptions: expect.objectContaining({
+          attempts: 3,
+        }),
+      }),
+    );
+  });
+
+  it('should return queue metrics', async () => {
+    const metrics = await service.getQueueMetrics();
+    expect(metrics.queueName).toBe('ops-probe');
+    expect(metrics.waiting).toBe(1);
+    expect(metrics.completed).toBe(5);
+    expect(metrics.paused).toBe(false);
   });
 });

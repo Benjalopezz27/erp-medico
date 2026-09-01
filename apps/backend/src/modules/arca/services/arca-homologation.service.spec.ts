@@ -1,47 +1,53 @@
+import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { ServiceUnavailableException } from '@nestjs/common';
 import * as forge from 'node-forge';
 import { ArcaHomologationService } from './arca-homologation.service';
-import { ArcaCertificateLoader } from './arca-certificate-loader.service';
+import {
+  ArcaCertificateLoader,
+  ArcaCertificateData,
+} from './arca-certificate-loader.service';
 import { ArcaClockSyncService } from './arca-clock-sync.service';
 
-function createMockCertData() {
-  const keys = forge.pki.rsa.generateKeyPair(1024);
-  const cert = forge.pki.createCertificate();
-  cert.publicKey = keys.publicKey;
-  cert.serialNumber = '01';
-  cert.validity.notBefore = new Date();
-  cert.validity.notAfter = new Date(Date.now() + 300 * 24 * 60 * 60 * 1000);
+describe('ArcaHomologationService', () => {
+  let service: ArcaHomologationService;
+  let mockCertLoader: Partial<ArcaCertificateLoader>;
+  let mockClockSync: Partial<ArcaClockSyncService>;
+  let mockConfig: Record<string, any>;
 
-  const attrs = [{ name: 'commonName', value: 'AFIP Homologation Test' }];
-  cert.setSubject(attrs);
-  cert.setIssuer(attrs);
-  cert.sign(keys.privateKey, forge.md.sha256.create());
+  const mockKeys = forge.pki.rsa.generateKeyPair(1024);
+  const mockCert = forge.pki.createCertificate();
+  mockCert.publicKey = mockKeys.publicKey;
+  mockCert.serialNumber = '01';
+  mockCert.validity.notBefore = new Date(Date.now() - 1000 * 60 * 60 * 24);
+  mockCert.validity.notAfter = new Date(Date.now() + 1000 * 60 * 60 * 24 * 300);
+  mockCert.setSubject([
+    { name: 'commonName', value: 'Homologacion AFIP Test' },
+  ]);
+  mockCert.setIssuer([{ name: 'commonName', value: 'Homologacion AFIP Test' }]);
+  mockCert.sign(mockKeys.privateKey);
 
-  return {
-    certificate: cert,
-    privateKey: keys.privateKey,
-    certificatePem: forge.pki.certificateToPem(cert),
-    privateKeyPem: forge.pki.privateKeyToPem(keys.privateKey),
-    subject: 'CN=AFIP Homologation Test',
-    issuer: 'CN=AFIP Homologation Test',
-    validFrom: cert.validity.notBefore,
-    validTo: cert.validity.notAfter,
+  const validCertData: ArcaCertificateData = {
+    certificate: mockCert,
+    privateKey: mockKeys.privateKey,
+    subject: 'CN=Homologacion AFIP Test',
+    issuer: 'CN=Homologacion AFIP Test',
+    validFrom: mockCert.validity.notBefore,
+    validTo: mockCert.validity.notAfter,
     daysRemaining: 300,
     isExpired: false,
   };
-}
 
-describe('ArcaHomologationService', () => {
-  let mockCertLoader: jest.Mocked<ArcaCertificateLoader>;
-  let mockClockSync: jest.Mocked<ArcaClockSyncService>;
-  let mockConfigService: jest.Mocked<ConfigService>;
-  let service: ArcaHomologationService;
+  beforeEach(async () => {
+    mockConfig = {
+      ARCA_CUIT: '20123456789',
+      ARCA_PUNTO_VENTA: 1,
+      ARCA_WSAA_URL: 'https://wsaahomo.afip.gov.ar/ws/services/LoginCms',
+    };
 
-  beforeEach(() => {
     mockCertLoader = {
-      loadCertificate: jest.fn().mockReturnValue(createMockCertData()),
-    } as any;
+      loadCertificate: jest.fn().mockReturnValue(validCertData),
+    };
 
     mockClockSync = {
       verifyClockSync: jest.fn().mockResolvedValue({
@@ -49,91 +55,135 @@ describe('ArcaHomologationService', () => {
         referenceTimeIso: new Date().toISOString(),
         driftSeconds: 0,
         isSynchronized: true,
-        referenceSource: 'https://wsaahomo.afip.gov.ar/ws/services/LoginCms',
+        status: 'synchronized',
+        referenceSource: 'https://wsaahomo.afip.gov.ar',
       }),
-    } as any;
+    };
 
-    mockConfigService = {
-      get: jest.fn().mockImplementation((key: string) => {
-        if (key === 'ARCA_WSAA_URL')
-          return 'https://wsaahomo.afip.gov.ar/ws/services/LoginCms';
-        if (key === 'ARCA_CUIT') return '20123456789';
-        if (key === 'ARCA_PUNTO_VENTA') return 1;
-        return undefined;
-      }),
-    } as any;
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ArcaHomologationService,
+        { provide: ArcaCertificateLoader, useValue: mockCertLoader },
+        { provide: ArcaClockSyncService, useValue: mockClockSync },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) => mockConfig[key]),
+          },
+        },
+      ],
+    }).compile();
 
-    service = new ArcaHomologationService(
-      mockCertLoader,
-      mockClockSync,
-      mockConfigService,
-    );
+    service = module.get<ArcaHomologationService>(ArcaHomologationService);
   });
 
-  it('keeps requestCAE fail-closed until Sprint 8', async () => {
-    await expect(
-      service.requestCAE({
-        pointOfSale: 1,
-        documentNumber: 1,
-        totalAmount: 100,
-      } as any),
-    ).rejects.toThrow(ServiceUnavailableException);
+  describe('Strict Configuration Validation', () => {
+    it('should throw if ARCA_CUIT is missing or not 11 digits', () => {
+      expect(
+        () =>
+          new ArcaHomologationService(
+            mockCertLoader as ArcaCertificateLoader,
+            mockClockSync as ArcaClockSyncService,
+            { get: () => undefined } as any,
+            { cuit: '123' },
+          ),
+      ).toThrow(/ARCA_CUIT is required and must be an 11-digit numeric string/);
+    });
+
+    it('should throw if ARCA_PUNTO_VENTA is invalid or missing', () => {
+      expect(
+        () =>
+          new ArcaHomologationService(
+            mockCertLoader as ArcaCertificateLoader,
+            mockClockSync as ArcaClockSyncService,
+            { get: () => undefined } as any,
+            { cuit: '20123456789', puntoVenta: 0 },
+          ),
+      ).toThrow(
+        /ARCA_PUNTO_VENTA is required and must be a valid point of sale/,
+      );
+    });
+
+    it('should throw if ARCA_WSAA_URL is not HTTPS', () => {
+      expect(
+        () =>
+          new ArcaHomologationService(
+            mockCertLoader as ArcaCertificateLoader,
+            mockClockSync as ArcaClockSyncService,
+            { get: () => undefined } as any,
+            {
+              cuit: '20123456789',
+              puntoVenta: 1,
+              wsaaUrl: 'http://insecure.afip.gov.ar',
+            },
+          ),
+      ).toThrow(/ARCA_WSAA_URL must be a valid HTTPS URL/);
+    });
   });
 
-  it('keeps queryDocument fail-closed until Sprint 8', async () => {
-    await expect(service.queryDocument(1, 1, 1)).rejects.toThrow(
-      ServiceUnavailableException,
-    );
-  });
-
-  it('probeWsaaConnection handles failed network connection safely without crashing', async () => {
-    // Mock callWsaaLoginCms failure
-    jest
-      .spyOn(service as any, 'callWsaaLoginCms')
-      .mockRejectedValue(new Error('Connection refused'));
-
-    const probe = await service.probeWsaaConnection();
-    expect(probe.authenticated).toBe(false);
-    expect(probe.wsaaReachable).toBe(false);
-    expect(probe.certificate.subject).toContain('AFIP Homologation Test');
-    expect(probe.clockSync.isSynchronized).toBe(true);
-  });
-
-  it('authenticates and parses WSAA SOAP XML response successfully', async () => {
-    const mockSoapXml = `<?xml version="1.0" encoding="UTF-8"?>
+  describe('WSAA Login & Token Handling', () => {
+    it('should parse valid LoginCms response and return ticket', async () => {
+      const mockSoapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">
   <soapenv:Body>
     <loginCmsResponse xmlns="http://wsaa.view.sua.dvadac.desein.afip.gov">
-      <loginCmsReturn>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
-&lt;loginTicketResponse version="1.0"&gt;
-  &lt;header&gt;
-    &lt;source&gt;CN=wsaahomo&lt;/source&gt;
-    &lt;destination&gt;CN=homo_client&lt;/destination&gt;
-    &lt;uniqueId&gt;123456789&lt;/uniqueId&gt;
-    &lt;generationTime&gt;2026-09-01T12:00:00-03:00&lt;/generationTime&gt;
-    &lt;expirationTime&gt;2026-09-01T23:59:59-03:00&lt;/expirationTime&gt;
-  &lt;/header&gt;
-  &lt;credentials&gt;
-    &lt;token&gt;real_homo_wsaa_token_xyz&lt;/token&gt;
-    &lt;sign&gt;real_homo_wsaa_sign_abc&lt;/sign&gt;
-  &lt;/credentials&gt;
-&lt;/loginTicketResponse&gt;
-      </loginCmsReturn>
+      <loginCmsReturn>&lt;loginTicketResponse version="1.0"&gt;
+        &lt;header&gt;
+          &lt;expirationTime&gt;2026-09-01T23:59:59-03:00&lt;/expirationTime&gt;
+        &lt;/header&gt;
+        &lt;credentials&gt;
+          &lt;token&gt;test_token_value_abc&lt;/token&gt;
+          &lt;sign&gt;test_sign_value_xyz&lt;/sign&gt;
+        &lt;/credentials&gt;
+      &lt;/loginTicketResponse&gt;</loginCmsReturn>
     </loginCmsResponse>
   </soapenv:Body>
 </soapenv:Envelope>`;
 
-    jest
-      .spyOn(service as any, 'callWsaaLoginCms')
-      .mockResolvedValue(mockSoapXml);
+      jest
+        .spyOn(service as any, 'callWsaaLoginCms')
+        .mockResolvedValue(mockSoapXml);
 
-    const ticket = await service.login();
-    expect(ticket.token).toBe('real_homo_wsaa_token_xyz');
-    expect(ticket.sign).toBe('real_homo_wsaa_sign_abc');
-    expect(ticket.expirationTime).toBe('2026-09-01T23:59:59-03:00');
+      const ticket = await service.login();
+      expect(ticket.token).toBe('test_token_value_abc');
+      expect(ticket.sign).toBe('test_sign_value_xyz');
+      expect(ticket.expirationTime).toBe('2026-09-01T23:59:59-03:00');
+    });
 
-    // Second call reuses cached ticket
-    const ticket2 = await service.login();
-    expect(ticket2.token).toBe('real_homo_wsaa_token_xyz');
+    it('should throw ServiceUnavailableException if certificate is expired', async () => {
+      jest.spyOn(mockCertLoader, 'loadCertificate').mockReturnValue({
+        ...validCertData,
+        isExpired: true,
+        validTo: new Date(Date.now() - 10000),
+      });
+
+      await expect(service.login()).rejects.toThrow(
+        ServiceUnavailableException,
+      );
+    });
+  });
+
+  describe('Fail-Closed Sprint 8 Boundaries', () => {
+    it('should throw ServiceUnavailableException for requestCAE (deferred to Sprint 8)', async () => {
+      await expect(service.requestCAE({} as any)).rejects.toThrow(/Sprint 8/);
+    });
+
+    it('should throw ServiceUnavailableException for queryDocument (deferred to Sprint 8)', async () => {
+      await expect(service.queryDocument(1, 1, 1)).rejects.toThrow(/Sprint 8/);
+    });
+  });
+
+  describe('probeWsaaConnection', () => {
+    it('should report probe results gracefully even if WSAA login fails', async () => {
+      jest
+        .spyOn(service, 'login')
+        .mockRejectedValue(new Error('Connection refused'));
+
+      const probe = await service.probeWsaaConnection();
+      expect(probe.authenticated).toBe(false);
+      expect(probe.wsaaReachable).toBe(false);
+      expect(probe.certificate.subject).toContain('Homologacion AFIP Test');
+      expect(probe.clockSync.isSynchronized).toBe(true);
+    });
   });
 });

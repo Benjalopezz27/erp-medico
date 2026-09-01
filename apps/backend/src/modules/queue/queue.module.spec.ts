@@ -1,15 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
-import { QueueModule } from './queue.module';
+import { QueueProducerModule } from './queue-producer.module';
+import { QueueConsumerModule } from './queue-consumer.module';
 import { OpsProbeQueueService } from './services/ops-probe.queue';
 import { OpsProbeProcessor } from './processors/ops-probe.processor';
 import { REDIS_CONNECTION } from './queue.constants';
 
 jest.mock('ioredis', () => {
   const mockRedis = jest.fn().mockImplementation(() => ({
+    status: 'ready',
     on: jest.fn(),
-    disconnect: jest.fn(),
-    quit: jest.fn(),
+    quit: jest.fn().mockResolvedValue('OK'),
   }));
   return {
     __esModule: true,
@@ -20,7 +21,6 @@ jest.mock('ioredis', () => {
 
 jest.mock('bullmq', () => ({
   Queue: jest.fn().mockImplementation(() => ({
-    on: jest.fn(),
     add: jest.fn(),
     close: jest.fn(),
   })),
@@ -30,41 +30,35 @@ jest.mock('bullmq', () => ({
   })),
 }));
 
-describe('QueueModule (Integration)', () => {
-  let moduleRef: TestingModule;
+describe('QueueProducerModule (Backend API)', () => {
+  let module: TestingModule;
 
   beforeEach(async () => {
-    moduleRef = await Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({
-          isGlobal: true,
-          ignoreEnvFile: true,
-          load: [
-            () => ({
-              REDIS_HOST: 'localhost',
-              REDIS_PORT: 6379,
-            }),
-          ],
-        }),
-        QueueModule,
-      ],
+    module = await Test.createTestingModule({
+      imports: [ConfigModule.forRoot({ isGlobal: true }), QueueProducerModule],
     }).compile();
   });
 
-  afterEach(async () => {
-    if (moduleRef) {
-      await moduleRef.close();
-    }
+  it('should provide Redis connection and OpsProbeQueueService', () => {
+    expect(module.get(REDIS_CONNECTION)).toBeDefined();
+    expect(module.get(OpsProbeQueueService)).toBeDefined();
   });
 
-  it('compiles and exports OpsProbeQueueService and OpsProbeProcessor', () => {
-    const queueService =
-      moduleRef.get<OpsProbeQueueService>(OpsProbeQueueService);
-    const processor = moduleRef.get<OpsProbeProcessor>(OpsProbeProcessor);
-    const redis = moduleRef.get(REDIS_CONNECTION);
+  it('should NOT instantiate OpsProbeProcessor in producer module', () => {
+    expect(() => module.get(OpsProbeProcessor)).toThrow();
+  });
+});
 
-    expect(queueService).toBeDefined();
-    expect(processor).toBeDefined();
-    expect(redis).toBeDefined();
+describe('QueueConsumerModule (Worker Process)', () => {
+  let module: TestingModule;
+
+  beforeEach(async () => {
+    module = await Test.createTestingModule({
+      imports: [ConfigModule.forRoot({ isGlobal: true }), QueueConsumerModule],
+    }).compile();
+  });
+
+  it('should instantiate OpsProbeProcessor in consumer module', () => {
+    expect(module.get(OpsProbeProcessor)).toBeDefined();
   });
 });

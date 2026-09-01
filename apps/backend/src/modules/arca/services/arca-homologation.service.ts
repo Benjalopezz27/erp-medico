@@ -2,6 +2,8 @@ import {
   Injectable,
   Logger,
   ServiceUnavailableException,
+  Optional,
+  Inject,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as https from 'https';
@@ -37,6 +39,8 @@ export class ArcaHomologationService implements IArcaService {
     private readonly certLoader: ArcaCertificateLoader,
     private readonly clockSyncService: ArcaClockSyncService,
     private readonly configService: ConfigService,
+    @Optional()
+    @Inject('ARCA_HOMOLOGATION_OPTIONS')
     options?: ArcaHomologationOptions,
   ) {
     this.wsaaUrl =
@@ -49,10 +53,41 @@ export class ArcaHomologationService implements IArcaService {
       this.configService.get<string>('ARCA_CUIT')?.trim() ||
       '';
 
-    this.puntoVenta =
-      options?.puntoVenta ||
-      Number(this.configService.get<number>('ARCA_PUNTO_VENTA')) ||
-      1;
+    const pvRaw =
+      options?.puntoVenta !== undefined
+        ? options.puntoVenta
+        : this.configService.get<number>('ARCA_PUNTO_VENTA');
+    this.puntoVenta = Number(pvRaw);
+
+    this.validateHomologationConfig();
+  }
+
+  /**
+   * Enforces strict fail-fast validation for homologation parameters.
+   */
+  private validateHomologationConfig(): void {
+    if (!this.cuit || !/^\d{11}$/.test(this.cuit)) {
+      throw new Error(
+        `[ARCA] ARCA_CUIT is required and must be an 11-digit numeric string in homologation mode. Provided: "${this.cuit}"`,
+      );
+    }
+
+    if (
+      !this.puntoVenta ||
+      isNaN(this.puntoVenta) ||
+      this.puntoVenta < 1 ||
+      this.puntoVenta > 99999
+    ) {
+      throw new Error(
+        `[ARCA] ARCA_PUNTO_VENTA is required and must be a valid point of sale (1-99999) in homologation mode. Provided: "${this.puntoVenta}"`,
+      );
+    }
+
+    if (!this.wsaaUrl || !this.wsaaUrl.startsWith('https://')) {
+      throw new Error(
+        `[ARCA] ARCA_WSAA_URL must be a valid HTTPS URL in homologation mode. Provided: "${this.wsaaUrl}"`,
+      );
+    }
   }
 
   /**

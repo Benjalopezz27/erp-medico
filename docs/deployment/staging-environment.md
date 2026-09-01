@@ -98,13 +98,14 @@ ARCA_WSAA_URL=https://wsaahomo.afip.gov.ar/ws/services/LoginCms
 
 ### Worker (BullMQ Background Worker)
 
-| Setting           | Value                      |
-| ----------------- | -------------------------- |
-| Source branch     | `dev`                      |
-| Dockerfile path   | `/apps/backend/Dockerfile` |
-| Custom Start CMD  | `node dist/worker.js`      |
-| Public networking | Disabled                   |
-| Restart policy    | On failure                 |
+| Setting           | Value                        |
+| ----------------- | ---------------------------- |
+| Source branch     | `dev`                        |
+| Dockerfile path   | `/apps/backend/Dockerfile`   |
+| Custom Start CMD  | `node dist/worker.js`        |
+| Healthcheck CMD   | `node dist/worker-health.js` |
+| Public networking | Disabled                     |
+| Restart policy    | On failure                   |
 
 Required variables:
 

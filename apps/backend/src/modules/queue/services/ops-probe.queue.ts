@@ -1,5 +1,5 @@
-import { Injectable, Inject, OnModuleDestroy, Logger } from '@nestjs/common';
-import { Queue, Job } from 'bullmq';
+import { Injectable, Inject, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import {
   REDIS_CONNECTION,
@@ -9,79 +9,132 @@ import {
 
 export interface OpsProbeJobData {
   probeId: string;
-  message: string;
-  failAttempts?: number;
   timestamp: string;
+  message?: string;
+  failAttempts?: number;
 }
 
 export interface OpsProbeJobResult {
-  processedAt: string;
+  jobId?: string;
+  probeId?: string;
+  status?: string;
   attemptsMade: number;
-  message: string;
+  processedAt?: string;
+  durationMs?: number;
+  message?: string;
+  result?: any;
+  failedReason?: string;
+}
+
+export interface QueueMetrics {
+  queueName: string;
+  waiting: number;
+  active: number;
+  completed: number;
+  failed: number;
+  delayed: number;
+  paused: boolean;
 }
 
 @Injectable()
 export class OpsProbeQueueService implements OnModuleDestroy {
   private readonly logger = new Logger(OpsProbeQueueService.name);
-  private readonly queue: Queue<OpsProbeJobData, OpsProbeJobResult>;
+  private queueInstance: Queue<OpsProbeJobData> | null = null;
 
-  constructor(@Inject(REDIS_CONNECTION) private readonly redisClient: Redis) {
-    this.queue = new Queue(OPS_PROBE_QUEUE_NAME, {
-      connection: this.redisClient as any,
-    });
+  constructor(@Inject(REDIS_CONNECTION) private readonly redisClient: Redis) {}
+
+  private getQueue(): Queue<OpsProbeJobData> {
+    if (!this.queueInstance) {
+      this.queueInstance = new Queue<OpsProbeJobData>(OPS_PROBE_QUEUE_NAME, {
+        connection: this.redisClient as any,
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 1000,
+          },
+          removeOnComplete: { count: 100 },
+          removeOnFail: { count: 100 },
+        },
+      });
+    }
+    return this.queueInstance;
   }
 
-  async enqueueProbeJob(data: {
-    probeId: string;
-    message: string;
-    failAttempts?: number;
-  }): Promise<Job<OpsProbeJobData, OpsProbeJobResult>> {
-    const jobData: OpsProbeJobData = {
-      ...data,
+  async enqueueProbeJob(
+    data: Partial<OpsProbeJobData> = {},
+  ): Promise<{ jobId: string; probeId: string; enqueuedAt: string }> {
+    const probeId =
+      data.probeId ||
+      `probe-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const payload: OpsProbeJobData = {
+      probeId,
       timestamp: new Date().toISOString(),
+      message: data.message || 'Operational connectivity probe',
+      failAttempts: data.failAttempts ?? 0,
     };
 
-    const job = await this.queue.add(OPS_PROBE_JOB_NAME, jobData, {
-      attempts: 3,
-      backoff: {
-        type: 'exponential',
-        delay: 500,
-      },
-      removeOnComplete: { count: 100 },
-      removeOnFail: { count: 100 },
-    });
+    const queue = this.getQueue();
+    const job = await queue.add(OPS_PROBE_JOB_NAME, payload);
 
     this.logger.log(
-      `[Queue] Enqueued ops probe job ${job.id} (probeId: ${data.probeId})`,
+      `[Queue] Enqueued ops probe job ${job.id} (probeId: ${probeId})`,
     );
-    return job;
+
+    return {
+      jobId: job.id as string,
+      probeId,
+      enqueuedAt: payload.timestamp,
+    };
   }
 
-  async getJob(
-    jobId: string,
-  ): Promise<Job<OpsProbeJobData, OpsProbeJobResult> | undefined> {
-    return this.queue.getJob(jobId);
+  async getJobStatus(jobId: string): Promise<OpsProbeJobResult | null> {
+    const queue = this.getQueue();
+    const job = await queue.getJob(jobId);
+    if (!job) {
+      return null;
+    }
+
+    const state = await job.getState();
+    return {
+      jobId: job.id as string,
+      probeId: job.data.probeId,
+      status: state,
+      attemptsMade: job.attemptsMade,
+      processedAt: job.processedOn
+        ? new Date(job.processedOn).toISOString()
+        : undefined,
+      durationMs:
+        job.finishedOn && job.processedOn
+          ? job.finishedOn - job.processedOn
+          : undefined,
+      result: job.returnvalue,
+      failedReason: job.failedReason,
+    };
   }
 
-  async getQueueMetrics(): Promise<{
-    waiting: number;
-    active: number;
-    completed: number;
-    failed: number;
-    delayed: number;
-  }> {
-    const [waiting, active, completed, failed, delayed] = await Promise.all([
-      this.queue.getWaitingCount(),
-      this.queue.getActiveCount(),
-      this.queue.getCompletedCount(),
-      this.queue.getFailedCount(),
-      this.queue.getDelayedCount(),
+  async getQueueMetrics(): Promise<QueueMetrics> {
+    const queue = this.getQueue();
+    const [counts, isPaused] = await Promise.all([
+      queue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed'),
+      queue.isPaused(),
     ]);
 
-    return { waiting, active, completed, failed, delayed };
+    return {
+      queueName: OPS_PROBE_QUEUE_NAME,
+      waiting: counts.waiting || 0,
+      active: counts.active || 0,
+      completed: counts.completed || 0,
+      failed: counts.failed || 0,
+      delayed: counts.delayed || 0,
+      paused: isPaused,
+    };
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.queue.close();
+    if (this.queueInstance) {
+      await this.queueInstance.close();
+      this.queueInstance = null;
+    }
   }
 }

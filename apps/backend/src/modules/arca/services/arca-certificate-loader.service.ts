@@ -6,8 +6,6 @@ import * as forge from 'node-forge';
 export interface ArcaCertificateData {
   certificate: forge.pki.Certificate;
   privateKey: forge.pki.PrivateKey;
-  certificatePem: string;
-  privateKeyPem: string;
   subject: string;
   issuer: string;
   validFrom: Date;
@@ -24,8 +22,8 @@ export class ArcaCertificateLoader {
   constructor(private readonly configService: ConfigService) {}
 
   /**
-   * Loads and parses the X.509 PKCS#12 certificate from memory (ARCA_CERT_BASE64)
-   * or runtime file path (ARCA_CERT_PATH). Never writes keys to persistent disk.
+   * Loads and parses the X.509 PKCS#12 certificate in-memory from ARCA_CERT_BASE64
+   * or runtime ARCA_CERT_PATH. Never writes keys to disk or persists PEM private keys.
    */
   loadCertificate(): ArcaCertificateData {
     if (this.cachedCertData && !this.cachedCertData.isExpired) {
@@ -124,8 +122,6 @@ export class ArcaCertificateLoader {
       this.cachedCertData = {
         certificate: cert,
         privateKey,
-        certificatePem: forge.pki.certificateToPem(cert),
-        privateKeyPem: forge.pki.privateKeyToPem(privateKey),
         subject,
         issuer,
         validFrom,
