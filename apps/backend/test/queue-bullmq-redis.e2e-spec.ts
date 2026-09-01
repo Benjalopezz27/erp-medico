@@ -18,7 +18,9 @@ describe('BullMQ & Redis Real Integration Test', () => {
       host: redisHost,
       port: redisPort,
       password: redisPassword,
-      maxRetriesPerRequest: 1,
+      // BullMQ workers require blocking Redis commands, so retries must not be
+      // capped at the ioredis layer.
+      maxRetriesPerRequest: null,
       connectTimeout: 2000,
       lazyConnect: true,
     });
@@ -40,8 +42,12 @@ describe('BullMQ & Redis Real Integration Test', () => {
       await testQueue.obliterate({ force: true }).catch(() => {});
       await testQueue.close();
     }
-    if (redisClient && redisClient.status === 'ready') {
-      await redisClient.quit();
+    if (redisClient) {
+      if (redisClient.status === 'ready') {
+        await redisClient.quit().catch(() => redisClient.disconnect(false));
+      } else {
+        redisClient.disconnect(false);
+      }
     }
   });
 
@@ -59,7 +65,7 @@ describe('BullMQ & Redis Real Integration Test', () => {
       defaultJobOptions: {
         attempts: 3,
         backoff: { type: 'fixed', delay: 100 },
-        removeOnComplete: true,
+        removeOnComplete: false,
       },
     });
 

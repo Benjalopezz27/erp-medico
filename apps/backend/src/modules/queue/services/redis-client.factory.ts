@@ -1,11 +1,13 @@
-import { Provider, Logger } from '@nestjs/common';
+import { Logger, OnApplicationShutdown, Provider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis, { RedisOptions } from 'ioredis';
 import { REDIS_CONNECTION } from '../queue.constants';
 
+type ManagedRedisConnection = Redis & OnApplicationShutdown;
+
 export const redisConnectionProvider: Provider = {
   provide: REDIS_CONNECTION,
-  useFactory: (configService: ConfigService): Redis => {
+  useFactory: (configService: ConfigService): ManagedRedisConnection => {
     const logger = new Logger('RedisConnection');
     const redisUrl = configService.get<string>('REDIS_URL')?.trim();
     const host = configService.get<string>('REDIS_HOST')?.trim() || 'localhost';
@@ -45,7 +47,16 @@ export const redisConnectionProvider: Provider = {
       logger.warn(`[Redis] Connection warning/error: ${err.message}`);
     });
 
-    return redis;
+    const managedRedis = redis as ManagedRedisConnection;
+
+    // BullMQ services close their Queue/Worker instances during onModuleDestroy.
+    // Disconnect the shared socket afterwards so Nest applications and Jest
+    // processes can terminate without leaving an active Redis handle behind.
+    managedRedis.onApplicationShutdown = () => {
+      redis.disconnect(false);
+    };
+
+    return managedRedis;
   },
   inject: [ConfigService],
 };

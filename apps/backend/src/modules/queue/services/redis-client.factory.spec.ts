@@ -6,7 +6,6 @@ jest.mock('ioredis', () => {
   const mockRedis = jest.fn().mockImplementation(() => ({
     on: jest.fn(),
     disconnect: jest.fn(),
-    quit: jest.fn(),
   }));
   return {
     __esModule: true,
@@ -61,5 +60,13 @@ describe('redisConnectionProvider', () => {
         maxRetriesPerRequest: null,
       }),
     );
+  });
+
+  it('disconnects the shared Redis socket when the application shuts down', () => {
+    const redis = getRedis();
+
+    redis.onApplicationShutdown();
+
+    expect(redis.disconnect).toHaveBeenCalledWith(false);
   });
 });
