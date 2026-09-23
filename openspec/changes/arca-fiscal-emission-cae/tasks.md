@@ -14,9 +14,9 @@
 
 ## 3. Caché compartida de ticket WSAA en Redis
 
-- [ ] 3.1 Crear `ArcaTicketCacheService` (get/set sobre `REDIS_CONNECTION`) con clave `arca:wsaa:ticket:{env}:{cuit}`, TTL = `min(12h, segundosHastaExpiration) - margen`; verificar con unit tests: hit, miss, expiración, aislamiento por ambiente/CUIT.
-- [ ] 3.2 Integrar `ArcaTicketCacheService` en `ArcaHomologationService.login()` reemplazando el campo `cachedTicket` en memoria; verificar con unit test que un segundo `login()` con ticket cacheado vigente no vuelve a llamar `callWsaaLoginCms`.
-- [ ] 3.3 Degradar a login directo cuando Redis no responde (get o set fallan); verificar con unit test que simula un error de Redis y confirma que `login()` igual completa vía WSAA real (mockeado) sin lanzar excepción por el fallo de caché.
+- [x] 3.1 Crear `ArcaTicketCacheService` (get/set sobre `REDIS_CONNECTION`) con clave `arca:wsaa:ticket:{env}:{cuit}`, TTL = `min(12h, segundosHastaExpiration) - margen`; verificar con unit tests: hit, miss, expiración, aislamiento por ambiente/CUIT.
+- [x] 3.2 Integrar `ArcaTicketCacheService` en `ArcaHomologationService.login()` reemplazando el campo `cachedTicket` en memoria; verificar con unit test que un segundo `login()` con ticket cacheado vigente no vuelve a llamar `callWsaaLoginCms`.
+- [x] 3.3 Degradar a login directo cuando Redis no responde (get o set fallan); verificar con unit test que simula un error de Redis y confirma que `login()` igual completa vía WSAA real (mockeado) sin lanzar excepción por el fallo de caché.
 
 ## 4. Resolución de tipo de comprobante y numeración
 

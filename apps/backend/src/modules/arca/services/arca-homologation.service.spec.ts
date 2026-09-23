@@ -9,12 +9,14 @@ import {
   ArcaCertificateData,
 } from './arca-certificate-loader.service';
 import { ArcaClockSyncService } from './arca-clock-sync.service';
+import { ArcaTicketCacheService } from './arca-ticket-cache.service';
 import { WsfeRejectedError } from './wsfe-soap-client.service';
 
 describe('ArcaHomologationService', () => {
   let service: ArcaHomologationService;
   let mockCertLoader: Partial<ArcaCertificateLoader>;
   let mockClockSync: Partial<ArcaClockSyncService>;
+  let mockTicketCache: Partial<ArcaTicketCacheService>;
   let mockConfig: Record<string, any>;
 
   const mockKeys = forge.pki.rsa.generateKeyPair(1024);
@@ -63,11 +65,17 @@ describe('ArcaHomologationService', () => {
       }),
     };
 
+    mockTicketCache = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ArcaHomologationService,
         { provide: ArcaCertificateLoader, useValue: mockCertLoader },
         { provide: ArcaClockSyncService, useValue: mockClockSync },
+        { provide: ArcaTicketCacheService, useValue: mockTicketCache },
         {
           provide: ConfigService,
           useValue: {
@@ -88,6 +96,7 @@ describe('ArcaHomologationService', () => {
             mockCertLoader as ArcaCertificateLoader,
             mockClockSync as ArcaClockSyncService,
             { get: () => undefined } as any,
+            mockTicketCache as ArcaTicketCacheService,
             { cuit: '123' },
           ),
       ).toThrow(/ARCA_CUIT is required and must be an 11-digit numeric string/);
@@ -100,6 +109,7 @@ describe('ArcaHomologationService', () => {
             mockCertLoader as ArcaCertificateLoader,
             mockClockSync as ArcaClockSyncService,
             { get: () => undefined } as any,
+            mockTicketCache as ArcaTicketCacheService,
             { cuit: '20123456789', puntoVenta: 0 },
           ),
       ).toThrow(
@@ -114,6 +124,7 @@ describe('ArcaHomologationService', () => {
             mockCertLoader as ArcaCertificateLoader,
             mockClockSync as ArcaClockSyncService,
             { get: () => undefined } as any,
+            mockTicketCache as ArcaTicketCacheService,
             {
               cuit: '20123456789',
               puntoVenta: 1,
@@ -131,6 +142,7 @@ describe('ArcaHomologationService', () => {
             mockCertLoader as ArcaCertificateLoader,
             mockClockSync as ArcaClockSyncService,
             { get: () => undefined } as any,
+            mockTicketCache as ArcaTicketCacheService,
             {
               cuit: '20123456789',
               puntoVenta: 1,

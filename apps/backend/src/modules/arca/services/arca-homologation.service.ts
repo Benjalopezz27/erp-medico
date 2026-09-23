@@ -24,6 +24,7 @@ import {
   WsfeSoapClientService,
   CBTE_TIPO_BY_DOCUMENT_TYPE,
 } from './wsfe-soap-client.service';
+import { ArcaTicketCacheService } from './arca-ticket-cache.service';
 
 export interface ArcaHomologationOptions {
   wsaaUrl?: string;
@@ -41,16 +42,21 @@ export class ArcaHomologationService implements IArcaService {
   private readonly wsfeUrl: string;
   private readonly cuit: string;
   private readonly puntoVenta: number;
+  private readonly arcaEnv: string;
   private readonly wsfeClient: WsfeSoapClientService;
 
   constructor(
     private readonly certLoader: ArcaCertificateLoader,
     private readonly clockSyncService: ArcaClockSyncService,
     private readonly configService: ConfigService,
+    private readonly ticketCache: ArcaTicketCacheService,
     @Optional()
     @Inject('ARCA_HOMOLOGATION_OPTIONS')
     options?: ArcaHomologationOptions,
   ) {
+    this.arcaEnv =
+      this.configService.get<string>('ARCA_ENV')?.trim().toLowerCase() ||
+      'homologation';
     this.wsaaUrl =
       options?.wsaaUrl ||
       this.configService.get<string>('ARCA_WSAA_URL')?.trim() ||
@@ -117,12 +123,15 @@ export class ArcaHomologationService implements IArcaService {
   async login(): Promise<ArcaAuthTicket> {
     const now = new Date();
 
-    // Check cached ticket validity (reuse if more than 10 minutes remaining)
-    if (this.cachedTicket) {
-      const expDate = new Date(this.cachedTicket.expirationTime);
-      if (expDate.getTime() - now.getTime() > 10 * 60 * 1000) {
-        return this.cachedTicket;
-      }
+    // Check in-process cache first (avoids a Redis round-trip on the hot path).
+    if (this.cachedTicket && this.hasRenewalMargin(this.cachedTicket, now)) {
+      return this.cachedTicket;
+    }
+
+    const sharedTicket = await this.ticketCache.get(this.arcaEnv, this.cuit);
+    if (sharedTicket && this.hasRenewalMargin(sharedTicket, now)) {
+      this.cachedTicket = sharedTicket;
+      return sharedTicket;
     }
 
     const certData = this.certLoader.loadCertificate();
@@ -145,11 +154,17 @@ export class ArcaHomologationService implements IArcaService {
     const ticket = this.parseLoginTicketResponse(soapResponseXml);
 
     this.cachedTicket = ticket;
+    await this.ticketCache.set(this.arcaEnv, this.cuit, ticket);
     this.logger.log(
       `[ARCA WSAA] Authenticated successfully. Ticket valid until ${ticket.expirationTime}.`,
     );
 
     return ticket;
+  }
+
+  private hasRenewalMargin(ticket: ArcaAuthTicket, now: Date): boolean {
+    const expDate = new Date(ticket.expirationTime);
+    return expDate.getTime() - now.getTime() > 10 * 60 * 1000;
   }
 
   /**
