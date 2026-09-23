@@ -2,12 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { ServiceUnavailableException } from '@nestjs/common';
 import * as forge from 'node-forge';
+import { FiscalDocumentType } from '@erp/shared-types';
 import { ArcaHomologationService } from './arca-homologation.service';
 import {
   ArcaCertificateLoader,
   ArcaCertificateData,
 } from './arca-certificate-loader.service';
 import { ArcaClockSyncService } from './arca-clock-sync.service';
+import { WsfeRejectedError } from './wsfe-soap-client.service';
 
 describe('ArcaHomologationService', () => {
   let service: ArcaHomologationService;
@@ -43,6 +45,7 @@ describe('ArcaHomologationService', () => {
       ARCA_CUIT: '20123456789',
       ARCA_PUNTO_VENTA: 1,
       ARCA_WSAA_URL: 'https://wsaahomo.afip.gov.ar/ws/services/LoginCms',
+      ARCA_WSFE_URL: 'https://wswhomo.afip.gov.ar/wsfev1/service.asmx',
     };
 
     mockCertLoader = {
@@ -115,9 +118,27 @@ describe('ArcaHomologationService', () => {
               cuit: '20123456789',
               puntoVenta: 1,
               wsaaUrl: 'http://insecure.afip.gov.ar',
+              wsfeUrl: 'https://wswhomo.afip.gov.ar/wsfev1/service.asmx',
             },
           ),
       ).toThrow(/ARCA_WSAA_URL must be a valid HTTPS URL/);
+    });
+
+    it('should throw if ARCA_WSFE_URL is not HTTPS', () => {
+      expect(
+        () =>
+          new ArcaHomologationService(
+            mockCertLoader as ArcaCertificateLoader,
+            mockClockSync as ArcaClockSyncService,
+            { get: () => undefined } as any,
+            {
+              cuit: '20123456789',
+              puntoVenta: 1,
+              wsaaUrl: 'https://wsaahomo.afip.gov.ar/ws/services/LoginCms',
+              wsfeUrl: 'http://insecure-wsfe.afip.gov.ar',
+            },
+          ),
+      ).toThrow(/ARCA_WSFE_URL must be a valid HTTPS URL/);
     });
   });
 
@@ -163,13 +184,83 @@ describe('ArcaHomologationService', () => {
     });
   });
 
-  describe('Fail-Closed Sprint 8 Boundaries', () => {
-    it('should throw ServiceUnavailableException for requestCAE (deferred to Sprint 8)', async () => {
-      await expect(service.requestCAE({} as any)).rejects.toThrow(/Sprint 8/);
+  describe('WSFE requestCAE / queryDocument / getLastAuthorizedNumber', () => {
+    const fiscalData = {
+      documentType: FiscalDocumentType.FACTURA_B,
+      pointOfSale: 1,
+      documentNumber: 42,
+      taxableNetAmount: 100,
+      exemptAmount: 0,
+      nonTaxedAmount: 0,
+      ivaAmount: 21,
+      totalAmount: 121,
+      ivaBreakdown: [
+        {
+          arcaRateId: 5 as const,
+          percentage: 21,
+          taxableBase: 100,
+          amount: 21,
+        },
+      ],
+    };
+
+    beforeEach(() => {
+      jest.spyOn(service, 'login').mockResolvedValue({
+        token: 'tok',
+        sign: 'sig',
+        expirationTime: new Date(Date.now() + 3600_000).toISOString(),
+      });
     });
 
-    it('should throw ServiceUnavailableException for queryDocument (deferred to Sprint 8)', async () => {
-      await expect(service.queryDocument(1, 1, 1)).rejects.toThrow(/Sprint 8/);
+    it('requestCAE invokes WSFE with the mapped CbteTipo and returns the CAE', async () => {
+      const wsfeClient = (service as any).wsfeClient;
+      const spy = jest.spyOn(wsfeClient, 'requestCae').mockResolvedValue({
+        cae: '70123456789012',
+        caeExpiration: '20260201',
+      });
+
+      const result = await service.requestCAE(fiscalData);
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({ token: 'tok' }),
+        '20123456789',
+        6,
+        fiscalData,
+      );
+      expect(result).toEqual({
+        cae: '70123456789012',
+        caeExpiration: '20260201',
+      });
+    });
+
+    it('requestCAE propagates WsfeRejectedError without sanitizing AFIP observations', async () => {
+      const wsfeClient = (service as any).wsfeClient;
+      jest
+        .spyOn(wsfeClient, 'requestCae')
+        .mockRejectedValue(new WsfeRejectedError('rechazado', 'CUIT inválido'));
+
+      await expect(service.requestCAE(fiscalData)).rejects.toThrow(
+        WsfeRejectedError,
+      );
+    });
+
+    it('queryDocument returns null when ARCA has no record', async () => {
+      const wsfeClient = (service as any).wsfeClient;
+      jest.spyOn(wsfeClient, 'queryDocument').mockResolvedValue(null);
+
+      const result = await service.queryDocument(6, 1, 42);
+      expect(result).toBeNull();
+    });
+
+    it('getLastAuthorizedNumber returns the number reported by WSFE', async () => {
+      const wsfeClient = (service as any).wsfeClient;
+      jest.spyOn(wsfeClient, 'getLastAuthorized').mockResolvedValue(41);
+
+      const result = await service.getLastAuthorizedNumber(
+        FiscalDocumentType.FACTURA_B,
+        1,
+      );
+      expect(result).toBe(41);
     });
   });
 

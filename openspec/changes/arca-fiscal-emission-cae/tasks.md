@@ -6,11 +6,11 @@
 
 ## 2. Transporte WSFE (SOAP crudo)
 
-- [ ] 2.1 Crear `WsfeSoapClientService` con métodos para construir y enviar `FECompUltimoAutorizado`, `FECAESolicitar` y `FECompConsultar` (template XML + `https.request`, mismo timeout de 10 s que WSAA), y parsear las respuestas (CAE, vencimiento, número autorizado, o fault); verificar con unit tests que mockean `https` cubriendo respuesta exitosa, fault SOAP y respuesta incompleta.
-- [ ] 2.2 Sanitizar cualquier log/error de `WsfeSoapClientService` para no incluir Token/Sign, certificado ni XML completo; verificar con un test que fuerza un error y aserta que el mensaje no contiene esos valores.
-- [ ] 2.3 Implementar `ArcaHomologationService.requestCAE()` usando `WsfeSoapClientService` + el número reservado (ver tarea 4.2); verificar con unit test que, dado un `FiscalDocumentData` válido, invoca `FECAESolicitar` con los importes correctos y devuelve CAE/vencimiento.
-- [ ] 2.4 Implementar `ArcaHomologationService.queryDocument()` usando `FECompConsultar`; verificar con unit test que devuelve `null` cuando ARCA no tiene el comprobante y el objeto mapeado cuando sí.
-- [ ] 2.5 Verificar que `ARCA_ENV=homologation` con configuración incompleta (falta `ARCA_CUIT`/`ARCA_PUNTO_VENTA`/URL WSFE) sigue rechazando la emisión sin contactar ARCA (test existente de `validateHomologationConfig` extendido si aplica).
+- [x] 2.1 Crear `WsfeSoapClientService` con métodos para construir y enviar `FECompUltimoAutorizado`, `FECAESolicitar` y `FECompConsultar` (template XML + `https.request`, mismo timeout de 10 s que WSAA), y parsear las respuestas (CAE, vencimiento, número autorizado, o fault); verificar con unit tests que mockean `https` cubriendo respuesta exitosa, fault SOAP y respuesta incompleta.
+- [x] 2.2 Sanitizar cualquier log/error de `WsfeSoapClientService` para no incluir Token/Sign, certificado ni XML completo; verificar con un test que fuerza un error y aserta que el mensaje no contiene esos valores.
+- [x] 2.3 Implementar `ArcaHomologationService.requestCAE()` usando `WsfeSoapClientService` + el número reservado (ver tarea 4.2); verificar con unit test que, dado un `FiscalDocumentData` válido, invoca `FECAESolicitar` con los importes correctos y devuelve CAE/vencimiento.
+- [x] 2.4 Implementar `ArcaHomologationService.queryDocument()` usando `FECompConsultar`; verificar con unit test que devuelve `null` cuando ARCA no tiene el comprobante y el objeto mapeado cuando sí.
+- [x] 2.5 Verificar que `ARCA_ENV=homologation` con configuración incompleta (falta `ARCA_CUIT`/`ARCA_PUNTO_VENTA`/URL WSFE) sigue rechazando la emisión sin contactar ARCA (test existente de `validateHomologationConfig` extendido si aplica).
 
 ## 3. Caché compartida de ticket WSAA en Redis
 
