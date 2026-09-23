@@ -2,7 +2,7 @@
 
 ## 1. Migración de base de datos
 
-- [ ] 1.1 Crear migración TypeORM que agregue `CREATE UNIQUE INDEX ... ON fiscal_documents (document_type, point_of_sale, document_number) WHERE document_number IS NOT NULL`, con `down()` que la elimina; verificar corriendo `npm run migration:run` y `migration:revert` localmente sin error.
+- [x] 1.1 Crear migración TypeORM que agregue `CREATE UNIQUE INDEX ... ON fiscal_documents (document_type, point_of_sale, document_number) WHERE document_number IS NOT NULL`, con `down()` que la elimina; verificar corriendo `npm run migration:run` y `migration:revert` localmente sin error.
 
 ## 2. Transporte WSFE (SOAP crudo)
 
