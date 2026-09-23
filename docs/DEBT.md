@@ -72,7 +72,7 @@ datos → owner técnico. Afecta seguridad, datos de cliente o contrato → Dire
 ## D-06 · Branch protection no configurada en `dev` (CRITICAL)
 
 - **Qué hay:** `gh api repos/Benjalopezz27/erp-medico/branches/dev/protection` devuelve `404
-  Branch not protected` — a diferencia de un plan que lo bloquea (403 Upgrade), acá el mecanismo
+Branch not protected` — a diferencia de un plan que lo bloquea (403 Upgrade), acá el mecanismo
   existe y simplemente no está activado.
 - **Costo de seguir así:** §5.1, §9.5 y §10.3 dependen solo del hook local `pre-commit`, que se
   saltea con `--no-verify`. Nada impide un push directo a `dev` desde GitHub.

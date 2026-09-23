@@ -119,9 +119,9 @@ la rama equivocada. Verificar siempre con `git rev-parse --abbrev-ref HEAD` ante
 Control real en `.claude/settings.json` (reglas `deny`). Esta tabla explica; ese archivo impide.
 Una allowlist que solo vive en un documento no es una allowlist (P5).
 
-| Servidor  | Para qué                                  | Scope                                                                                                                          |
-| --------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| `Figma`   | Leer diseños y wireframes al implementar   | **Solo lectura**: `get_design_context`, `get_screenshot`, `get_metadata`, `get_variable_defs`. Crear/editar en Figma denegado |
+| Servidor  | Para qué                                                                              | Scope                                                                                                                                                                                                                  |
+| --------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Figma`   | Leer diseños y wireframes al implementar                                              | **Solo lectura**: `get_design_context`, `get_screenshot`, `get_metadata`, `get_variable_defs`. Crear/editar en Figma denegado                                                                                          |
 | `railway` | Diagnóstico de staging/producción (logs, métricas, estado, variables de solo lectura) | **Solo lectura**. Todo verbo de escritura o destructivo (`deploy`, `restart`, `delete-*`, `set-*`, `create-*`, `update-*`) está denegado — el proyecto es fiscal (§8.6), nada toca producción sin un humano ejecutando |
 
 Cualquiera fuera de esta tabla no se usa. Incorporar uno nuevo requiere aprobación del owner
@@ -136,19 +136,19 @@ externas.
 
 No son MCP, pero también llevan scope (§8.1):
 
-| CLI  | Para qué                        | Límites                                                                                                     |
-| ---- | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `gh` | Issues, PRs, board, ver Actions  | Modificar CI, ramas protegidas o configuración del repositorio requiere aprobación del owner técnico          |
+| CLI  | Para qué                        | Límites                                                                                              |
+| ---- | ------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `gh` | Issues, PRs, board, ver Actions | Modificar CI, ramas protegidas o configuración del repositorio requiere aprobación del owner técnico |
 
 ## 8. Zonas sensibles del código
 
-| Archivo / módulo                                          | Por qué se rompe caro                                              |
-| ----------------------------------------------------------- | --------------------------------------------------------------------- |
+| Archivo / módulo                                             | Por qué se rompe caro                                                 |
+| ------------------------------------------------------------ | --------------------------------------------------------------------- |
 | Integración ARCA/AFIP (`ArcaHomologationService`, WSAA/WSFE) | Datos fiscales reales. Un error emite mal un comprobante a un tercero |
 | Numeración de comprobantes por punto de venta                | Colisión entre jobs concurrentes duplica o salta numeración fiscal    |
 | `docs/decimal_policy.md` y su implementación                 | Redondeo incorrecto en montos/IVA es un error fiscal, no solo un bug  |
-| `secrets/` y variables Railway de ARCA                        | Certificado y contraseña de homologación/producción                  |
-| Migraciones TypeORM                                           | Corren contra datos reales de stock y ventas en staging/producción    |
+| `secrets/` y variables Railway de ARCA                       | Certificado y contraseña de homologación/producción                   |
+| Migraciones TypeORM                                          | Corren contra datos reales de stock y ventas en staging/producción    |
 
 <<HUECO M-03>> — la lista se completa con el owner técnico; hoy es una primera aproximación
 derivada del README y de las issues de Sprint 8, no una auditoría exhaustiva del código.
