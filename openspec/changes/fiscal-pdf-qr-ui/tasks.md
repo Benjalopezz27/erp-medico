@@ -36,11 +36,11 @@
 
 ## 4. Cola `pdf-generate` y processor del worker
 
-- [ ] 4.1 Agregar `PDF_GENERATE_QUEUE_NAME`/`PDF_GENERATE_JOB_NAME` a `queue.constants.ts` y crear
+- [x] 4.1 Agregar `PDF_GENERATE_QUEUE_NAME`/`PDF_GENERATE_JOB_NAME` a `queue.constants.ts` y crear
       `PdfGenerateQueueService` (producer) siguiendo el patrón de `FiscalInvoiceQueueService`, con
       `jobId = "pdf-generate:" + fiscalDocumentId`; verificar con unit test que un segundo enqueue
       para el mismo `fiscalDocumentId` no crea un job duplicado.
-- [ ] 4.2 Crear `PdfGenerateProcessor` (consumer, en `QueueConsumerModule`/`WorkerModule`) que:
+- [x] 4.2 Crear `PdfGenerateProcessor` (consumer, en `QueueConsumerModule`/`WorkerModule`) que:
       carga el `FiscalDocument` con lock de fila, no hace nada si `arcaStatus !== 'EMITIDO'`, no
       regenera si `pdf_status === 'DISPONIBLE'` y checksum/versión de template coinciden, marca
       `GENERANDO`, genera QR (2) + PDF (3), persiste atómicamente `pdf_data`, `pdf_checksum`,
@@ -48,21 +48,21 @@
       `qr_code_data`; verificar con unit tests: happy path, documento sin CAE (no-op), documento ya
       `DISPONIBLE` con mismo checksum/versión (no regenera), y checksum/versión distintos
       (regenera).
-- [ ] 4.3 En error de render, persistir `pdf_status: 'ERROR'` y `pdf_error_message` sanitizado, sin
+- [x] 4.3 En error de render, persistir `pdf_status: 'ERROR'` y `pdf_error_message` sanitizado, sin
       tocar `arcaStatus`/`cae`/`caeExpirationDate`; verificar con unit test que fuerza un error de
       `FiscalPdfTemplateService` y aserta que el `FiscalDocument` conserva `EMITIDO` y su CAE.
-- [ ] 4.4 Verificar con test de integración que dos ejecuciones concurrentes del job para el mismo
+- [x] 4.4 Verificar con test de integración que dos ejecuciones concurrentes del job para el mismo
       `fiscalDocumentId` (mismo `jobId`, o dos workers procesando el mismo registro) convergen a un
       único artefacto final sin condición de carrera.
 
 ## 5. Encolado post-CAE
 
-- [ ] 5.1 En `FiscalInvoiceProcessor`, después del `UPDATE` exitoso que persiste `EMITIDO`
+- [x] 5.1 En `FiscalInvoiceProcessor`, después del `UPDATE` exitoso que persiste `EMITIDO`
       (`processWithLock`, branch de éxito), encolar `pdfGenerateQueueService.enqueue({
       fiscalDocumentId })` en un `try/catch` que sólo loguea; verificar con unit test que una
       emisión exitosa encola el job, y que si el enqueue lanza, la emisión fiscal igual queda
       persistida como `EMITIDO`.
-- [ ] 5.2 Verificar con unit test que una emisión rechazada (`RECHAZADO`) o un no-op (documento ya
+- [x] 5.2 Verificar con unit test que una emisión rechazada (`RECHAZADO`) o un no-op (documento ya
       procesado) nunca encola `pdf-generate`.
 
 ## 6. Contrato de detalle fiscal

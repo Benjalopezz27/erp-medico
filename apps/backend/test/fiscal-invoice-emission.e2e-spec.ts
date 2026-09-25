@@ -29,6 +29,7 @@ import { IArcaService } from '../src/modules/arca/interfaces/arca-service.interf
 import { InvoiceTypeResolverService } from '../src/modules/arca/services/invoice-type-resolver.service';
 import { FiscalNumberingService } from '../src/modules/sales/services/fiscal-numbering.service';
 import { FiscalInvoiceProcessor } from '../src/modules/queue/processors/fiscal-invoice.processor';
+import { PdfGenerateQueueService } from '../src/modules/queue/services/pdf-generate.queue';
 
 /**
  * Runs the wsfe-emit consumer in-process (no BullMQ/Redis worker involved)
@@ -46,6 +47,7 @@ function buildProcessor(app: INestApplication, ds: DataSource) {
     app.get(InvoiceTypeResolverService),
     new FiscalNumberingService(ds),
     app.get(ConfigService),
+    app.get(PdfGenerateQueueService),
   );
 }
 
