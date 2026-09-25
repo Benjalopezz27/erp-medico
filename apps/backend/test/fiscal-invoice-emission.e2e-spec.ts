@@ -319,4 +319,49 @@ describe('Fiscal invoice emission pipeline (E2E)', () => {
       .count({ where: { saleId: cashRes.body.id } });
     expect(fiscalDocCount).toBe(0);
   });
+
+  it('two workers racing the same document against real Postgres: only one calls ARCA and persists a CAE', async () => {
+    const product = await createProduct('RACE1', 10);
+    const customer = await createCustomer();
+
+    const saleRes = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        customerId: customer.id,
+        isCreditSale: true,
+        requiresFiscalInvoice: true,
+        paymentMethod: PaymentMethod.CTA_CTE,
+        items: [{ productId: product.id, quantityBase: 1 }],
+      })
+      .expect(201);
+
+    const fiscalDocumentId = saleRes.body.fiscalDocument.id;
+    const arcaService = app.get<IArcaService>(ARCA_SERVICE);
+    const requestCAESpy = jest.spyOn(arcaService, 'requestCAE');
+
+    // Two independent processor instances (as two worker processes would be),
+    // firing at the same document at the same time via Promise.all: this is
+    // what the pessimistic row lock in fiscal-invoice.processor.ts and the
+    // same-connection numbering in fiscal-numbering.service.ts must
+    // serialize — without them this either double-submits to ARCA or hangs.
+    const [first, second] = await Promise.all([
+      buildProcessor(app, ds).process({
+        data: { fiscalDocumentId },
+      } as any),
+      buildProcessor(app, ds).process({
+        data: { fiscalDocumentId },
+      } as any),
+    ]);
+
+    const outcomes = [first.status, second.status].sort();
+    expect(outcomes).toEqual(['emitted', 'skipped']);
+    expect(requestCAESpy).toHaveBeenCalledTimes(1);
+
+    const persisted = await ds
+      .getRepository(FiscalDocument)
+      .findOneByOrFail({ id: fiscalDocumentId });
+    expect(persisted.arcaStatus).toBe(ArcaStatus.EMITIDO);
+    expect(persisted.cae).toBeTruthy();
+  });
 });

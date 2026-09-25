@@ -188,36 +188,6 @@ describe('FiscalInvoiceProcessor', () => {
     );
   });
 
-  it('two workers racing the same document: the second sees it already resolved once it acquires the row lock', async () => {
-    // Simulate the row lock serializing access: the second transaction only
-    // runs after the first has persisted EMITIDO, so its own findOne (same
-    // mocked repo) must reflect that by the time it executes.
-    let resolvedAfterFirst = { ...fiscalDocument };
-    repos.FiscalDocument.findOne = jest
-      .fn()
-      .mockImplementation(() => Promise.resolve({ ...resolvedAfterFirst }));
-    repos.FiscalDocument.update = jest.fn().mockImplementation(() => {
-      resolvedAfterFirst = {
-        ...resolvedAfterFirst,
-        arcaStatus: ArcaStatus.EMITIDO,
-      };
-      return Promise.resolve({ affected: 1 });
-    });
-
-    const first = await processor.process({
-      id: 'job-1',
-      data: { fiscalDocumentId: 'doc-1' },
-    } as any);
-    const second = await processor.process({
-      id: 'job-1',
-      data: { fiscalDocumentId: 'doc-1' },
-    } as any);
-
-    expect(first).toEqual({ status: 'emitted', fiscalDocumentId: 'doc-1' });
-    expect(second).toEqual({ status: 'skipped', fiscalDocumentId: 'doc-1' });
-    expect(arcaService.requestCAE).toHaveBeenCalledTimes(1);
-  });
-
   it('is a no-op when the document is already EMITIDO (idempotent replay)', async () => {
     repos.FiscalDocument.findOne.mockResolvedValue({
       ...fiscalDocument,
