@@ -20,8 +20,8 @@
 
 ## 4. Resolución de tipo de comprobante y numeración
 
-- [ ] 4.1 Crear `InvoiceTypeResolverService` que devuelve `FACTURA_A`/`FACTURA_B` a partir de `Customer.taxCondition`/`documentType` y la condición fiscal del emisor (config); verificar con unit tests para RESPONSABLE_INSCRIPTO+CUIT, MONOTRIBUTO+CUIT, CONSUMIDOR_FINAL, EXENTO y CUIT inválido.
-- [ ] 4.2 Implementar el helper de numeración serializada (`pg_advisory_lock`/`pg_advisory_unlock` por `hashtext(pointOfSale:documentType)`) que consulta `FECompUltimoAutorizado`, calcula `nextNumber`, y persiste `documentNumber` en el `FiscalDocument` antes de invocar `FECAESolicitar`; verificar con un test de integración (Postgres real o testcontainer) que dos llamadas concurrentes para el mismo punto de venta/tipo obtienen números consecutivos sin colisión.
+- [x] 4.1 Crear `InvoiceTypeResolverService` que devuelve `FACTURA_A`/`FACTURA_B` a partir de `Customer.taxCondition`/`documentType` y la condición fiscal del emisor (config); verificar con unit tests para RESPONSABLE_INSCRIPTO+CUIT, MONOTRIBUTO+CUIT, CONSUMIDOR_FINAL, EXENTO y CUIT inválido.
+- [x] 4.2 Implementar el helper de numeración serializada (`pg_advisory_lock`/`pg_advisory_unlock` por `hashtext(pointOfSale:documentType)`) que consulta `FECompUltimoAutorizado`, calcula `nextNumber`, y persiste `documentNumber` en el `FiscalDocument` antes de invocar `FECAESolicitar`; verificar con un test de integración (Postgres real o testcontainer) que dos llamadas concurrentes para el mismo punto de venta/tipo obtienen números consecutivos sin colisión.
 - [ ] 4.3 Verificar que el índice único de la tarea 1.1 rechaza un `UPDATE` con `(documentType, pointOfSale, documentNumber)` duplicado, y que el código que persiste el resultado maneja ese conflicto recargando el documento en vez de lanzar un 500 sin contexto.
 
 ## 5. Cola `wsfe-emit` y processor del worker
