@@ -103,4 +103,23 @@ describe('Sidebar permissions and badges', () => {
       screen.getByTestId('price-reviews-pending-badge'),
     );
   });
+
+  it('renders the fiscal alerts pending/rejected count for admins and hides zero', async () => {
+    server.use(
+      http.get('*/api/v1/sales/pending-fiscal/count', () =>
+        HttpResponse.json({ pending: 2, rejected: 1, total: 3 }),
+      ),
+    );
+    renderSidebar(UserRole.ADMINISTRADOR);
+    expect(await screen.findByTestId('fiscal-alerts-badge')).toHaveTextContent('3');
+    expect(screen.getByRole('button', { name: /administración/i })).toContainElement(
+      screen.getByTestId('fiscal-alerts-badge'),
+    );
+  });
+
+  it('does not request the fiscal alerts count for a seller', async () => {
+    renderSidebar(UserRole.VENDEDOR);
+    expect(await screen.findByRole('link', { name: /productos/i })).toBeInTheDocument();
+    expect(screen.queryByTestId('fiscal-alerts-badge')).not.toBeInTheDocument();
+  });
 });
