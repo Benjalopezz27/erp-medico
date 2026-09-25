@@ -22,6 +22,13 @@ export enum ArcaStatus {
 
 export type ARCAStatus = ArcaStatus;
 
+export enum PdfArtifactStatus {
+  PENDIENTE = 'PENDIENTE',
+  GENERANDO = 'GENERANDO',
+  DISPONIBLE = 'DISPONIBLE',
+  ERROR = 'ERROR',
+}
+
 export enum SalesErrorCode {
   SALE_NOT_FOUND = 'SALE_NOT_FOUND',
   SALE_INVALID_DATE_RANGE = 'SALE_INVALID_DATE_RANGE',

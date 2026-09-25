@@ -8,7 +8,11 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { ArcaStatus, FiscalDocumentType } from '@erp/shared-types';
+import {
+  ArcaStatus,
+  FiscalDocumentType,
+  PdfArtifactStatus,
+} from '@erp/shared-types';
 import { Sale } from './sale.entity';
 import { SaleReturn } from '../returns/entities/sale-return.entity';
 
@@ -59,6 +63,37 @@ export class FiscalDocument {
 
   @Column({ name: 'issued_at', type: 'timestamptz', nullable: true })
   issuedAt: Date | null;
+
+  @Column({ name: 'pdf_data', type: 'bytea', nullable: true })
+  pdfData: Buffer | null;
+
+  @Column({ name: 'pdf_checksum', type: 'varchar', length: 64, nullable: true })
+  pdfChecksum: string | null;
+
+  @Column({ name: 'pdf_size_bytes', type: 'integer', nullable: true })
+  pdfSizeBytes: number | null;
+
+  @Column({
+    name: 'pdf_template_version',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
+  pdfTemplateVersion: string | null;
+
+  @Column({ name: 'pdf_generated_at', type: 'timestamptz', nullable: true })
+  pdfGeneratedAt: Date | null;
+
+  @Column({
+    name: 'pdf_status',
+    type: 'varchar',
+    length: 20,
+    default: PdfArtifactStatus.PENDIENTE,
+  })
+  pdfStatus: PdfArtifactStatus;
+
+  @Column({ name: 'pdf_error_message', type: 'text', nullable: true })
+  pdfErrorMessage: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;

@@ -2,6 +2,7 @@ import {
   SaleStatus,
   FiscalDocumentType,
   ArcaStatus,
+  PdfArtifactStatus,
   SaleReturnItemQuality,
 } from '../enums/sales.enum';
 import { AccountReceivableStatus, PaymentMethod } from '../enums/financial.enum';
@@ -57,6 +58,10 @@ export interface IFiscalDocument {
   arcaErrorMessage?: string | null;
   qrCodeData?: string | null;
   issuedAt?: Date | string | null;
+  pdfStatus: PdfArtifactStatus;
+  qrAvailable: boolean;
+  pdfGeneratedAt?: Date | string | null;
+  pdfSizeBytes?: number | null;
 }
 
 export interface ISaleAccountReceivable {
