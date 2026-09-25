@@ -23,15 +23,15 @@
 
 ## 3. Template PDF
 
-- [ ] 3.1 Crear `FiscalPdfTemplateService` (`pdf-lib`) con `PDF_TEMPLATE_VERSION = 'v1'`, que
+- [x] 3.1 Crear `FiscalPdfTemplateService` (`pdf-lib`) con `PDF_TEMPLATE_VERSION = 'v1'`, que
       renderice emisor, receptor (snapshot de venta, no `Customer` actual), tipo/número, fecha,
       ítems/cantidades/netos/IVA/total, CAE, vencimiento e imagen QR (PNG generado con `qrcode`
       desde el payload de la tarea 2.1) embebida; verificar con unit test que el buffer resultante
       empieza con la firma `%PDF` y contiene el texto esperado (extracción básica de texto).
-- [ ] 3.2 Verificar con unit tests: comprobante con caracteres especiales (acentos/ñ) en
+- [x] 3.2 Verificar con unit tests: comprobante con caracteres especiales (acentos/ñ) en
       nombre/dirección, comprobante con múltiples páginas (muchos ítems), y comprobante sin campos
       opcionales (sin dirección de receptor, etc.) no rompen el render.
-- [ ] 3.3 Verificar con unit test que el checksum SHA-256 del PDF generado dos veces para el mismo
+- [x] 3.3 Verificar con unit test que el checksum SHA-256 del PDF generado dos veces para el mismo
       `FiscalDocument` sin cambios es estable (mismo buffer, mismo hash).
 
 ## 4. Cola `pdf-generate` y processor del worker
