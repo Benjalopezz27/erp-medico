@@ -157,6 +157,7 @@ export class FiscalInvoiceProcessor implements OnModuleInit, OnModuleDestroy {
         pointOfSale,
         () =>
           this.arcaService.getLastAuthorizedNumber(documentType, pointOfSale),
+        manager,
       );
 
       const { docType, docNumber } = this.resolveReceiverDocument(customer);

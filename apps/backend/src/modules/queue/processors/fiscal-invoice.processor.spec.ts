@@ -151,6 +151,7 @@ describe('FiscalInvoiceProcessor', () => {
       FiscalDocumentType.FACTURA_A,
       1,
       expect.any(Function),
+      expect.anything(),
     );
     expect(arcaService.requestCAE).toHaveBeenCalledWith(
       expect.objectContaining({
