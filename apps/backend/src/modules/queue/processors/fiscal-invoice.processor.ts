@@ -135,8 +135,7 @@ export class FiscalInvoiceProcessor implements OnModuleInit, OnModuleDestroy {
         );
 
       const pointOfSale =
-        document.pointOfSale ??
-        Number(this.configService.get<number>('ARCA_PUNTO_VENTA'));
+        document.pointOfSale ?? this.resolveEmisorPointOfSale();
 
       const documentNumber = await this.numberingService.reserveNextNumber(
         fiscalDocumentId,
@@ -253,6 +252,18 @@ export class FiscalInvoiceProcessor implements OnModuleInit, OnModuleDestroy {
       .getRepository(SaleItem)
       .find({ where: { saleId: document.saleId } });
     return buildFiscalAmounts(items);
+  }
+
+  private resolveEmisorPointOfSale(): number {
+    const configured = Number(
+      this.configService.get<number>('ARCA_PUNTO_VENTA'),
+    );
+    if (!configured || Number.isNaN(configured) || configured < 1) {
+      throw new Error(
+        '[ARCA] ARCA_PUNTO_VENTA no está configurado; no se puede resolver el punto de venta del emisor.',
+      );
+    }
+    return configured;
   }
 
   private resolveReceiverDocument(customer: Customer | null): {

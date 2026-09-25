@@ -108,6 +108,7 @@ jobs:
           SEED_ADMIN_PASSWORD: TestAdminPassword123!
           SEED_VENDEDOR_PASSWORD: TestVendedorPassword123!
           ARCA_ENV: development
+          ARCA_PUNTO_VENTA: '1'
 
       - name: Run Backend E2E Tests
         run: pnpm --filter @erp/backend run test:e2e
@@ -125,6 +126,7 @@ jobs:
           SEED_ADMIN_PASSWORD: TestAdminPassword123!
           SEED_VENDEDOR_PASSWORD: TestVendedorPassword123!
           ARCA_ENV: development
+          ARCA_PUNTO_VENTA: '1'
 
   frontend-test:
     name: Frontend Unit & Component Tests
