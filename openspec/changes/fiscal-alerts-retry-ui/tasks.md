@@ -84,8 +84,8 @@
 
 - [x] 8.1 Correr `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` y
       confirmar CI local en verde antes de abrir PR.
-- [ ] 8.2 Smoke manual con Claude in Chrome contra la app corriendo con mocks: login
+- [x] 8.2 Smoke manual con Claude in Chrome contra la app corriendo con mocks: login
       Administrador → `/admin/fiscal-alerts` → filtrar → reintentar → ver conteo/detalle
       actualizados; login Vendedor → confirmar rechazo de acceso directo a la URL.
-- [ ] 8.3 Dejar registrado en el PR/issue el seguimiento pendiente: reemplazar tipos y mocks
+- [x] 8.3 Dejar registrado en el PR/issue el seguimiento pendiente: reemplazar tipos y mocks
       provisionales por el contrato real de #226 cuando esa issue se mergee a `dev`.
