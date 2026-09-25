@@ -172,6 +172,9 @@ import { SalesNewPage } from '@/pages/sales/SalesNewPage';
 import { SaleDetailPage } from '@/pages/sales/SaleDetailPage';
 import { validateSaleSearchParams } from '@/features/sales/schemas/sales.schema';
 export { validateSaleSearchParams };
+import { FiscalAlertsPage } from '@/pages/admin/FiscalAlertsPage';
+import { validateFiscalAlertsSearchParams } from '@/features/fiscal-alerts/schemas/fiscal-alerts.schema';
+export { validateFiscalAlertsSearchParams };
 
 export function validateCustomerSearchParams(
   search: Record<string, unknown>,
@@ -798,6 +801,14 @@ const adminMarkupsRoute = createRoute({
   component: () => <MarkupsPage />,
 });
 
+const fiscalAlertsRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/admin/fiscal-alerts',
+  validateSearch: validateFiscalAlertsSearchParams,
+  beforeLoad: () => requireRoutePermission('/admin/fiscal-alerts'),
+  component: () => <FiscalAlertsPage />,
+});
+
 const priceReviewsRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/prices/review',
@@ -842,6 +853,7 @@ const routeTree = rootRoute.addChildren([
     settingsRoute,
     adminUsersRoute,
     adminMarkupsRoute,
+    fiscalAlertsRoute,
     priceReviewsRoute,
   ]),
 ]);
