@@ -18,6 +18,10 @@ export class SalesMapper {
       cae: doc.cae,
       caeExpirationDate: doc.caeExpirationDate,
       issuedAt: doc.issuedAt,
+      pdfStatus: doc.pdfStatus,
+      qrAvailable: Boolean(doc.qrCodeData),
+      pdfGeneratedAt: doc.pdfGeneratedAt,
+      pdfSizeBytes: doc.pdfSizeBytes,
     };
   }
 

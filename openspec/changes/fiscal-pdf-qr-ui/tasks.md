@@ -67,11 +67,11 @@
 
 ## 6. Contrato de detalle fiscal
 
-- [ ] 6.1 Extender `FiscalDocumentResponseDto` (`packages/shared-types` + backend) con
+- [x] 6.1 Extender `FiscalDocumentResponseDto` (`packages/shared-types` + backend) con
       `qrAvailable: boolean`, `pdfStatus: 'PENDIENTE'|'GENERANDO'|'DISPONIBLE'|'ERROR'`,
       `pdfGeneratedAt?: string`, `pdfSizeBytes?: number`, sin exponer `pdfData`/`qrCodeData`
       crudos; verificar que el paquete y el backend compilan (`tsc --noEmit`).
-- [ ] 6.2 Actualizar el mapper de `SalesService`/`SaleReturnsService` que arma
+- [x] 6.2 Actualizar el mapper de `SalesService`/`SaleReturnsService` que arma
       `FiscalDocumentResponseDto` para incluir estos campos; verificar con unit test para los
       cuatro estados de `pdfStatus`.
 
