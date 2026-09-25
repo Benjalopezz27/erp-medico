@@ -40,9 +40,9 @@
 
 ## 7. Endpoint de consulta
 
-- [ ] 7.1 Agregar `FiscalDocumentResponseDto` en `packages/shared-types` con los campos de estado y datos fiscales autorizados; verificar que el paquete compila (`tsc --noEmit` o build del workspace).
-- [ ] 7.2 Agregar `GET /sales/:id/fiscal-document` en `SalesController` (mismos guards/roles de clase: ADMINISTRADOR, VENDEDOR) con su mapper; verificar con unit test de controller/service para 200 (`EMITIDO`), 200 (`PENDIENTE_FACTURACION`), 404 (sin documento) y documentar en Swagger.
-- [ ] 7.3 Verificar 401 sin token y 403 con rol no autorizado mediante test e2e ligero o de guard.
+- [x] 7.1 Agregar `FiscalDocumentResponseDto` en `packages/shared-types` con los campos de estado y datos fiscales autorizados; verificar que el paquete compila (`tsc --noEmit` o build del workspace).
+- [x] 7.2 Agregar `GET /sales/:id/fiscal-document` en `SalesController` (mismos guards/roles de clase: ADMINISTRADOR, VENDEDOR) con su mapper; verificar con unit test de controller/service para 200 (`EMITIDO`), 200 (`PENDIENTE_FACTURACION`), 404 (sin documento) y documentar en Swagger.
+- [x] 7.3 Verificar 401 sin token y 403 con rol no autorizado mediante test e2e ligero o de guard.
 
 ## 8. Pruebas end-to-end y regresión
 

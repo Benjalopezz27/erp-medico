@@ -90,6 +90,7 @@ describe('SalesService', () => {
         return sale;
       }),
       createQueryBuilder: jest.fn(() => detailQuery),
+      findOne: jest.fn(async () => sale),
     };
     const itemRepository = {
       create: jest.fn((value) => value),
@@ -105,6 +106,7 @@ describe('SalesService', () => {
         fiscalDocument = { id: 'fiscal-1', ...value };
         return fiscalDocument;
       }),
+      findOne: jest.fn(async () => fiscalDocument),
     };
     const debtRepository = { findOne: jest.fn(async () => debt) };
     manager = {
@@ -318,6 +320,78 @@ describe('SalesService', () => {
     expect(result.status).toBe(SaleStatus.CONFIRMADA);
     expect(result.fiscalDocument).toMatchObject({
       arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
+    });
+  });
+
+  describe('findFiscalDocument', () => {
+    it('returns 200 with CAE data when EMITIDO', async () => {
+      sale = { id: 'sale-1' };
+      fiscalDocument = {
+        id: 'fiscal-1',
+        saleId: 'sale-1',
+        saleReturnId: null,
+        documentType: 'FACTURA_B',
+        pointOfSale: 1,
+        documentNumber: 101,
+        arcaStatus: ArcaStatus.EMITIDO,
+        cae: '75123456789012',
+        caeExpirationDate: '2026-10-15',
+        issuedAt: new Date('2026-09-01T12:00:00Z'),
+      };
+
+      const result = await service.findFiscalDocument('sale-1');
+
+      expect(result).toMatchObject({
+        arcaStatus: ArcaStatus.EMITIDO,
+        cae: '75123456789012',
+        documentNumber: 101,
+      });
+    });
+
+    it('returns 200 without CAE data when PENDIENTE_FACTURACION', async () => {
+      sale = { id: 'sale-1' };
+      fiscalDocument = {
+        id: 'fiscal-1',
+        saleId: 'sale-1',
+        saleReturnId: null,
+        documentType: null,
+        pointOfSale: null,
+        documentNumber: null,
+        arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
+        cae: null,
+        caeExpirationDate: null,
+        issuedAt: null,
+      };
+
+      const result = await service.findFiscalDocument('sale-1');
+
+      expect(result).toMatchObject({
+        arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
+        cae: null,
+      });
+    });
+
+    it('throws 404 when the sale has no fiscal document', async () => {
+      sale = { id: 'sale-1' };
+      fiscalDocument = null;
+
+      await expect(service.findFiscalDocument('sale-1')).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: SalesErrorCode.SALE_FISCAL_DOCUMENT_NOT_FOUND,
+        }),
+      });
+    });
+
+    it('throws 404 when the sale does not exist', async () => {
+      sale = null;
+
+      await expect(service.findFiscalDocument('missing')).rejects.toMatchObject(
+        {
+          response: expect.objectContaining({
+            code: SalesErrorCode.SALE_NOT_FOUND,
+          }),
+        },
+      );
     });
   });
 
