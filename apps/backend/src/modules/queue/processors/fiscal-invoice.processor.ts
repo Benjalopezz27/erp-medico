@@ -8,7 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { ArcaStatus, CustomerDocumentType } from '@erp/shared-types';
 import {
   REDIS_CONNECTION,
@@ -90,11 +90,25 @@ export class FiscalInvoiceProcessor implements OnModuleInit, OnModuleDestroy {
     job: Job<FiscalInvoiceJobData, FiscalInvoiceJobResult>,
   ): Promise<FiscalInvoiceJobResult> {
     const { fiscalDocumentId } = job.data;
-    const manager = this.dataSource.manager;
 
-    const document = await manager
-      .getRepository(FiscalDocument)
-      .findOne({ where: { id: fiscalDocumentId } });
+    // Runs inside a single transaction holding a row lock on the
+    // FiscalDocument for the whole external round-trip: a concurrent worker
+    // picking up the same job blocks on the lock instead of also calling
+    // ARCA, and sees the already-resolved status once it acquires it.
+    return this.dataSource.transaction((manager) =>
+      this.processWithLock(manager, job, fiscalDocumentId),
+    );
+  }
+
+  private async processWithLock(
+    manager: EntityManager,
+    job: Job<FiscalInvoiceJobData, FiscalInvoiceJobResult>,
+    fiscalDocumentId: string,
+  ): Promise<FiscalInvoiceJobResult> {
+    const document = await manager.getRepository(FiscalDocument).findOne({
+      where: { id: fiscalDocumentId },
+      lock: { mode: 'pessimistic_write' },
+    });
 
     if (!document) {
       throw new Error(
