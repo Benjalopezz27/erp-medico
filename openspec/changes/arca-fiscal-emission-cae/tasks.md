@@ -50,4 +50,4 @@
 - [x] 8.2 E2E: devolución sobre venta facturada → Nota de Crédito A/B vinculada a la factura original, mismo punto de venta.
 - [x] 8.3 E2E/regresión: venta de contado sin factura y venta a crédito sin factura no generan `FiscalDocument` ni encolan job (comportamiento existente intacto).
 - [x] 8.4 Test de fallo de enqueue post-commit (Redis caído simulado): la venta queda `CONFIRMADA`, el `FiscalDocument` queda `PENDIENTE_FACTURACION`, sin rollback de stock ni cuenta corriente.
-- [ ] 8.5 Correr formato, lint, unitarios, e2e y build completos del monorepo (`npm run lint`, `npm run test`, `npm run test:e2e`, `npm run build`) y dejar constancia de que pasan antes de abrir el PR.
+- [x] 8.5 Correr formato, lint, unitarios, e2e y build completos del monorepo (`npm run lint`, `npm run test`, `npm run test:e2e`, `npm run build`) y dejar constancia de que pasan antes de abrir el PR.
