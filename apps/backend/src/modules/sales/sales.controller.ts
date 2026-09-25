@@ -22,6 +22,7 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import {
   CreateSaleDto,
+  FiscalDocumentResponseDto,
   PaginatedSalesResponseDto,
   QuerySalesDto,
   SaleResponseDto,
@@ -69,5 +70,20 @@ export class SalesController {
   @ApiResponse({ status: 404, description: 'Venta inexistente' })
   findOne(@Param('id', ParseUUIDPipe) id: string): Promise<SaleResponseDto> {
     return this.salesService.findOne(id);
+  }
+
+  @Get(':id/fiscal-document')
+  @ApiOperation({
+    summary: 'Consultar el estado y datos fiscales autorizados de una venta',
+  })
+  @ApiResponse({ status: 200, type: FiscalDocumentResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'Venta inexistente o sin comprobante fiscal',
+  })
+  findFiscalDocument(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<FiscalDocumentResponseDto> {
+    return this.salesService.findFiscalDocument(id);
   }
 }

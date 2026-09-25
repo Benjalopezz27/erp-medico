@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -30,9 +31,12 @@ import { SaleReturnItem } from '../entities/sale-return-item.entity';
 import { CreateSaleReturnDto } from '../dto/create-sale-return.dto';
 import { SaleReturnResponseDto } from '../dto/sale-return-response.dto';
 import { SaleReturnsMapper } from '../mappers/sale-returns.mapper';
+import { FiscalInvoiceQueueService } from '../../../queue/services/fiscal-invoice.queue';
 
 @Injectable()
 export class SaleReturnsService {
+  private readonly logger = new Logger(SaleReturnsService.name);
+
   constructor(
     private readonly dataSource: DataSource,
     @InjectRepository(SaleReturn)
@@ -43,6 +47,7 @@ export class SaleReturnsService {
     private readonly quarantineService: QuarantineService,
     private readonly receivablesService: ReceivablesService,
     private readonly auditService: AuditService,
+    private readonly fiscalInvoiceQueueService: FiscalInvoiceQueueService,
   ) {}
 
   async createReturn(
@@ -52,6 +57,7 @@ export class SaleReturnsService {
   ): Promise<SaleReturnResponseDto> {
     this.validatePayload(dto);
     const requestHash = this.computeRequestHash(dto);
+    let fiscalDocumentId: string | null = null;
 
     try {
       const returnId = await this.dataSource.transaction(async (manager) => {
@@ -339,6 +345,7 @@ export class SaleReturnsService {
               arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
             }),
           );
+          fiscalDocumentId = fiscalDoc.id;
         }
 
         // 9. Account Receivable compensation movement (if credit sale)
@@ -381,6 +388,22 @@ export class SaleReturnsService {
 
         return savedSaleReturn.id;
       });
+
+      if (fiscalDocumentId) {
+        try {
+          await this.fiscalInvoiceQueueService.enqueueCaeRequest({
+            fiscalDocumentId,
+          });
+        } catch (enqueueError) {
+          this.logger.warn(
+            `No se pudo encolar la emisión fiscal del documento ${fiscalDocumentId}; queda PENDIENTE_FACTURACION para recuperación. ${
+              enqueueError instanceof Error
+                ? enqueueError.message
+                : String(enqueueError)
+            }`,
+          );
+        }
+      }
 
       return this.findOneDetail(returnId);
     } catch (error) {

@@ -190,6 +190,33 @@ describe('Sales domain and API (E2E)', () => {
     });
   });
 
+  it('requires authentication for the fiscal document endpoint and 404s without one', async () => {
+    const product = await createProduct(
+      '10000000-0000-4000-8000-000000000002',
+      10,
+    );
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send(cashPayload(product.id, 1))
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/sales/${created.body.id}/fiscal-document`)
+      .expect(401);
+
+    // The cash sale above did not request an invoice, so no fiscal document
+    // exists for it — both authorized roles get 404.
+    await request(app.getHttpServer())
+      .get(`/api/v1/sales/${created.body.id}/fiscal-document`)
+      .set('Authorization', `Bearer ${sellerToken}`)
+      .expect(404);
+    await request(app.getHttpServer())
+      .get(`/api/v1/sales/${created.body.id}/fiscal-document`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(404);
+  });
+
   it('persists and totals a mixed taxable, exempt and non-taxed sale', async () => {
     const taxable = await createProduct(
       '11000000-0000-4000-8000-000000000001',

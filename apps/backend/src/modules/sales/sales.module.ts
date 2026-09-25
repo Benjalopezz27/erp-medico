@@ -14,6 +14,7 @@ import { SaleReturn } from './returns/entities/sale-return.entity';
 import { SaleReturnItem } from './returns/entities/sale-return-item.entity';
 import { SaleReturnsController } from './returns/sale-returns.controller';
 import { SaleReturnsService } from './returns/services/sale-returns.service';
+import { QueueModule } from '../queue/queue.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { SaleReturnsService } from './returns/services/sale-returns.service';
     AuditModule,
     ReceivablesModule,
     QuarantineModule,
+    QueueModule,
   ],
   controllers: [SalesController, SaleReturnsController],
   providers: [SalesService, SaleReturnsService],

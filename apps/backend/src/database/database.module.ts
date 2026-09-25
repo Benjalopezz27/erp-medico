@@ -16,6 +16,11 @@ import * as path from 'path';
         password: configService.get<string>('DB_PASSWORD', 'erp_password_dev'),
         database: configService.get<string>('DB_NAME', 'erp_medico'),
         autoLoadEntities: true,
+        // Explicit glob (in addition to autoLoadEntities) so partial app
+        // contexts that don't import every feature module — like the
+        // worker process — still get the full entity relation graph
+        // TypeORM needs to validate metadata, without hand-listing modules.
+        entities: [path.resolve(__dirname, '../modules/**/*.entity{.ts,.js}')],
         migrations: [path.resolve(__dirname, './migrations/*{.ts,.js}')],
         synchronize: false,
         logging: configService.get<string>('NODE_ENV') === 'development',

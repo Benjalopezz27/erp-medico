@@ -5,7 +5,7 @@
   "project_title": "erp-medico",
   "_note": "Board usa el schema por defecto de GitHub Projects, no el schema ASOME de referencia (asome-setup): no existen los campos Kind, Area ni Sprint (iteration). 'Priority' usa P0/P1/P2 en vez de Urgent/High/Medium/Low. 'Size' (XS-XL) hace de Story Points, sin campo numerico dedicado. La opcion 'In Review' que un config anterior registraba ya no existe en el board (solo Backlog/To Do/In progress/Done). Regenerar con /asome-setup board si se agregan estos campos al board.",
   "deploy": {
-    "dev": "dev",
+    "dev": "sprint/8",
     "prod": "main",
     "_note": "No hay rama 'staging' en el remoto. Staging corre como ambiente separado en Railway (ver .github/workflows/verify-staging.yml), no como rama git."
   },

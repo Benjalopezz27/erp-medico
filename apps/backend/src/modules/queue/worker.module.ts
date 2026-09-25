@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { DatabaseModule } from '../../database/database.module';
 import { QueueConsumerModule } from './queue-consumer.module';
 
 @Module({
@@ -8,6 +9,7 @@ import { QueueConsumerModule } from './queue-consumer.module';
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
     }),
+    DatabaseModule,
     QueueConsumerModule,
   ],
 })

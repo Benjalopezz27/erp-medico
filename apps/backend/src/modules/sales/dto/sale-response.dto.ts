@@ -58,6 +58,8 @@ export class FiscalDocumentResponseDto {
   @ApiPropertyOptional({ nullable: true }) documentNumber: number | null;
   @ApiProperty({ enum: ArcaStatus }) arcaStatus: ArcaStatus;
   @ApiPropertyOptional({ nullable: true }) cae: string | null;
+  @ApiPropertyOptional({ nullable: true }) caeExpirationDate: string | null;
+  @ApiPropertyOptional({ nullable: true }) issuedAt: Date | string | null;
 }
 
 export class AccountReceivableResponseDto {

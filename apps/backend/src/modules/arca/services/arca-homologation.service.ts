@@ -12,6 +12,7 @@ import * as forge from 'node-forge';
 import {
   ArcaAuthTicket,
   FiscalDocumentData,
+  FiscalDocumentType,
   ArcaCaeResponse,
   ArcaFiscalDocument,
 } from '@erp/shared-types';
@@ -19,9 +20,15 @@ import { IArcaService } from '../interfaces/arca-service.interface';
 import { ArcaCertificateLoader } from './arca-certificate-loader.service';
 import { ArcaClockSyncService } from './arca-clock-sync.service';
 import { redactSecrets } from '../../../common/utils/sanitizer.utils';
+import {
+  WsfeSoapClientService,
+  CBTE_TIPO_BY_DOCUMENT_TYPE,
+} from './wsfe-soap-client.service';
+import { ArcaTicketCacheService } from './arca-ticket-cache.service';
 
 export interface ArcaHomologationOptions {
   wsaaUrl?: string;
+  wsfeUrl?: string;
   cuit?: string;
   puntoVenta?: number;
 }
@@ -32,21 +39,33 @@ export class ArcaHomologationService implements IArcaService {
   private cachedTicket: ArcaAuthTicket | null = null;
 
   private readonly wsaaUrl: string;
+  private readonly wsfeUrl: string;
   private readonly cuit: string;
   private readonly puntoVenta: number;
+  private readonly arcaEnv: string;
+  private readonly wsfeClient: WsfeSoapClientService;
 
   constructor(
     private readonly certLoader: ArcaCertificateLoader,
     private readonly clockSyncService: ArcaClockSyncService,
     private readonly configService: ConfigService,
+    private readonly ticketCache: ArcaTicketCacheService,
     @Optional()
     @Inject('ARCA_HOMOLOGATION_OPTIONS')
     options?: ArcaHomologationOptions,
   ) {
+    this.arcaEnv =
+      this.configService.get<string>('ARCA_ENV')?.trim().toLowerCase() ||
+      'homologation';
     this.wsaaUrl =
       options?.wsaaUrl ||
       this.configService.get<string>('ARCA_WSAA_URL')?.trim() ||
       'https://wsaahomo.afip.gov.ar/ws/services/LoginCms';
+
+    this.wsfeUrl =
+      options?.wsfeUrl ||
+      this.configService.get<string>('ARCA_WSFE_URL')?.trim() ||
+      'https://wswhomo.afip.gov.ar/wsfev1/service.asmx';
 
     this.cuit =
       options?.cuit ||
@@ -60,6 +79,7 @@ export class ArcaHomologationService implements IArcaService {
     this.puntoVenta = Number(pvRaw);
 
     this.validateHomologationConfig();
+    this.wsfeClient = new WsfeSoapClientService(this.wsfeUrl);
   }
 
   /**
@@ -88,6 +108,12 @@ export class ArcaHomologationService implements IArcaService {
         `[ARCA] ARCA_WSAA_URL must be a valid HTTPS URL in homologation mode. Provided: "${this.wsaaUrl}"`,
       );
     }
+
+    if (!this.wsfeUrl || !this.wsfeUrl.startsWith('https://')) {
+      throw new Error(
+        `[ARCA] ARCA_WSFE_URL must be a valid HTTPS URL in homologation mode. Provided: "${this.wsfeUrl}"`,
+      );
+    }
   }
 
   /**
@@ -97,12 +123,15 @@ export class ArcaHomologationService implements IArcaService {
   async login(): Promise<ArcaAuthTicket> {
     const now = new Date();
 
-    // Check cached ticket validity (reuse if more than 10 minutes remaining)
-    if (this.cachedTicket) {
-      const expDate = new Date(this.cachedTicket.expirationTime);
-      if (expDate.getTime() - now.getTime() > 10 * 60 * 1000) {
-        return this.cachedTicket;
-      }
+    // Check in-process cache first (avoids a Redis round-trip on the hot path).
+    if (this.cachedTicket && this.hasRenewalMargin(this.cachedTicket, now)) {
+      return this.cachedTicket;
+    }
+
+    const sharedTicket = await this.ticketCache.get(this.arcaEnv, this.cuit);
+    if (sharedTicket && this.hasRenewalMargin(sharedTicket, now)) {
+      this.cachedTicket = sharedTicket;
+      return sharedTicket;
     }
 
     const certData = this.certLoader.loadCertificate();
@@ -125,11 +154,17 @@ export class ArcaHomologationService implements IArcaService {
     const ticket = this.parseLoginTicketResponse(soapResponseXml);
 
     this.cachedTicket = ticket;
+    await this.ticketCache.set(this.arcaEnv, this.cuit, ticket);
     this.logger.log(
       `[ARCA WSAA] Authenticated successfully. Ticket valid until ${ticket.expirationTime}.`,
     );
 
     return ticket;
+  }
+
+  private hasRenewalMargin(ticket: ArcaAuthTicket, now: Date): boolean {
+    const expDate = new Date(ticket.expirationTime);
+    return expDate.getTime() - now.getTime() > 10 * 60 * 1000;
   }
 
   /**
@@ -181,31 +216,82 @@ export class ArcaHomologationService implements IArcaService {
   }
 
   /**
-   * Fail-closed: Real WSFE electronic invoice issuance is strictly reserved for Sprint 8.
+   * Requests a CAE via WSFE `FECAESolicitar` for a document whose type,
+   * point of sale and number were already resolved by the caller (see the
+   * numbering helper that calls `getLastAuthorizedNumber` first).
    */
-  async requestCAE(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _data: FiscalDocumentData,
-  ): Promise<ArcaCaeResponse> {
-    throw new ServiceUnavailableException(
-      'El servicio de emisión fiscal electrónica (WSFE / requestCAE) está reservado para el Sprint 8. En homologación sólo está habilitada la autenticación y diagnóstico WSAA.',
-    );
+  async requestCAE(data: FiscalDocumentData): Promise<ArcaCaeResponse> {
+    const cbteTipo = CBTE_TIPO_BY_DOCUMENT_TYPE[data.documentType];
+    if (!cbteTipo) {
+      throw new Error(
+        `[ARCA] No hay mapeo WSFE (CbteTipo) para el tipo de comprobante "${data.documentType}".`,
+      );
+    }
+    const auth = await this.login();
+    try {
+      return await this.wsfeClient.requestCae(auth, this.cuit, cbteTipo, data);
+    } catch (err: unknown) {
+      const sanitized = redactSecrets(
+        err instanceof Error ? err.message : String(err),
+      );
+      throw err instanceof Error && err.name === 'WsfeRejectedError'
+        ? err
+        : new Error(sanitized);
+    }
   }
 
   /**
-   * Fail-closed: Real WSFE query is strictly reserved for Sprint 8.
+   * Queries a previously requested document via WSFE `FECompConsultar`.
    */
   async queryDocument(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _type: number,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _pointOfSale: number,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _documentNumber: number,
+    type: number,
+    pointOfSale: number,
+    documentNumber: number,
   ): Promise<ArcaFiscalDocument | null> {
-    throw new ServiceUnavailableException(
-      'El servicio de consulta de comprobantes fiscales (WSFE / queryDocument) está reservado para el Sprint 8.',
-    );
+    const auth = await this.login();
+    try {
+      return await this.wsfeClient.queryDocument(
+        auth,
+        this.cuit,
+        type,
+        pointOfSale,
+        documentNumber,
+      );
+    } catch (err: unknown) {
+      const sanitized = redactSecrets(
+        err instanceof Error ? err.message : String(err),
+      );
+      throw new Error(sanitized);
+    }
+  }
+
+  /**
+   * Last comprobante number ARCA has authorized (WSFE `FECompUltimoAutorizado`).
+   */
+  async getLastAuthorizedNumber(
+    documentType: FiscalDocumentType,
+    pointOfSale: number,
+  ): Promise<number> {
+    const cbteTipo = CBTE_TIPO_BY_DOCUMENT_TYPE[documentType];
+    if (!cbteTipo) {
+      throw new Error(
+        `[ARCA] No hay mapeo WSFE (CbteTipo) para el tipo de comprobante "${documentType}".`,
+      );
+    }
+    const auth = await this.login();
+    try {
+      return await this.wsfeClient.getLastAuthorized(
+        auth,
+        this.cuit,
+        pointOfSale,
+        cbteTipo,
+      );
+    } catch (err: unknown) {
+      const sanitized = redactSecrets(
+        err instanceof Error ? err.message : String(err),
+      );
+      throw new Error(sanitized);
+    }
   }
 
   private generateTraXml(now: Date): string {

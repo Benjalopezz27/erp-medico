@@ -14,6 +14,7 @@ import { FiscalDocument } from '../../entities/fiscal-document.entity';
 import { SaleReturn } from '../entities/sale-return.entity';
 import { SaleReturnItem } from '../entities/sale-return-item.entity';
 import { SaleReturnsService } from './sale-returns.service';
+import { FiscalInvoiceQueueService } from '../../../queue/services/fiscal-invoice.queue';
 
 describe('SaleReturnsService', () => {
   const userId = '10000000-0000-4000-8000-000000000001';
@@ -34,6 +35,9 @@ describe('SaleReturnsService', () => {
   let quarantineService: any;
   let receivablesService: any;
   let auditService: any;
+  let fiscalInvoiceQueueService: jest.Mocked<
+    Pick<FiscalInvoiceQueueService, 'enqueueCaeRequest'>
+  >;
   let service: SaleReturnsService;
 
   beforeEach(() => {
@@ -248,6 +252,10 @@ describe('SaleReturnsService', () => {
       record: jest.fn(async () => undefined as any),
     };
 
+    fiscalInvoiceQueueService = {
+      enqueueCaeRequest: jest.fn().mockResolvedValue({ jobId: 'job-1' }),
+    };
+
     service = new SaleReturnsService(
       dataSource,
       saleReturnRepo as any,
@@ -256,6 +264,7 @@ describe('SaleReturnsService', () => {
       quarantineService as any,
       receivablesService as any,
       auditService as any,
+      fiscalInvoiceQueueService as any,
     );
   });
 
@@ -294,6 +303,32 @@ describe('SaleReturnsService', () => {
     );
     expect(result.items).toHaveLength(1);
     expect(result.items[0].quality).toBe(SaleReturnItemQuality.APTO);
+    expect(fiscalInvoiceQueueService.enqueueCaeRequest).toHaveBeenCalledWith({
+      fiscalDocumentId: 'fiscal-nc-1',
+    });
+  });
+
+  it('processes the return even if enqueuing the credit note fiscal job fails', async () => {
+    fiscalInvoiceQueueService.enqueueCaeRequest.mockRejectedValueOnce(
+      new Error('Redis unavailable'),
+    );
+
+    const result = await service.createReturn(
+      saleId,
+      {
+        reason: 'Devolución legítima',
+        items: [
+          {
+            saleItemId: saleItemId1,
+            quantityBase: 2,
+            quality: SaleReturnItemQuality.APTO,
+          },
+        ],
+      },
+      userId,
+    );
+
+    expect(result.items).toHaveLength(1);
   });
 
   it('creates a NO_APTO return: enters quarantine without calling stockService.recordMovement', async () => {

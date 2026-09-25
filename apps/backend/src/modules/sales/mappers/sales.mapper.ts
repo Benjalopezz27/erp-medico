@@ -1,9 +1,26 @@
 import Decimal from 'decimal.js';
 import { AccountReceivable } from '../../receivables/entities/account-receivable.entity';
+import { FiscalDocument } from '../entities/fiscal-document.entity';
 import { Sale } from '../entities/sale.entity';
-import { SaleResponseDto } from '../dto';
+import { FiscalDocumentResponseDto, SaleResponseDto } from '../dto';
 
 export class SalesMapper {
+  static toFiscalDocumentResponse(
+    doc: FiscalDocument,
+  ): FiscalDocumentResponseDto {
+    return {
+      id: doc.id,
+      saleId: doc.saleId,
+      documentType: doc.documentType,
+      pointOfSale: doc.pointOfSale,
+      documentNumber: doc.documentNumber,
+      arcaStatus: doc.arcaStatus,
+      cae: doc.cae,
+      caeExpirationDate: doc.caeExpirationDate,
+      issuedAt: doc.issuedAt,
+    };
+  }
+
   static toResponse(
     sale: Sale,
     accountReceivable: AccountReceivable | null,
@@ -64,15 +81,7 @@ export class SalesMapper {
           (sale as any).fiscalDocument ??
           null;
         if (!doc) return null;
-        return {
-          id: doc.id,
-          saleId: doc.saleId,
-          documentType: doc.documentType,
-          pointOfSale: doc.pointOfSale,
-          documentNumber: doc.documentNumber,
-          arcaStatus: doc.arcaStatus,
-          cae: doc.cae,
-        };
+        return SalesMapper.toFiscalDocumentResponse(doc);
       })(),
       accountReceivable: accountReceivable
         ? {

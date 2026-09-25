@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -14,14 +15,16 @@ import {
   StockMovementType,
 } from '@erp/shared-types';
 import Decimal from 'decimal.js';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, IsNull } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { CustomerPricingService } from '../customers/special-prices/services/customer-pricing.service';
 import { AccountReceivable } from '../receivables/entities/account-receivable.entity';
 import { ReceivablesService } from '../receivables/receivables.service';
 import { StockService } from '../stock/stock.service';
+import { FiscalInvoiceQueueService } from '../queue/services/fiscal-invoice.queue';
 import {
   CreateSaleDto,
+  FiscalDocumentResponseDto,
   PaginatedSalesResponseDto,
   QuerySalesDto,
   SaleResponseDto,
@@ -33,12 +36,15 @@ import { SalesMapper } from './mappers/sales.mapper';
 
 @Injectable()
 export class SalesService {
+  private readonly logger = new Logger(SalesService.name);
+
   constructor(
     private readonly dataSource: DataSource,
     private readonly customerPricingService: CustomerPricingService,
     private readonly stockService: StockService,
     private readonly receivablesService: ReceivablesService,
     private readonly auditService: AuditService,
+    private readonly fiscalInvoiceQueueService: FiscalInvoiceQueueService,
   ) {}
 
   async create(dto: CreateSaleDto, userId: string): Promise<SaleResponseDto> {
@@ -49,8 +55,10 @@ export class SalesService {
       .map((item, itemIndex) => ({ ...item, itemIndex }))
       .sort((left, right) => left.productId.localeCompare(right.productId));
 
+    let fiscalDocumentId: string | null = null;
+
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      const result = await this.dataSource.transaction(async (manager) => {
         const saleNumber = await this.nextSaleNumber(manager);
         const saleRepository = manager.getRepository(Sale);
         const itemRepository = manager.getRepository(SaleItem);
@@ -173,6 +181,7 @@ export class SalesService {
               issuedAt: null,
             }),
           );
+          fiscalDocumentId = fiscalDocument.id;
         }
 
         let accountReceivable: AccountReceivable | null = null;
@@ -231,6 +240,24 @@ export class SalesService {
 
         return this.loadDetail(manager, sale.id);
       });
+
+      if (fiscalDocumentId) {
+        try {
+          await this.fiscalInvoiceQueueService.enqueueCaeRequest({
+            fiscalDocumentId,
+          });
+        } catch (enqueueError) {
+          this.logger.warn(
+            `No se pudo encolar la emisión fiscal del documento ${fiscalDocumentId}; queda PENDIENTE_FACTURACION para recuperación. ${
+              enqueueError instanceof Error
+                ? enqueueError.message
+                : String(enqueueError)
+            }`,
+          );
+        }
+      }
+
+      return result;
     } catch (error) {
       const databaseCode = this.databaseErrorCode(error);
       if (databaseCode === '40P01' || databaseCode === '40001') {
@@ -280,6 +307,30 @@ export class SalesService {
 
   findOne(id: string): Promise<SaleResponseDto> {
     return this.loadDetail(this.dataSource.manager, id);
+  }
+
+  async findFiscalDocument(id: string): Promise<FiscalDocumentResponseDto> {
+    const sale = await this.dataSource.manager
+      .getRepository(Sale)
+      .findOne({ where: { id } });
+    if (!sale) {
+      throw new NotFoundException({
+        code: SalesErrorCode.SALE_NOT_FOUND,
+        message: 'La venta no existe.',
+      });
+    }
+
+    const fiscalDocument = await this.dataSource.manager
+      .getRepository(FiscalDocument)
+      .findOne({ where: { saleId: id, saleReturnId: IsNull() } });
+    if (!fiscalDocument) {
+      throw new NotFoundException({
+        code: SalesErrorCode.SALE_FISCAL_DOCUMENT_NOT_FOUND,
+        message: 'La venta no tiene comprobante fiscal.',
+      });
+    }
+
+    return SalesMapper.toFiscalDocumentResponse(fiscalDocument);
   }
 
   private validateCommercialContract(dto: CreateSaleDto): void {
