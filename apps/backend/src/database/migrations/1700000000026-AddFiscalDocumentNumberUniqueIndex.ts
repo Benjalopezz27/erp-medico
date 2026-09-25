@@ -1,8 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddFiscalDocumentNumberUniqueIndex1700000000026
-  implements MigrationInterface
-{
+export class AddFiscalDocumentNumberUniqueIndex1700000000026 implements MigrationInterface {
   name = 'AddFiscalDocumentNumberUniqueIndex1700000000026';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
