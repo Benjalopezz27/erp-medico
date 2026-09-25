@@ -2,23 +2,23 @@
 
 ## 1. Migración de base de datos y dependencias
 
-- [ ] 1.1 Crear migración TypeORM `1700000000027-AddPdfArtifactToFiscalDocuments` que agregue a
+- [x] 1.1 Crear migración TypeORM `1700000000027-AddPdfArtifactToFiscalDocuments` que agregue a
       `fiscal_documents`: `pdf_data` (bytea), `pdf_checksum` (varchar 64), `pdf_size_bytes` (int),
       `pdf_template_version` (varchar 10), `pdf_generated_at` (timestamptz), `pdf_status` (varchar
       20, default `'PENDIENTE'`), `pdf_error_message` (text); `down()` elimina las siete columnas;
       verificar corriendo `migration:run` y `migration:revert` localmente sin error.
-- [ ] 1.2 Agregar `pdf-lib` y `qrcode` (+ `@types/qrcode`) como dependencias del backend; verificar
+- [x] 1.2 Agregar `pdf-lib` y `qrcode` (+ `@types/qrcode`) como dependencias del backend; verificar
       que `npm install` y el build del workspace no rompen.
 
 ## 2. Payload QR fiscal
 
-- [ ] 2.1 Crear `FiscalQrPayloadService` que construya el objeto AFIP (`ver`, `fecha`, `cuit`,
+- [x] 2.1 Crear `FiscalQrPayloadService` que construya el objeto AFIP (`ver`, `fecha`, `cuit`,
       `ptoVta`, `tipoCmp`, `nroCmp`, `importe`, `moneda`, `ctz`, `tipoDocRec`, `nroDocRec`,
       `tipoCodAut`, `codAut`) desde un `FiscalDocument` + su `Sale`/`Customer`, con orden de claves
       fijo y la URL final `https://www.afip.gob.ar/fe/qr/?p={base64}`; verificar con unit tests
       para Factura A, Factura B, Nota de Crédito A/B, Consumidor Final (sin CUIT) y comprobante con
       CUIT, aserta que el mismo input produce siempre el mismo payload.
-- [ ] 2.2 Verificar con unit test que el payload decodifica (base64 → JSON) a un objeto con los 13
+- [x] 2.2 Verificar con unit test que el payload decodifica (base64 → JSON) a un objeto con los 13
       campos esperados y tipos correctos (números vs strings).
 
 ## 3. Template PDF
