@@ -33,10 +33,10 @@
 
 ## 6. Encolado post-commit desde ventas y devoluciones
 
-- [ ] 6.1 Importar `QueueModule` (producer) y lo necesario de `ArcaModule` en `SalesModule`; verificar que el módulo de Nest compila (`nest build` o test de bootstrap).
-- [ ] 6.2 En `SalesService.create()`, después de que `await this.dataSource.transaction(...)` resuelve, encolar `enqueueCaeRequest({ fiscalDocumentId })` sólo si se creó `FiscalDocument`, con `try/catch` que loguea sin relanzar; verificar con unit test que una venta facturable llama al enqueue tras el commit, y que si el enqueue lanza, `create()` igual devuelve la venta confirmada.
-- [ ] 6.3 Aplicar el mismo encolado en el método de creación de Nota de Crédito de `SaleReturnsService`; verificar con unit test equivalente.
-- [ ] 6.4 Verificar con test que una venta de contado sin `requiresFiscalInvoice` y una venta a crédito sin factura no encolan ningún job (regresión del flujo existente).
+- [x] 6.1 Importar `QueueModule` (producer) y lo necesario de `ArcaModule` en `SalesModule`; verificar que el módulo de Nest compila (`nest build` o test de bootstrap).
+- [x] 6.2 En `SalesService.create()`, después de que `await this.dataSource.transaction(...)` resuelve, encolar `enqueueCaeRequest({ fiscalDocumentId })` sólo si se creó `FiscalDocument`, con `try/catch` que loguea sin relanzar; verificar con unit test que una venta facturable llama al enqueue tras el commit, y que si el enqueue lanza, `create()` igual devuelve la venta confirmada.
+- [x] 6.3 Aplicar el mismo encolado en el método de creación de Nota de Crédito de `SaleReturnsService`; verificar con unit test equivalente.
+- [x] 6.4 Verificar con test que una venta de contado sin `requiresFiscalInvoice` y una venta a crédito sin factura no encolan ningún job (regresión del flujo existente).
 
 ## 7. Endpoint de consulta
 
