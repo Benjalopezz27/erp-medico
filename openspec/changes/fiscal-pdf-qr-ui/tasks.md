@@ -77,18 +77,18 @@
 
 ## 7. Endpoints de descarga
 
-- [ ] 7.1 Agregar `GET /sales/:id/fiscal-document/pdf` en `SalesController` (mismos guards/roles de
+- [x] 7.1 Agregar `GET /sales/:id/fiscal-document/pdf` en `SalesController` (mismos guards/roles de
       clase): streaming del buffer con `Content-Type: application/pdf` y `Content-Disposition`
       derivado de tipo+número sanitizados; 409 si `arcaStatus !== EMITIDO` o `pdf_status !==
       DISPONIBLE`, 404 sin `FiscalDocument`; verificar con unit tests de controller/service para
       200, 409 y 404, y documentar en Swagger.
-- [ ] 7.2 Agregar `GET /sales/:id/fiscal-document/qr` en `SalesController`: 200 con imagen PNG
+- [x] 7.2 Agregar `GET /sales/:id/fiscal-document/qr` en `SalesController`: 200 con imagen PNG
       generada desde `qrCodeData` cuando `arcaStatus === EMITIDO` y hay payload persistido; mismos
       404/409 que el PDF; verificar con unit test que decodifica la imagen resultante y coincide
       con el payload esperado.
-- [ ] 7.3 Verificar 401 sin token y 403 con rol no autorizado en ambos endpoints mediante test de
+- [x] 7.3 Verificar 401 sin token y 403 con rol no autorizado en ambos endpoints mediante test de
       guard/e2e ligero.
-- [ ] 7.4 En el 409 de descarga de PDF, si no hay un job `pdf-generate` pendiente para ese
+- [x] 7.4 En el 409 de descarga de PDF, si no hay un job `pdf-generate` pendiente para ese
       `fiscalDocumentId`, reencolar (best-effort, no bloqueante) siguiendo la Decisión 5 de
       `design.md`; verificar con unit test que un segundo intento de descarga sobre un documento en
       `ERROR` reencola sin duplicar el `jobId`.
@@ -116,12 +116,12 @@
 
 ## 10. Pruebas end-to-end, regresión y cierre
 
-- [ ] 10.1 E2E: venta facturable → `EMITIDO` (worker con ARCA mock) → job `pdf-generate` procesado
+- [x] 10.1 E2E: venta facturable → `EMITIDO` (worker con ARCA mock) → job `pdf-generate` procesado
       → `GET /sales/:id/fiscal-document/pdf` descarga un PDF válido → `GET
       /sales/:id/fiscal-document/qr` decodifica al payload esperado.
-- [ ] 10.2 E2E: devolución con Nota de Crédito emitida → PDF y QR propios, vinculados visualmente a
+- [x] 10.2 E2E: devolución con Nota de Crédito emitida → PDF y QR propios, vinculados visualmente a
       la devolución, sin modificar la factura ni la devolución originales.
-- [ ] 10.3 E2E/regresión: repetir o ejecutar concurrentemente `pdf-generate` sobre el mismo
+- [x] 10.3 E2E/regresión: repetir o ejecutar concurrentemente `pdf-generate` sobre el mismo
       documento no duplica artefactos ni produce versiones contradictorias (cubre criterio de
       aceptación de la issue).
 - [ ] 10.4 Regresión de `/sales/:id`, historial de devoluciones y `FiscalStatusBadge`: ninguna

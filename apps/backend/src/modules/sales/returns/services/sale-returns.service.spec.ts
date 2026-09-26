@@ -15,6 +15,7 @@ import { SaleReturn } from '../entities/sale-return.entity';
 import { SaleReturnItem } from '../entities/sale-return-item.entity';
 import { SaleReturnsService } from './sale-returns.service';
 import { FiscalInvoiceQueueService } from '../../../queue/services/fiscal-invoice.queue';
+import { PdfGenerateQueueService } from '../../../queue/services/pdf-generate.queue';
 
 describe('SaleReturnsService', () => {
   const userId = '10000000-0000-4000-8000-000000000001';
@@ -38,6 +39,7 @@ describe('SaleReturnsService', () => {
   let fiscalInvoiceQueueService: jest.Mocked<
     Pick<FiscalInvoiceQueueService, 'enqueueCaeRequest'>
   >;
+  let pdfGenerateQueueService: jest.Mocked<Pick<PdfGenerateQueueService, 'enqueue'>>;
   let service: SaleReturnsService;
 
   beforeEach(() => {
@@ -256,6 +258,10 @@ describe('SaleReturnsService', () => {
       enqueueCaeRequest: jest.fn().mockResolvedValue({ jobId: 'job-1' }),
     };
 
+    pdfGenerateQueueService = {
+      enqueue: jest.fn().mockResolvedValue({ jobId: 'pdf-generate:doc-1' }),
+    };
+
     service = new SaleReturnsService(
       dataSource,
       saleReturnRepo as any,
@@ -265,6 +271,7 @@ describe('SaleReturnsService', () => {
       receivablesService as any,
       auditService as any,
       fiscalInvoiceQueueService as any,
+      pdfGenerateQueueService as any,
     );
   });
 

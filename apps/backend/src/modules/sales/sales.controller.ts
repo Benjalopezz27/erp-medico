@@ -8,6 +8,8 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Res,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -16,6 +18,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { Response } from 'express';
 import { UserRole } from '@erp/shared-types';
 import { CurrentUser, Roles } from '../auth/decorators';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
@@ -85,5 +88,49 @@ export class SalesController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<FiscalDocumentResponseDto> {
     return this.salesService.findFiscalDocument(id);
+  }
+
+  @Get(':id/fiscal-document/pdf')
+  @ApiOperation({ summary: 'Descargar el PDF del comprobante fiscal' })
+  @ApiResponse({ status: 200, description: 'PDF del comprobante fiscal' })
+  @ApiResponse({
+    status: 404,
+    description: 'Venta inexistente o sin comprobante fiscal',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'El PDF todavía no está disponible',
+  })
+  async downloadFiscalDocumentPdf(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const { buffer, filename } =
+      await this.salesService.getFiscalDocumentPdf(id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    });
+    return new StreamableFile(buffer);
+  }
+
+  @Get(':id/fiscal-document/qr')
+  @ApiOperation({ summary: 'Obtener la imagen del QR fiscal oficial' })
+  @ApiResponse({ status: 200, description: 'Imagen PNG del QR fiscal' })
+  @ApiResponse({
+    status: 404,
+    description: 'Venta inexistente o sin comprobante fiscal',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'El QR todavía no está disponible',
+  })
+  async getFiscalDocumentQr(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const buffer = await this.salesService.getFiscalDocumentQr(id);
+    res.set({ 'Content-Type': 'image/png' });
+    return new StreamableFile(buffer);
   }
 }

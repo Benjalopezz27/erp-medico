@@ -217,6 +217,40 @@ describe('Sales domain and API (E2E)', () => {
       .expect(404);
   });
 
+  it('requires authentication for the fiscal PDF/QR endpoints and 409s while pending', async () => {
+    const product = await createProduct(
+      '10000000-0000-4000-8000-000000000009',
+      10,
+    );
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/sales')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        ...cashPayload(product.id, 1),
+        requiresFiscalInvoice: true,
+      })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/sales/${created.body.id}/fiscal-document/pdf`)
+      .expect(401);
+    await request(app.getHttpServer())
+      .get(`/api/v1/sales/${created.body.id}/fiscal-document/qr`)
+      .expect(401);
+
+    // A fiscal invoice sale still gets its FiscalDocument created
+    // PENDIENTE_FACTURACION synchronously (the wsfe-emit job isn't running
+    // in this suite), so the artifact endpoints must 409, not 200 or 500.
+    await request(app.getHttpServer())
+      .get(`/api/v1/sales/${created.body.id}/fiscal-document/pdf`)
+      .set('Authorization', `Bearer ${sellerToken}`)
+      .expect(409);
+    await request(app.getHttpServer())
+      .get(`/api/v1/sales/${created.body.id}/fiscal-document/qr`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(409);
+  });
+
   it('persists and totals a mixed taxable, exempt and non-taxed sale', async () => {
     const taxable = await createProduct(
       '11000000-0000-4000-8000-000000000001',
