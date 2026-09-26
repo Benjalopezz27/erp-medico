@@ -95,21 +95,23 @@
 
 ## 8. Frontend — detalle de venta
 
-- [ ] 8.1 Agregar `salesKeys.fiscalArtifact(saleId)` en `sales-keys.ts` y un hook de consulta que
-      reutilice el contrato extendido de la tarea 6.1; verificar con test de hook (mock de query
-      client) los cuatro estados de `pdfStatus`.
-- [ ] 8.2 Extender la card "Documento fiscal" de `SaleDetailView.tsx` con botones "Descargar PDF"
+- [x] 8.1 ~~Agregar `salesKeys.fiscalArtifact(saleId)`~~ — simplificado: el estado del artefacto
+      (`pdfStatus`/`qrAvailable`) ya viaja embebido en `sale.fiscalDocument` (contrato de la tarea
+      6.1), que `useSaleDetailQuery` ya trae; no se agrega una query key ni un fetch separado sólo
+      para pollear disponibilidad. La descarga y el QR se piden on-demand (mutation) recién al
+      hacer clic/abrir el modal, vía `use-fiscal-document-artifact.ts`.
+- [x] 8.2 Extender la card "Documento fiscal" de `SaleDetailView.tsx` con botones "Descargar PDF"
       (fetch autenticado + blob + `URL.createObjectURL`, nunca navegación directa) y "Ver QR"
       (modal accesible, foco atrapado, cerrable por teclado), habilitados sólo cuando
       `arcaStatus === EMITIDO` y condicionados por `pdfStatus`; verificar con test de componente
       los cuatro estados (pendiente/generando/disponible/error) y que las acciones no aparecen si
       `arcaStatus !== EMITIDO`.
-- [ ] 8.3 Verificar con test de accesibilidad básico (teclado, roles ARIA) que el modal de QR y los
+- [x] 8.3 Verificar con test de accesibilidad básico (teclado, roles ARIA) que el modal de QR y los
       botones de descarga son operables por teclado y anunciados por lector de pantalla.
 
 ## 9. Frontend — devoluciones
 
-- [ ] 9.1 Extender `SaleReturnsHistoryTable.tsx` para mostrar la acción de descarga/QR de la Nota
+- [x] 9.1 Extender `SaleReturnsHistoryTable.tsx` para mostrar la acción de descarga/QR de la Nota
       de Crédito cuando su `fiscalDocument` está `EMITIDO` con artefacto `DISPONIBLE`, reutilizando
       el componente de acciones de la tarea 8.2; verificar con test de componente que la acción no
       aparece si el artefacto no está disponible.

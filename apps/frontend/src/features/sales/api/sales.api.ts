@@ -62,3 +62,32 @@ export async function createSaleReturnApi(
 ): Promise<ISaleReturn> {
   return (await apiClient.post<ISaleReturn>(`/sales/${saleId}/returns`, payload)).data;
 }
+
+function fiscalDocumentArtifactPath(
+  saleId: string,
+  artifact: 'pdf' | 'qr',
+  returnId?: string,
+): string {
+  return returnId
+    ? `/sales/${saleId}/returns/${returnId}/fiscal-document/${artifact}`
+    : `/sales/${saleId}/fiscal-document/${artifact}`;
+}
+
+export async function downloadFiscalDocumentPdfApi(
+  saleId: string,
+  returnId?: string,
+): Promise<Blob> {
+  return (
+    await apiClient.get(fiscalDocumentArtifactPath(saleId, 'pdf', returnId), {
+      responseType: 'blob',
+    })
+  ).data;
+}
+
+export async function fetchFiscalDocumentQrApi(saleId: string, returnId?: string): Promise<Blob> {
+  return (
+    await apiClient.get(fiscalDocumentArtifactPath(saleId, 'qr', returnId), {
+      responseType: 'blob',
+    })
+  ).data;
+}

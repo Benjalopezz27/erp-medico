@@ -3,6 +3,7 @@ import { screen } from '@testing-library/react';
 import {
   ArcaStatus,
   PaymentMethod,
+  PdfArtifactStatus,
   ProductTaxTreatment,
   SaleReturnItemQuality,
   SaleStatus,
@@ -58,6 +59,8 @@ const mockReturn: ISaleReturn = {
     documentNumber: null,
     arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
     cae: null,
+    pdfStatus: PdfArtifactStatus.PENDIENTE,
+    qrAvailable: false,
   },
   createdAt: '2026-08-31T14:00:00Z',
   items: [
