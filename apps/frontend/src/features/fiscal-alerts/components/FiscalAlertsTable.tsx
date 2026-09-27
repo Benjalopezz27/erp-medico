@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { ArcaStatus, type IFiscalDocument } from '@erp/shared-types';
+import { ArcaStatus, PdfArtifactStatus, type IFiscalDocument } from '@erp/shared-types';
 import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FiscalStatusBadge } from '@/features/sales/components/FiscalStatusBadge';
@@ -23,6 +23,8 @@ function toFiscalDocument(row: IFiscalAlertRow): IFiscalDocument {
     documentNumber: null,
     arcaStatus: row.arcaStatus,
     arcaErrorMessage: row.arcaErrorMessage,
+    pdfStatus: PdfArtifactStatus.PENDIENTE,
+    qrAvailable: false,
   };
 }
 

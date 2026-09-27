@@ -3,7 +3,7 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { FiscalStatusBadge } from '@/features/sales/components/FiscalStatusBadge';
-import { ArcaStatus, type IFiscalDocument } from '@erp/shared-types';
+import { ArcaStatus, PdfArtifactStatus, type IFiscalDocument } from '@erp/shared-types';
 import { useRetryFiscalDocumentMutation } from '../hooks/use-retry-fiscal-document-mutation';
 import { parseFiscalRetryError } from '../utils/fiscal-alerts.errors';
 import type { IFiscalAlertRow, ParsedFiscalRetryError } from '../types/fiscal-alerts.types';
@@ -41,6 +41,8 @@ export const RetryFiscalDocumentModal: React.FC<RetryFiscalDocumentModalProps> =
     documentNumber: null,
     arcaStatus: row.arcaStatus,
     arcaErrorMessage: row.arcaErrorMessage,
+    pdfStatus: PdfArtifactStatus.PENDIENTE,
+    qrAvailable: false,
   };
 
   const handleConfirm = async () => {
