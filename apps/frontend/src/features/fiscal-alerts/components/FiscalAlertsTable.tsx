@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { ArcaStatus, type IFiscalDocument } from '@erp/shared-types';
+import { ArcaStatus, PdfArtifactStatus, type IFiscalDocument } from '@erp/shared-types';
 import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FiscalStatusBadge } from '@/features/sales/components/FiscalStatusBadge';
@@ -13,6 +13,9 @@ function formatDateTime(value: string | null): string {
   );
 }
 
+// FiscalStatusBadge (el único consumidor acá) solo lee arcaStatus — pdfStatus
+// y qrAvailable no vienen en el contrato de /sales/pending-fiscal, se
+// completan con un valor neutro para satisfacer el tipo compartido.
 function toFiscalDocument(row: IFiscalAlertRow): IFiscalDocument {
   return {
     id: row.id,
@@ -23,6 +26,8 @@ function toFiscalDocument(row: IFiscalAlertRow): IFiscalDocument {
     documentNumber: null,
     arcaStatus: row.arcaStatus,
     arcaErrorMessage: row.arcaErrorMessage,
+    pdfStatus: PdfArtifactStatus.PENDIENTE,
+    qrAvailable: false,
   };
 }
 
