@@ -23,6 +23,7 @@ import { UserRole } from '@erp/shared-types';
 import { useAuthStore } from '@/stores/authStore';
 import { useStockAlertsCountQuery } from '@/features/stock/hooks/use-stock-alerts-count-query';
 import { usePriceReviewPendingCountQuery } from '@/features/price-reviews/hooks/use-price-reviews-query';
+import { useFiscalAlertsCountQuery } from '@/features/fiscal-alerts/hooks/use-fiscal-alerts-query';
 import { cn } from '@/lib/utils';
 import { isRouteAllowed } from '@/config/permissions.config';
 
@@ -94,6 +95,7 @@ const navigationEntries: NavigationEntry[] = [
     icon: Settings,
     children: [
       { name: 'Usuarios', href: '/admin/users', icon: UserCog },
+      { name: 'Alertas Fiscales', href: '/admin/fiscal-alerts', icon: Receipt },
       { name: 'Configuración', href: '/settings', icon: Settings },
     ],
   },
@@ -120,6 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { data: stockAlertCount } = useStockAlertsCountQuery();
   const isAdmin = user?.role === UserRole.ADMINISTRADOR;
   const { data: pendingPriceReviews } = usePriceReviewPendingCountQuery(isAdmin);
+  const { data: pendingFiscalAlerts } = useFiscalAlertsCountQuery(isAdmin);
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
 
@@ -253,6 +256,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   isAdmin &&
                   pendingPriceReviews !== undefined &&
                   pendingPriceReviews.count > 0;
+                const showsFiscalAlertsCount =
+                  entry.id === 'administration' &&
+                  isAdmin &&
+                  pendingFiscalAlerts !== undefined &&
+                  pendingFiscalAlerts > 0;
                 return (
                   <li key={entry.id}>
                     <button
@@ -280,11 +288,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                           {pendingPriceReviews.count}
                         </span>
                       )}
+                      {showsFiscalAlertsCount && (
+                        <span
+                          data-testid="fiscal-alerts-badge"
+                          aria-label={`${pendingFiscalAlerts} comprobantes fiscales pendientes o rechazados`}
+                          className="ml-auto rounded-full border border-amber-500/30 bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold text-amber-400"
+                        >
+                          {pendingFiscalAlerts}
+                        </span>
+                      )}
                       <ChevronDown
                         aria-hidden="true"
                         className={cn(
                           'h-4 w-4 text-slate-500 transition-transform',
-                          !showsPendingPriceCount && 'ml-auto',
+                          !showsPendingPriceCount && !showsFiscalAlertsCount && 'ml-auto',
                           expanded && 'rotate-180',
                         )}
                       />
