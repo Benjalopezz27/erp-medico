@@ -117,6 +117,22 @@ describe('ProductForm', () => {
     expect(screen.getByText(/carga inicial de inventario/i)).toBeInTheDocument();
   });
 
+  it('warns when categories or units master data is empty (bug #238 diagnosability)', () => {
+    render(
+      <ProductForm
+        mode="create"
+        categories={[]}
+        units={[]}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+        isSubmitting={false}
+      />,
+    );
+
+    expect(screen.getByText(/no hay categorías cargadas/i)).toBeInTheDocument();
+    expect(screen.getByText(/no hay unidades cargadas/i)).toBeInTheDocument();
+  });
+
   it('triggers onCancel when clicking Cancelar', async () => {
     const user = userEvent.setup();
     const handleCancel = vi.fn();

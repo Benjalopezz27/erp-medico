@@ -23,6 +23,12 @@ describe('PendingFiscalService', () => {
     id: 'doc-1',
     saleId: 'sale-1',
     saleReturnId: null,
+    sale: {
+      saleNumber: 'V-0001',
+      totalGross: '1000.00',
+      customer: { businessName: 'Cliente Test' },
+    },
+    saleReturn: null,
     documentType: null,
     pointOfSale: null,
     documentNumber: null,
@@ -39,6 +45,7 @@ describe('PendingFiscalService', () => {
 
   beforeEach(() => {
     qb = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       addOrderBy: jest.fn().mockReturnThis(),
@@ -65,6 +72,7 @@ describe('PendingFiscalService', () => {
       requeue: jest
         .fn()
         .mockResolvedValue({ jobId: 'wsfe-emit-doc-1', created: true }),
+      getJob: jest.fn().mockResolvedValue(null),
       getQueueInstance: jest.fn().mockReturnValue({
         getJobCounts: jest.fn().mockResolvedValue({
           waiting: 1,
@@ -93,24 +101,42 @@ describe('PendingFiscalService', () => {
     );
     expect(result.data).toHaveLength(1);
     expect(result.meta.total).toBe(1);
-  });
-
-  it('findAll aplica el filtro explícito de arcaStatus', async () => {
-    await service.findAll({
-      page: 1,
-      limit: 20,
-      arcaStatus: ArcaStatus.RECHAZADO,
-    } as any);
-
-    expect(qb.andWhere).toHaveBeenCalledWith('doc.arcaStatus = :arcaStatus', {
-      arcaStatus: ArcaStatus.RECHAZADO,
+    expect(result.data[0]).toMatchObject({
+      saleNumber: 'V-0001',
+      customerName: 'Cliente Test',
+      amount: '1000.00',
+      nextRetryAt: null,
+      hasActiveRetryJob: false,
+      isRetryable: true,
     });
   });
 
-  it('count devuelve pendientes y rechazados', async () => {
+  it('findAll aplica el filtro explícito de status', async () => {
+    await service.findAll({
+      page: 1,
+      limit: 20,
+      status: ArcaStatus.RECHAZADO,
+    } as any);
+
+    expect(qb.andWhere).toHaveBeenCalledWith('doc.arcaStatus = :status', {
+      status: ArcaStatus.RECHAZADO,
+    });
+  });
+
+  it('findAll marca hasActiveRetryJob cuando existe un job en curso', async () => {
+    fiscalInvoiceQueueService.getJob.mockResolvedValue({
+      getState: jest.fn().mockResolvedValue('delayed'),
+    });
+
+    const result = await service.findAll({ page: 1, limit: 20 } as any);
+
+    expect(result.data[0].hasActiveRetryJob).toBe(true);
+  });
+
+  it('count devuelve pendientes, rechazados y total', async () => {
     repo.count.mockResolvedValueOnce(3).mockResolvedValueOnce(2);
     const result = await service.count();
-    expect(result).toEqual({ pendingCount: 3, rejectedCount: 2 });
+    expect(result).toEqual({ pending: 3, rejected: 2, total: 5 });
   });
 
   it('metrics combina conteos de cola y antigüedad del pendiente más viejo', async () => {
@@ -140,7 +166,12 @@ describe('PendingFiscalService', () => {
         entityId: 'doc-1',
       }),
     );
-    expect(result).toEqual({ jobId: 'wsfe-emit-doc-1', created: true });
+    expect(result).toEqual({
+      fiscalDocumentId: 'doc-1',
+      arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
+      jobId: 'wsfe-emit-doc-1',
+      created: true,
+    });
   });
 
   it('retry transiciona RECHAZADO a PENDIENTE_FACTURACION antes de reencolar', async () => {

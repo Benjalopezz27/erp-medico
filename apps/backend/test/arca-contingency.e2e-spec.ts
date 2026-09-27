@@ -422,7 +422,32 @@ describe('ARCA contingency engine (E2E)', () => {
         .get('/api/v1/sales/pending-fiscal/count')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
-      expect(countRes.body.pendingCount).toBeGreaterThanOrEqual(1);
+      expect(countRes.body.pending).toBeGreaterThanOrEqual(1);
+
+      // Query params exactly as sent by the fiscal-alerts frontend feature
+      // (#235) — `status`/`dateFrom`/`dateTo`/`search`, not
+      // `arcaStatus`/`from`/`to`; the global ValidationPipe's
+      // forbidNonWhitelisted rejects unknown params with 400.
+      const filteredRes = await request(app.getHttpServer())
+        .get('/api/v1/sales/pending-fiscal')
+        .query({
+          status: 'PENDIENTE_FACTURACION',
+          page: 1,
+          limit: 20,
+          search: 'V-',
+        })
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      const row = filteredRes.body.data.find(
+        (d: any) => d.id === fiscalDocumentId,
+      );
+      expect(row).toMatchObject({
+        saleNumber: expect.any(String),
+        customerName: expect.any(String),
+        amount: expect.any(String),
+        hasActiveRetryJob: expect.any(Boolean),
+        isRetryable: true,
+      });
     });
 
     it('retry: 404 unknown, 409 EMITIDO, and idempotent 201 while pending', async () => {
@@ -457,6 +482,8 @@ describe('ARCA contingency engine (E2E)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(201);
       expect(firstRetry.body.created).toBe(true);
+      expect(firstRetry.body.fiscalDocumentId).toBe(fiscalDocumentId);
+      expect(firstRetry.body.arcaStatus).toBe(ArcaStatus.PENDIENTE_FACTURACION);
 
       const doc = await ds
         .getRepository(FiscalDocument)

@@ -6,7 +6,9 @@ import {
   IsEnum,
   IsInt,
   IsOptional,
+  IsString,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -32,20 +34,29 @@ export class QueryPendingFiscalDto {
   })
   @IsOptional()
   @IsEnum(ArcaStatus)
-  arcaStatus?: ArcaStatus;
+  status?: ArcaStatus;
 
   @ApiPropertyOptional({ enum: FiscalDocumentType })
   @IsOptional()
   @IsEnum(FiscalDocumentType)
   documentType?: FiscalDocumentType;
 
-  @ApiPropertyOptional({ example: '2026-08-01T00:00:00.000Z' })
+  @ApiPropertyOptional({ example: '2026-08-01' })
   @IsOptional()
   @IsDateString()
-  from?: string;
+  dateFrom?: string;
 
-  @ApiPropertyOptional({ example: '2026-08-31T23:59:59.999Z' })
+  @ApiPropertyOptional({ example: '2026-08-31' })
   @IsOptional()
   @IsDateString()
-  to?: string;
+  dateTo?: string;
+
+  @ApiPropertyOptional({
+    maxLength: 100,
+    description: 'Búsqueda por número de venta o razón social del cliente.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
 }
