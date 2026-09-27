@@ -22,6 +22,19 @@ export enum ArcaStatus {
 
 export type ARCAStatus = ArcaStatus;
 
+export enum FiscalFailureStage {
+  PRE_CAE = 'PRE_CAE',
+  POST_CAE = 'POST_CAE',
+}
+
+export enum FiscalErrorCode {
+  TRANSIENT = 'TRANSIENT',
+  WSFE_REJECTED = 'WSFE_REJECTED',
+  TOTALS_MISMATCH = 'TOTALS_MISMATCH',
+  QUERY_UNCERTAIN = 'QUERY_UNCERTAIN',
+  RETRIES_EXHAUSTED = 'RETRIES_EXHAUSTED',
+}
+
 export enum PdfArtifactStatus {
   PENDIENTE = 'PENDIENTE',
   GENERANDO = 'GENERANDO',
