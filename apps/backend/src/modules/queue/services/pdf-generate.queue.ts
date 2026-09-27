@@ -13,9 +13,10 @@ export interface PdfGenerateJobData {
 
 /**
  * Producer for the `pdf-generate` queue. Same deterministic-jobId pattern as
- * `FiscalInvoiceQueueService` (`pdf-generate:<fiscalDocumentId>`): enqueuing
+ * `FiscalInvoiceQueueService` (`pdf-generate-<fiscalDocumentId>`): enqueuing
  * the same document twice (retry from a 409 download, duplicate post-CAE
- * enqueue) never creates a second pending job.
+ * enqueue) never creates a second pending job. Uses `-`, not `:`, as the
+ * separator — BullMQ (>=5.75) rejects a custom jobId containing `:`.
  */
 @Injectable()
 export class PdfGenerateQueueService implements OnModuleDestroy {
@@ -46,7 +47,7 @@ export class PdfGenerateQueueService implements OnModuleDestroy {
   }
 
   async enqueue(data: PdfGenerateJobData): Promise<{ jobId: string }> {
-    const jobId = `pdf-generate:${data.fiscalDocumentId}`;
+    const jobId = `pdf-generate-${data.fiscalDocumentId}`;
     const queue = this.getQueue();
     const job = await queue.add(PDF_GENERATE_JOB_NAME, data, { jobId });
 

@@ -164,7 +164,7 @@ describe('SalesService', () => {
       enqueueCaeRequest: jest.fn().mockResolvedValue({ jobId: 'job-1' }),
     };
     pdfGenerateQueueService = {
-      enqueue: jest.fn().mockResolvedValue({ jobId: 'pdf-generate:doc-1' }),
+      enqueue: jest.fn().mockResolvedValue({ jobId: 'pdf-generate-doc-1' }),
     };
     service = new SalesService(
       dataSource,

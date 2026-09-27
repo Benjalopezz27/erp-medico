@@ -5,7 +5,7 @@ import { REDIS_CONNECTION } from '../queue.constants';
 
 jest.mock('bullmq', () => {
   const mockQueueInstance = {
-    add: jest.fn().mockResolvedValue({ id: 'pdf-generate:doc-1' }),
+    add: jest.fn().mockResolvedValue({ id: 'pdf-generate-doc-1' }),
     close: jest.fn().mockResolvedValue(undefined),
   };
 
@@ -39,12 +39,12 @@ describe('PdfGenerateQueueService', () => {
   it('enqueues a job with a deterministic jobId derived from fiscalDocumentId', async () => {
     const result = await service.enqueue({ fiscalDocumentId: 'doc-1' });
 
-    expect(result.jobId).toBe('pdf-generate:doc-1');
+    expect(result.jobId).toBe('pdf-generate-doc-1');
     const queueInstance = (Queue as unknown as jest.Mock).mock.results[0].value;
     expect(queueInstance.add).toHaveBeenCalledWith(
       'pdf-generate-job',
       { fiscalDocumentId: 'doc-1' },
-      { jobId: 'pdf-generate:doc-1' },
+      { jobId: 'pdf-generate-doc-1' },
     );
   });
 
@@ -55,7 +55,7 @@ describe('PdfGenerateQueueService', () => {
     const queueInstance = (Queue as unknown as jest.Mock).mock.results[0].value;
     const calls = queueInstance.add.mock.calls;
     expect(calls).toHaveLength(2);
-    expect(calls[0][2]).toEqual({ jobId: 'pdf-generate:doc-1' });
-    expect(calls[1][2]).toEqual({ jobId: 'pdf-generate:doc-1' });
+    expect(calls[0][2]).toEqual({ jobId: 'pdf-generate-doc-1' });
+    expect(calls[1][2]).toEqual({ jobId: 'pdf-generate-doc-1' });
   });
 });

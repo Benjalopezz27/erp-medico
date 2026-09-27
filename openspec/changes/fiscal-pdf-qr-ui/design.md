@@ -8,7 +8,7 @@ tiene `documentType`, `pointOfSale`, `documentNumber`, `cae`, `caeExpirationDate
 `FiscalInvoiceProcessor` (`fiscal-invoice.processor.ts:177-207`) persiste el `UPDATE` atómico a
 `EMITIDO` dentro de `processWithLock`, condicionado a `WHERE arcaStatus = PENDIENTE_FACTURACION`.
 `FiscalInvoiceQueueService`/`FiscalInvoiceProcessor` establecen el patrón a replicar: `jobId`
-determinista `wsfe-emit:{fiscalDocumentId}`, `QueueConsumerModule` como home de processors del
+determinista `wsfe-emit-{fiscalDocumentId}`, `QueueConsumerModule` como home de processors del
 worker, no-op si el estado ya no aplica. No existe ninguna librería de PDF/QR en el repo. Ver
 `proposal.md - Why` para la motivación completa.
 
@@ -117,7 +117,7 @@ un quinto estado enumerado nuevo en el backend.
 ### 4. Cola `pdf-generate`: mismo patrón que `wsfe-emit`, encadenada post-CAE
 
 `PdfGenerateQueueService` (producer) + `PdfGenerateProcessor` (consumer, `QueueConsumerModule`),
-`jobId = "pdf-generate:" + fiscalDocumentId`. Encolado desde el branch de éxito de
+`jobId = "pdf-generate-" + fiscalDocumentId`. Encolado desde el branch de éxito de
 `FiscalInvoiceProcessor.processWithLock` (`fiscal-invoice.processor.ts:219`, después del `UPDATE`
 que persiste `EMITIDO`), en un `try/catch` que sólo loguea — igual que el patrón post-commit de
 `SalesService.create()`. Si el enqueue falla (Redis caído), el documento queda `EMITIDO` con
@@ -202,6 +202,13 @@ mismo componente de acciones por fila de Nota de Crédito cuando su `fiscalDocum
 - [QR regenerado en cada `GET .../qr` en vez de persistido como imagen] → costo de CPU trivial
   (una llamada a `qrcode.toBuffer()` sobre ~200 bytes de payload) a cambio de no duplicar el
   artefacto binario y mantener una sola fuente de verdad (`qrCodeData`).
+- [Bug preexistente descubierto durante el smoke test manual] `bullmq@5.75+` rechaza un `jobId`
+  personalizado que contenga `:` (`Error: Custom Id cannot contain :`). El `jobId` de `wsfe-emit`
+  (de #224) ya usaba `wsfe-emit:{fiscalDocumentId}` y nunca falló en tests porque
+  `fiscal-invoice.queue.spec.ts` mockea `bullmq` y los E2E invocan el processor directamente sin
+  pasar por el enqueue real — sólo se manifestó al correr worker + API reales contra Redis. Se
+  corrigió el separador a `-` en ambos jobs (`wsfe-emit-{fiscalDocumentId}`,
+  `pdf-generate-{fiscalDocumentId}`), sin cambiar la semántica de deduplicación.
 - [`pdf-lib`/`qrcode` como dependencias nuevas] → necesarias: no existe ninguna capacidad de
   generación de PDF/QR en el repo hoy; ambas son librerías JS puras (sin binarios nativos), bien
   mantenidas y ampliamente usadas en Node.

@@ -128,7 +128,7 @@ describe('FiscalInvoiceProcessor', () => {
     configService = { get: jest.fn().mockReturnValue(1) };
 
     pdfGenerateQueueService = {
-      enqueue: jest.fn().mockResolvedValue({ jobId: 'pdf-generate:doc-1' }),
+      enqueue: jest.fn().mockResolvedValue({ jobId: 'pdf-generate-doc-1' }),
     };
 
     processor = new FiscalInvoiceProcessor(

@@ -38,7 +38,7 @@
 
 - [x] 4.1 Agregar `PDF_GENERATE_QUEUE_NAME`/`PDF_GENERATE_JOB_NAME` a `queue.constants.ts` y crear
       `PdfGenerateQueueService` (producer) siguiendo el patrón de `FiscalInvoiceQueueService`, con
-      `jobId = "pdf-generate:" + fiscalDocumentId`; verificar con unit test que un segundo enqueue
+      `jobId = "pdf-generate-" + fiscalDocumentId`; verificar con unit test que un segundo enqueue
       para el mismo `fiscalDocumentId` no crea un job duplicado.
 - [x] 4.2 Crear `PdfGenerateProcessor` (consumer, en `QueueConsumerModule`/`WorkerModule`) que:
       carga el `FiscalDocument` con lock de fila, no hace nada si `arcaStatus !== 'EMITIDO'`, no
