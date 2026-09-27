@@ -59,7 +59,7 @@
 
 - [x] 5.1 En `FiscalInvoiceProcessor`, después del `UPDATE` exitoso que persiste `EMITIDO`
       (`processWithLock`, branch de éxito), encolar `pdfGenerateQueueService.enqueue({
-    fiscalDocumentId })` en un `try/catch` que sólo loguea; verificar con unit test que una
+fiscalDocumentId })` en un `try/catch` que sólo loguea; verificar con unit test que una
       emisión exitosa encola el job, y que si el enqueue lanza, la emisión fiscal igual queda
       persistida como `EMITIDO`.
 - [x] 5.2 Verificar con unit test que una emisión rechazada (`RECHAZADO`) o un no-op (documento ya
@@ -80,7 +80,7 @@
 - [x] 7.1 Agregar `GET /sales/:id/fiscal-document/pdf` en `SalesController` (mismos guards/roles de
       clase): streaming del buffer con `Content-Type: application/pdf` y `Content-Disposition`
       derivado de tipo+número sanitizados; 409 si `arcaStatus !== EMITIDO` o `pdf_status !==
-    DISPONIBLE`, 404 sin `FiscalDocument`; verificar con unit tests de controller/service para
+DISPONIBLE`, 404 sin `FiscalDocument`; verificar con unit tests de controller/service para
       200, 409 y 404, y documentar en Swagger.
 - [x] 7.2 Agregar `GET /sales/:id/fiscal-document/qr` en `SalesController`: 200 con imagen PNG
       generada desde `qrCodeData` cuando `arcaStatus === EMITIDO` y hay payload persistido; mismos
@@ -120,7 +120,7 @@
 
 - [x] 10.1 E2E: venta facturable → `EMITIDO` (worker con ARCA mock) → job `pdf-generate` procesado
       → `GET /sales/:id/fiscal-document/pdf` descarga un PDF válido → `GET
-    /sales/:id/fiscal-document/qr` decodifica al payload esperado.
+/sales/:id/fiscal-document/qr` decodifica al payload esperado.
 - [x] 10.2 E2E: devolución con Nota de Crédito emitida → PDF y QR propios, vinculados visualmente a
       la devolución, sin modificar la factura ni la devolución originales.
 - [x] 10.3 E2E/regresión: repetir o ejecutar concurrentemente `pdf-generate` sobre el mismo
@@ -129,5 +129,5 @@
 - [x] 10.4 Regresión de `/sales/:id`, historial de devoluciones y `FiscalStatusBadge`: ninguna
       pantalla existente cambia de comportamiento para ventas sin factura o con factura pendiente.
 - [x] 10.5 Correr formato, lint, unitarios, frontend, e2e y build completos del monorepo (`npm run
-    lint`, `npm run test`, `npm run test:e2e`, `npm run build`) y dejar constancia de que pasan
+lint`, `npm run test`, `npm run test:e2e`, `npm run build`) y dejar constancia de que pasan
       antes de abrir el PR.
