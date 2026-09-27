@@ -8,6 +8,7 @@ export function useFiscalAlertsQuery(params: IFiscalAlertsSearchParams) {
     queryKey: fiscalAlertsKeys.list(params),
     queryFn: () => getFiscalAlertsApi(params),
     placeholderData: keepPreviousData,
+    meta: { skipGlobalErrorToast: true },
   });
 }
 
