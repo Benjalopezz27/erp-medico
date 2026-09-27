@@ -66,7 +66,7 @@ export const LoginPage: React.FC = () => {
         </CardDescription>
       </CardHeader>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate autoComplete="off">
         <CardContent className="space-y-4">
           {serverError && (
             <div
@@ -87,7 +87,9 @@ export const LoginPage: React.FC = () => {
               <Input
                 id="login-email"
                 type="email"
-                autoComplete="username"
+                autoComplete="off"
+                readOnly
+                onFocus={(e) => e.currentTarget.removeAttribute('readOnly')}
                 placeholder="usuario@empresa.com"
                 aria-invalid={Boolean(errors.email)}
                 aria-describedby={errors.email ? 'login-email-error' : undefined}
@@ -112,7 +114,9 @@ export const LoginPage: React.FC = () => {
               <Input
                 id="login-password"
                 type="password"
-                autoComplete="current-password"
+                autoComplete="new-password"
+                readOnly
+                onFocus={(e) => e.currentTarget.removeAttribute('readOnly')}
                 placeholder="••••••••••••"
                 aria-invalid={Boolean(errors.password)}
                 aria-describedby={errors.password ? 'login-password-error' : undefined}
