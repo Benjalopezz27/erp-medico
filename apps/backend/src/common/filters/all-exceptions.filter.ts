@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { ApiErrorResponse } from '@erp/shared-types';
 import { RequestContextService } from '../services/request-context.service';
 import { redactSecrets } from '../utils/sanitizer.utils';
 
@@ -104,7 +105,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         (status >= 500 ? 'Internal Server Error' : 'Error');
     }
 
-    const errorPayload: Record<string, any> = {
+    const errorPayload: ApiErrorResponse = {
       statusCode: status,
       message,
       error: errorName,

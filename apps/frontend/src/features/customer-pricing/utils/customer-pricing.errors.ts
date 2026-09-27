@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { CustomerPricingErrorCode, type ICustomerSpecialPrice } from '@erp/shared-types';
+import { parseApiError } from '@/lib/errors/parse-api-error';
 
 export interface ParsedCustomerPricingError {
   code?: CustomerPricingErrorCode;
@@ -39,29 +40,23 @@ export function parseCustomerPricingError(error: unknown): ParsedCustomerPricing
       shouldRefresh: false,
     };
   }
-  if (!error.response || error.code === 'ERR_NETWORK') {
-    return {
-      message: 'No se pudo conectar con el servidor. Verificá la conexión e intentá nuevamente.',
-      shouldRefresh: false,
-    };
+
+  const apiError = parseApiError(error);
+  if (apiError.statusCode === 0) {
+    return { message: apiError.message, shouldRefresh: false };
   }
-  const body = error.response.data as
-    | {
-        code?: CustomerPricingErrorCode;
-        message?: string | string[];
-        requestId?: string;
-        details?: { currentRule?: ICustomerSpecialPrice };
-      }
-    | undefined;
-  const fallback = Array.isArray(body?.message) ? body.message.join(' ') : body?.message;
-  const requestId = body?.requestId || (error as typeof error & { requestId?: string }).requestId;
+
+  const code = apiError.code as CustomerPricingErrorCode | undefined;
+  const details = apiError.details as { currentRule?: ICustomerSpecialPrice } | undefined;
+  const requestId = apiError.requestId !== 'unknown' ? apiError.requestId : undefined;
+
   return {
-    code: body?.code,
-    status: error.response.status,
-    message: `${(body?.code && messages[body.code]) || fallback || 'No se pudo completar la operación.'}${
+    code,
+    status: apiError.statusCode,
+    message: `${(code && messages[code]) || apiError.message}${
       requestId ? ` Código de seguimiento: ${requestId}.` : ''
     }`,
-    shouldRefresh: error.response.status === 404 || error.response.status === 409,
-    currentRule: body?.details?.currentRule,
+    shouldRefresh: apiError.statusCode === 404 || apiError.statusCode === 409,
+    currentRule: details?.currentRule,
   };
 }

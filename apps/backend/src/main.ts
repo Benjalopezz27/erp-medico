@@ -7,6 +7,7 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { StructuredJsonLogger } from './common/logger/structured-json-logger.service';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { validationExceptionFactory } from './common/validation/validation-exception-factory';
 
 async function bootstrap() {
   const jsonLogger = new StructuredJsonLogger();
@@ -36,6 +37,7 @@ async function bootstrap() {
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: true,
+      exceptionFactory: validationExceptionFactory,
     }),
   );
 

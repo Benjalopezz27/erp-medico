@@ -15,6 +15,8 @@ export class SalesMapper {
       pointOfSale: doc.pointOfSale,
       documentNumber: doc.documentNumber,
       arcaStatus: doc.arcaStatus,
+      arcaErrorCode: doc.arcaErrorCode,
+      arcaErrorMessage: doc.arcaErrorMessage,
       cae: doc.cae,
       caeExpirationDate: doc.caeExpirationDate,
       issuedAt: doc.issuedAt,

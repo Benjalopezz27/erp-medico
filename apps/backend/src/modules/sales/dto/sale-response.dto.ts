@@ -4,6 +4,7 @@ import {
   ArcaStatus,
   CustomerPricingRuleApplied,
   FiscalDocumentType,
+  FiscalErrorCode,
   PaymentMethod,
   PdfArtifactStatus,
   ProductTaxTreatment,
@@ -58,6 +59,9 @@ export class FiscalDocumentResponseDto {
   @ApiPropertyOptional({ nullable: true }) pointOfSale: number | null;
   @ApiPropertyOptional({ nullable: true }) documentNumber: number | null;
   @ApiProperty({ enum: ArcaStatus }) arcaStatus: ArcaStatus;
+  @ApiPropertyOptional({ enum: FiscalErrorCode, nullable: true })
+  arcaErrorCode: FiscalErrorCode | null;
+  @ApiPropertyOptional({ nullable: true }) arcaErrorMessage: string | null;
   @ApiPropertyOptional({ nullable: true }) cae: string | null;
   @ApiPropertyOptional({ nullable: true }) caeExpirationDate: string | null;
   @ApiPropertyOptional({ nullable: true }) issuedAt: Date | string | null;
