@@ -18,6 +18,12 @@ export interface FiscalInvoiceJobData {
  * treats a repeated `add` with an existing jobId as a no-op while that job
  * hasn't been removed yet. Uses `-`, not `:`, as the separator — BullMQ
  * (>=5.75) rejects a custom jobId containing `:`.
+ *
+ * `attempts: 6` + exponential backoff base 30000ms gives 5 automatic retries
+ * with delays 30/60/120/240/480s (BullMQ computes `delay * 2^(attemptsMade -
+ * 1)` before each retry, attemptsMade starting at 1) — 1 initial attempt + 5
+ * retries, matching the contingency policy in openspec/changes/
+ * arca-contingency-engine/design.md (decision D1).
  */
 @Injectable()
 export class FiscalInvoiceQueueService implements OnModuleDestroy {
@@ -33,10 +39,10 @@ export class FiscalInvoiceQueueService implements OnModuleDestroy {
         {
           connection: this.redisClient as any,
           defaultJobOptions: {
-            attempts: 3,
+            attempts: 6,
             backoff: {
               type: 'exponential',
-              delay: 1000,
+              delay: 30000,
             },
             removeOnComplete: { count: 500 },
             removeOnFail: { count: 500 },
@@ -50,7 +56,7 @@ export class FiscalInvoiceQueueService implements OnModuleDestroy {
   async enqueueCaeRequest(
     data: FiscalInvoiceJobData,
   ): Promise<{ jobId: string }> {
-    const jobId = `wsfe-emit-${data.fiscalDocumentId}`;
+    const jobId = this.jobIdFor(data.fiscalDocumentId);
     const queue = this.getQueue();
     const job = await queue.add(FISCAL_INVOICE_JOB_NAME, data, { jobId });
 
@@ -59,6 +65,53 @@ export class FiscalInvoiceQueueService implements OnModuleDestroy {
     );
 
     return { jobId: job.id as string };
+  }
+
+  /**
+   * Used by the manual retry endpoint and the orphan-recovery sweep — never
+   * by automatic BullMQ retries, which reuse the same job instance. A job
+   * still `waiting`/`active`/`delayed` is left untouched and its id is
+   * returned as-is (idempotent: a second concurrent call converges on the
+   * same job). A job that is `completed`/`failed` (terminal — retries
+   * exhausted, or rejected outright) is removed first: BullMQ refuses `add`
+   * with a jobId that still belongs to an existing job.
+   */
+  async requeue(
+    fiscalDocumentId: string,
+  ): Promise<{ jobId: string; created: boolean }> {
+    const jobId = this.jobIdFor(fiscalDocumentId);
+    const queue = this.getQueue();
+    const existing = await queue.getJob(jobId);
+
+    if (existing) {
+      const state = await existing.getState();
+      if (state === 'waiting' || state === 'active' || state === 'delayed') {
+        return { jobId, created: false };
+      }
+      await existing.remove();
+    }
+
+    const job = await queue.add(
+      FISCAL_INVOICE_JOB_NAME,
+      { fiscalDocumentId },
+      { jobId },
+    );
+    this.logger.log(
+      `[Queue] Re-encolado wsfe-emit job ${job.id} (fiscalDocumentId: ${fiscalDocumentId})`,
+    );
+    return { jobId: job.id as string, created: true };
+  }
+
+  async getJob(fiscalDocumentId: string) {
+    return this.getQueue().getJob(this.jobIdFor(fiscalDocumentId));
+  }
+
+  getQueueInstance(): Queue<FiscalInvoiceJobData> {
+    return this.getQueue();
+  }
+
+  private jobIdFor(fiscalDocumentId: string): string {
+    return `wsfe-emit-${fiscalDocumentId}`;
   }
 
   async onModuleDestroy(): Promise<void> {

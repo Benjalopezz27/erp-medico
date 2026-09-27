@@ -15,6 +15,8 @@ import { SaleReturnItem } from './returns/entities/sale-return-item.entity';
 import { SaleReturnsController } from './returns/sale-returns.controller';
 import { SaleReturnsService } from './returns/services/sale-returns.service';
 import { QueueModule } from '../queue/queue.module';
+import { PendingFiscalController } from './pending-fiscal.controller';
+import { PendingFiscalService } from './services/pending-fiscal.service';
 
 @Module({
   imports: [
@@ -32,8 +34,15 @@ import { QueueModule } from '../queue/queue.module';
     QuarantineModule,
     QueueModule,
   ],
-  controllers: [SalesController, SaleReturnsController],
-  providers: [SalesService, SaleReturnsService],
+  // PendingFiscalController registered before SalesController: its literal
+  // routes (sales/pending-fiscal, .../count, .../metrics) must be matched
+  // before SalesController's `GET /sales/:id` parametric route.
+  controllers: [
+    PendingFiscalController,
+    SalesController,
+    SaleReturnsController,
+  ],
+  providers: [SalesService, SaleReturnsService, PendingFiscalService],
   exports: [SalesService, SaleReturnsService],
 })
 export class SalesModule {}

@@ -11,6 +11,8 @@ import {
 import {
   ArcaStatus,
   FiscalDocumentType,
+  FiscalErrorCode,
+  FiscalFailureStage,
   PdfArtifactStatus,
 } from '@erp/shared-types';
 import { Sale } from './sale.entity';
@@ -57,6 +59,31 @@ export class FiscalDocument {
 
   @Column({ name: 'arca_error_message', type: 'text', nullable: true })
   arcaErrorMessage: string | null;
+
+  @Column({ name: 'attempt_count', type: 'integer', default: 0 })
+  attemptCount: number;
+
+  @Column({ name: 'last_attempt_at', type: 'timestamptz', nullable: true })
+  lastAttemptAt: Date | null;
+
+  @Column({ name: 'next_attempt_at', type: 'timestamptz', nullable: true })
+  nextAttemptAt: Date | null;
+
+  @Column({
+    name: 'failure_stage',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
+  failureStage: FiscalFailureStage | null;
+
+  @Column({
+    name: 'arca_error_code',
+    type: 'varchar',
+    length: 40,
+    nullable: true,
+  })
+  arcaErrorCode: FiscalErrorCode | null;
 
   @Column({ name: 'qr_code_data', type: 'text', nullable: true })
   qrCodeData: string | null;

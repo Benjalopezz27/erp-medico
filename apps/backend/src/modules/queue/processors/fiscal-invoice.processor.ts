@@ -5,45 +5,29 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
-import { DataSource, EntityManager } from 'typeorm';
-import { ArcaStatus } from '@erp/shared-types';
+import { DataSource } from 'typeorm';
 import {
   REDIS_CONNECTION,
   FISCAL_INVOICE_QUEUE_NAME,
 } from '../queue.constants';
 import { FiscalInvoiceJobData } from '../services/fiscal-invoice.queue';
 import { PdfGenerateQueueService } from '../services/pdf-generate.queue';
-import { ARCA_SERVICE } from '../../arca/arca.constants';
-import { IArcaService } from '../../arca/interfaces/arca-service.interface';
-import { InvoiceTypeResolverService } from '../../arca/services/invoice-type-resolver.service';
 import {
-  buildFiscalAmounts,
-  validateFiscalAmounts,
-} from '../../arca/utils/fiscal-amounts.util';
-import { WsfeRejectedError } from '../../arca/services/wsfe-soap-client.service';
+  FiscalContingencyOrchestrator,
+  FiscalInvoiceJobResult,
+} from '../services/fiscal-contingency-orchestrator.service';
 import { redactSecrets } from '../../../common/utils/sanitizer.utils';
-import { FiscalNumberingService } from '../../sales/services/fiscal-numbering.service';
-import { resolveReceiverDocument } from '../../sales/utils/fiscal-receiver.util';
-import { FiscalDocument } from '../../sales/entities/fiscal-document.entity';
-import { Sale } from '../../sales/entities/sale.entity';
-import { SaleItem } from '../../sales/entities/sale-item.entity';
-import { SaleReturnItem } from '../../sales/returns/entities/sale-return-item.entity';
-import { Customer } from '../../customers/entities/customer.entity';
 
-export interface FiscalInvoiceJobResult {
-  status: 'emitted' | 'rejected' | 'skipped';
-  fiscalDocumentId: string;
-}
+export { FiscalInvoiceJobResult } from '../services/fiscal-contingency-orchestrator.service';
 
 /**
- * Consumer for the `wsfe-emit` queue: resolves invoice type, reserves the
- * next comprobante number and requests a CAE, persisting the result
- * atomically. Idempotent — a `FiscalDocument` no longer PENDIENTE_FACTURACION
- * (already EMITIDO/RECHAZADO by a previous attempt or a concurrent worker)
- * is a no-op.
+ * Consumer for the `wsfe-emit` queue. Thin BullMQ adapter: opens the
+ * transaction holding a row lock on the `FiscalDocument` for the whole
+ * external round-trip, and delegates all contingency/domain logic to
+ * `FiscalContingencyOrchestrator` (Escenario A/B, clasificación de errores,
+ * agotamiento de reintentos — ver openspec/changes/arca-contingency-engine).
  */
 @Injectable()
 export class FiscalInvoiceProcessor implements OnModuleInit, OnModuleDestroy {
@@ -54,10 +38,7 @@ export class FiscalInvoiceProcessor implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(REDIS_CONNECTION) private readonly redisClient: Redis,
     private readonly dataSource: DataSource,
-    @Inject(ARCA_SERVICE) private readonly arcaService: IArcaService,
-    private readonly invoiceTypeResolver: InvoiceTypeResolverService,
-    private readonly numberingService: FiscalNumberingService,
-    private readonly configService: ConfigService,
+    private readonly orchestrator: FiscalContingencyOrchestrator,
     private readonly pdfGenerateQueueService: PdfGenerateQueueService,
   ) {}
 
@@ -99,8 +80,14 @@ export class FiscalInvoiceProcessor implements OnModuleInit, OnModuleDestroy {
     // picking up the same job blocks on the lock instead of also calling
     // ARCA, and sees the already-resolved status once it acquires it.
     const result = await this.dataSource.transaction((manager) =>
-      this.processWithLock(manager, job, fiscalDocumentId),
+      this.orchestrator.process(manager, job, fiscalDocumentId),
     );
+
+    if (result.status === 'retrying') {
+      // The attempt-metadata UPDATE already committed above; throwing here
+      // (post-commit) is what makes BullMQ actually schedule the retry.
+      throw new Error(result.error);
+    }
 
     if (result.status === 'emitted') {
       // Post-commit, never inside the transaction: a failure to enqueue the
@@ -121,206 +108,6 @@ export class FiscalInvoiceProcessor implements OnModuleInit, OnModuleDestroy {
     }
 
     return result;
-  }
-
-  private async processWithLock(
-    manager: EntityManager,
-    job: Job<FiscalInvoiceJobData, FiscalInvoiceJobResult>,
-    fiscalDocumentId: string,
-  ): Promise<FiscalInvoiceJobResult> {
-    const document = await manager.getRepository(FiscalDocument).findOne({
-      where: { id: fiscalDocumentId },
-      lock: { mode: 'pessimistic_write' },
-    });
-
-    if (!document) {
-      throw new Error(
-        `[FiscalInvoiceProcessor] FiscalDocument ${fiscalDocumentId} no existe.`,
-      );
-    }
-
-    if (document.arcaStatus !== ArcaStatus.PENDIENTE_FACTURACION) {
-      this.logger.log(
-        `[Worker] wsfe-emit job ${job.id} skipped: document ${fiscalDocumentId} already ${document.arcaStatus}.`,
-      );
-      return { status: 'skipped', fiscalDocumentId };
-    }
-
-    const sale = await manager
-      .getRepository(Sale)
-      .findOneOrFail({ where: { id: document.saleId } });
-
-    const customer = sale.customerId
-      ? await manager
-          .getRepository(Customer)
-          .findOne({ where: { id: sale.customerId } })
-      : null;
-
-    try {
-      const fiscalAmounts = await this.loadFiscalAmounts(document);
-      validateFiscalAmounts(fiscalAmounts);
-
-      const documentType =
-        document.documentType ??
-        this.invoiceTypeResolver.resolve(
-          customer
-            ? {
-                taxCondition: customer.taxCondition,
-                documentType: customer.documentType,
-              }
-            : null,
-        );
-
-      const pointOfSale =
-        document.pointOfSale ?? this.resolveEmisorPointOfSale();
-
-      const documentNumber = await this.numberingService.reserveNextNumber(
-        fiscalDocumentId,
-        documentType,
-        pointOfSale,
-        () =>
-          this.arcaService.getLastAuthorizedNumber(documentType, pointOfSale),
-        manager,
-      );
-
-      const { docType, docNumber } = resolveReceiverDocument(customer);
-
-      const caeResponse = await this.arcaService.requestCAE({
-        ...fiscalAmounts,
-        documentType,
-        pointOfSale,
-        documentNumber,
-        concept: 1,
-        docType,
-        docNumber,
-      });
-
-      let updateResult: { affected?: number };
-      try {
-        updateResult = await manager.getRepository(FiscalDocument).update(
-          {
-            id: fiscalDocumentId,
-            arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
-          },
-          {
-            documentType,
-            pointOfSale,
-            documentNumber,
-            cae: caeResponse.cae,
-            caeExpirationDate: this.formatCaeExpiration(
-              caeResponse.caeExpiration,
-            ),
-            arcaStatus: ArcaStatus.EMITIDO,
-            issuedAt: new Date(),
-          },
-        );
-      } catch (persistError: unknown) {
-        if (this.isUniqueViolation(persistError)) {
-          // The (documentType, pointOfSale, documentNumber) backstop index
-          // rejected a duplicate number — reload instead of surfacing a raw
-          // 500. The advisory lock should prevent this in practice; this is
-          // the last-instance guard the design calls for.
-          this.logger.warn(
-            `[Worker] wsfe-emit job ${job.id}: numbering collision on document ${fiscalDocumentId}, reloading.`,
-          );
-          updateResult = { affected: 0 };
-        } else {
-          throw persistError;
-        }
-      }
-
-      if (updateResult.affected === 0) {
-        // Another worker already persisted a terminal status for this
-        // document (idempotent race, or the unique index rejected a
-        // concurrent duplicate number) — nothing left to do here.
-        this.logger.log(
-          `[Worker] wsfe-emit job ${job.id}: document ${fiscalDocumentId} was already resolved by another worker.`,
-        );
-        return { status: 'skipped', fiscalDocumentId };
-      }
-
-      return { status: 'emitted', fiscalDocumentId };
-    } catch (err: unknown) {
-      if (err instanceof WsfeRejectedError) {
-        await manager.getRepository(FiscalDocument).update(
-          {
-            id: fiscalDocumentId,
-            arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
-          },
-          {
-            arcaStatus: ArcaStatus.RECHAZADO,
-            arcaErrorMessage: `WSFE_REJECTED: ${err.observations || err.message}`,
-          },
-        );
-        return { status: 'rejected', fiscalDocumentId };
-      }
-
-      const message = err instanceof Error ? err.message : String(err);
-      if (this.isTotalsMismatch(message)) {
-        await manager.getRepository(FiscalDocument).update(
-          {
-            id: fiscalDocumentId,
-            arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
-          },
-          {
-            arcaStatus: ArcaStatus.RECHAZADO,
-            arcaErrorMessage: `TOTALS_MISMATCH: ${redactSecrets(message)}`,
-          },
-        );
-        return { status: 'rejected', fiscalDocumentId };
-      }
-
-      // Unknown/transient failure (network, WSFE unavailable, config
-      // incomplete): leave PENDIENTE_FACTURACION and let BullMQ retry.
-      this.logger.error(
-        `[Worker] wsfe-emit job ${job.id} failed: ${redactSecrets(message)}`,
-      );
-      throw new Error(redactSecrets(message));
-    }
-  }
-
-  private async loadFiscalAmounts(document: FiscalDocument) {
-    if (document.saleReturnId) {
-      const items = await this.dataSource
-        .getRepository(SaleReturnItem)
-        .find({ where: { saleReturnId: document.saleReturnId } });
-      return buildFiscalAmounts(items);
-    }
-    const items = await this.dataSource
-      .getRepository(SaleItem)
-      .find({ where: { saleId: document.saleId } });
-    return buildFiscalAmounts(items);
-  }
-
-  private resolveEmisorPointOfSale(): number {
-    const configured = Number(
-      this.configService.get<number>('ARCA_PUNTO_VENTA'),
-    );
-    if (!configured || Number.isNaN(configured) || configured < 1) {
-      throw new Error(
-        '[ARCA] ARCA_PUNTO_VENTA no está configurado; no se puede resolver el punto de venta del emisor.',
-      );
-    }
-    return configured;
-  }
-
-  private formatCaeExpiration(caeExpiration: string): string {
-    // ARCA returns YYYYMMDD; the column is a plain DATE.
-    return `${caeExpiration.slice(0, 4)}-${caeExpiration.slice(4, 6)}-${caeExpiration.slice(6, 8)}`;
-  }
-
-  private isUniqueViolation(error: unknown): boolean {
-    if (!error || typeof error !== 'object') return false;
-    const code =
-      (error as { code?: string }).code ??
-      (error as { driverError?: { code?: string } }).driverError?.code;
-    return code === '23505';
-  }
-
-  private isTotalsMismatch(message: string): boolean {
-    return /no coincide|debe informar su alícuota|no tiene mapeo ARCA|no pueden ser negativos/.test(
-      message,
-    );
   }
 
   getWorker(): Worker<FiscalInvoiceJobData, FiscalInvoiceJobResult> | null {
