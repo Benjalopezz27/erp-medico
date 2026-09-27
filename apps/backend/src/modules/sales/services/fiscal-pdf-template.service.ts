@@ -146,7 +146,6 @@ export class FiscalPdfTemplateService {
   /** Strips control characters; keeps accents/ñ, which pdf-lib's WinAnsi
    * Helvetica encoding already supports. */
   private sanitizeText(value: string): string {
-    // eslint-disable-next-line no-control-regex
     return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
   }
 }

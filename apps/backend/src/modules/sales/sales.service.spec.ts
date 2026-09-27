@@ -47,7 +47,9 @@ describe('SalesService', () => {
   let fiscalInvoiceQueueService: jest.Mocked<
     Pick<FiscalInvoiceQueueService, 'enqueueCaeRequest'>
   >;
-  let pdfGenerateQueueService: jest.Mocked<Pick<PdfGenerateQueueService, 'enqueue'>>;
+  let pdfGenerateQueueService: jest.Mocked<
+    Pick<PdfGenerateQueueService, 'enqueue'>
+  >;
   let service: SalesService;
 
   beforeEach(() => {
@@ -434,7 +436,9 @@ describe('SalesService', () => {
         pdfData: null,
       };
 
-      await expect(service.getFiscalDocumentPdf('sale-1')).rejects.toMatchObject({
+      await expect(
+        service.getFiscalDocumentPdf('sale-1'),
+      ).rejects.toMatchObject({
         response: expect.objectContaining({
           code: SalesErrorCode.SALE_FISCAL_ARTIFACT_NOT_AVAILABLE,
         }),
@@ -508,13 +512,13 @@ describe('SalesService', () => {
         qrCodeData: null,
       };
 
-      await expect(
-        service.getFiscalDocumentQr('sale-1'),
-      ).rejects.toMatchObject({
-        response: expect.objectContaining({
-          code: SalesErrorCode.SALE_FISCAL_ARTIFACT_NOT_AVAILABLE,
-        }),
-      });
+      await expect(service.getFiscalDocumentQr('sale-1')).rejects.toMatchObject(
+        {
+          response: expect.objectContaining({
+            code: SalesErrorCode.SALE_FISCAL_ARTIFACT_NOT_AVAILABLE,
+          }),
+        },
+      );
     });
   });
 

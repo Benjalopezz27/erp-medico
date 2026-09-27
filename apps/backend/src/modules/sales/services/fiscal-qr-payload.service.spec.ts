@@ -67,11 +67,10 @@ describe('FiscalQrPayloadService', () => {
       [FiscalDocumentType.NOTA_CREDITO_B, 8],
     ];
     for (const [documentType, tipoCmp] of cases) {
-      const { payload } = service.build(
-        makeDocument({ documentType }),
-        100,
-        { docType: 99, docNumber: '0' },
-      );
+      const { payload } = service.build(makeDocument({ documentType }), 100, {
+        docType: 99,
+        docNumber: '0',
+      });
       expect(payload.tipoCmp).toBe(tipoCmp);
     }
   });

@@ -230,8 +230,12 @@ describe('Fiscal PDF/QR artifact pipeline (E2E)', () => {
       .set('Authorization', `Bearer ${sellerToken}`)
       .expect(200);
     expect(pdfRes.headers['content-type']).toBe('application/pdf');
-    expect(pdfRes.headers['content-disposition']).toMatch(/attachment; filename="factura-a-/);
-    expect(Buffer.from(pdfRes.body).slice(0, 5).toString('ascii')).toBe('%PDF-');
+    expect(pdfRes.headers['content-disposition']).toMatch(
+      /attachment; filename="factura-a-/,
+    );
+    expect(Buffer.from(pdfRes.body).slice(0, 5).toString('ascii')).toBe(
+      '%PDF-',
+    );
 
     const qrRes = await request(app.getHttpServer())
       .get(`/api/v1/sales/${saleRes.body.id}/fiscal-document/qr`)
@@ -249,9 +253,7 @@ describe('Fiscal PDF/QR artifact pipeline (E2E)', () => {
     expect(decoded).toBeTruthy();
     const payloadUrl = fiscalDocument.qrCodeData!;
     const encoded = payloadUrl.split('?p=')[1];
-    const payload = JSON.parse(
-      Buffer.from(encoded, 'base64').toString('utf8'),
-    );
+    const payload = JSON.parse(Buffer.from(encoded, 'base64').toString('utf8'));
     expect(payload).toMatchObject({
       cuit: 20345678901,
       codAut: Number(fiscalDocument.cae),
@@ -278,7 +280,9 @@ describe('Fiscal PDF/QR artifact pipeline (E2E)', () => {
       data: { fiscalDocumentId: saleRes.body.fiscalDocument.id },
     } as any);
 
-    const jobData = { data: { fiscalDocumentId: saleRes.body.fiscalDocument.id } } as any;
+    const jobData = {
+      data: { fiscalDocumentId: saleRes.body.fiscalDocument.id },
+    } as any;
     const [first, second] = await Promise.all([
       buildPdfGenerateProcessor(app, ds).process(jobData),
       buildPdfGenerateProcessor(app, ds).process(jobData),
@@ -347,9 +351,7 @@ describe('Fiscal PDF/QR artifact pipeline (E2E)', () => {
       )
       .set('Authorization', `Bearer ${sellerToken}`)
       .expect(200);
-    expect(Buffer.from(ncPdf.body).slice(0, 5).toString('ascii')).toBe(
-      '%PDF-',
-    );
+    expect(Buffer.from(ncPdf.body).slice(0, 5).toString('ascii')).toBe('%PDF-');
 
     const originalFiscalDoc = await ds
       .getRepository(FiscalDocument)

@@ -83,7 +83,8 @@ export class FiscalQrPayloadService {
       fecha: this.formatDate(document.issuedAt),
       cuit,
       ptoVta: document.pointOfSale,
-      tipoCmp: CBTE_TIPO_BY_DOCUMENT_TYPE[document.documentType as FiscalDocumentType],
+      tipoCmp:
+        CBTE_TIPO_BY_DOCUMENT_TYPE[document.documentType as FiscalDocumentType],
       nroCmp: document.documentNumber,
       importe: totalAmount,
       moneda: 'PES',

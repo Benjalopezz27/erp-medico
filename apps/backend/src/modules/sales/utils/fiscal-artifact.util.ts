@@ -1,6 +1,10 @@
 import { ConflictException, Logger } from '@nestjs/common';
 import * as QRCode from 'qrcode';
-import { ArcaStatus, PdfArtifactStatus, SalesErrorCode } from '@erp/shared-types';
+import {
+  ArcaStatus,
+  PdfArtifactStatus,
+  SalesErrorCode,
+} from '@erp/shared-types';
 import { FiscalDocument } from '../entities/fiscal-document.entity';
 import { PdfGenerateQueueService } from '../../queue/services/pdf-generate.queue';
 

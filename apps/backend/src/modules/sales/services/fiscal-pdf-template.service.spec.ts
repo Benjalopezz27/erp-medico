@@ -81,7 +81,12 @@ describe('FiscalPdfTemplateService', () => {
       subtotalGross: 12.1,
     }));
     const bytes = await service.render(
-      baseInput({ items: manyItems, taxableNetAmount: 800, ivaAmount: 168, totalAmount: 968 }),
+      baseInput({
+        items: manyItems,
+        taxableNetAmount: 800,
+        ivaAmount: 168,
+        totalAmount: 968,
+      }),
     );
     const { PDFDocument } = await import('pdf-lib');
     const doc = await PDFDocument.load(bytes);

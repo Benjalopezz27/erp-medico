@@ -121,7 +121,9 @@ describe('PdfGenerateProcessor', () => {
     };
 
     configService = {
-      get: jest.fn((key: string) => (key === 'ARCA_CUIT' ? '20345678901' : undefined)),
+      get: jest.fn((key: string) =>
+        key === 'ARCA_CUIT' ? '20345678901' : undefined,
+      ),
     };
 
     processor = new PdfGenerateProcessor(
@@ -145,7 +147,9 @@ describe('PdfGenerateProcessor', () => {
       expect.objectContaining({
         pdfStatus: PdfArtifactStatus.DISPONIBLE,
         pdfTemplateVersion: PDF_TEMPLATE_VERSION,
-        qrCodeData: expect.stringContaining('https://www.afip.gob.ar/fe/qr/?p='),
+        qrCodeData: expect.stringContaining(
+          'https://www.afip.gob.ar/fe/qr/?p=',
+        ),
       }),
     );
     const [, payload] = repos.FiscalDocument.update.mock.calls[0];

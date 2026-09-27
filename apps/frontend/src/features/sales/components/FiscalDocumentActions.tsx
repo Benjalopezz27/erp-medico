@@ -3,7 +3,10 @@ import { Download, QrCode } from 'lucide-react';
 import { ArcaStatus, PdfArtifactStatus, type IFiscalDocument } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
-import { useDownloadFiscalDocumentPdf, useFiscalDocumentQr } from '../hooks/use-fiscal-document-artifact';
+import {
+  useDownloadFiscalDocumentPdf,
+  useFiscalDocumentQr,
+} from '../hooks/use-fiscal-document-artifact';
 import { buildFiscalDocumentFilename } from '../utils/fiscal-document-artifact.util';
 
 export function FiscalDocumentActions({
@@ -70,9 +73,7 @@ export function FiscalDocumentActions({
         <QrCode className="mr-1.5 h-3.5 w-3.5" />
         Ver QR
       </Button>
-      {isPending && (
-        <span className="text-xs text-slate-500">Generando documento…</span>
-      )}
+      {isPending && <span className="text-xs text-slate-500">Generando documento…</span>}
       {isError && (
         <span className="text-xs text-amber-700">
           No se pudo generar el documento. Podés reintentar la descarga.

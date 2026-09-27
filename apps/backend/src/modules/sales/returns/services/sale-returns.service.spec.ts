@@ -39,7 +39,9 @@ describe('SaleReturnsService', () => {
   let fiscalInvoiceQueueService: jest.Mocked<
     Pick<FiscalInvoiceQueueService, 'enqueueCaeRequest'>
   >;
-  let pdfGenerateQueueService: jest.Mocked<Pick<PdfGenerateQueueService, 'enqueue'>>;
+  let pdfGenerateQueueService: jest.Mocked<
+    Pick<PdfGenerateQueueService, 'enqueue'>
+  >;
   let service: SaleReturnsService;
 
   beforeEach(() => {
