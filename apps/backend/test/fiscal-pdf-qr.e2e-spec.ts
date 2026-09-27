@@ -30,6 +30,7 @@ import { IArcaService } from '../src/modules/arca/interfaces/arca-service.interf
 import { InvoiceTypeResolverService } from '../src/modules/arca/services/invoice-type-resolver.service';
 import { FiscalNumberingService } from '../src/modules/sales/services/fiscal-numbering.service';
 import { FiscalInvoiceProcessor } from '../src/modules/queue/processors/fiscal-invoice.processor';
+import { FiscalContingencyOrchestrator } from '../src/modules/queue/services/fiscal-contingency-orchestrator.service';
 import { PdfGenerateProcessor } from '../src/modules/queue/processors/pdf-generate.processor';
 import { PdfGenerateQueueService } from '../src/modules/queue/services/pdf-generate.queue';
 import { FiscalQrPayloadService } from '../src/modules/sales/services/fiscal-qr-payload.service';
@@ -42,13 +43,17 @@ import { FiscalPdfTemplateService } from '../src/modules/sales/services/fiscal-p
  */
 function buildFiscalInvoiceProcessor(app: INestApplication, ds: DataSource) {
   const redisStub = {} as any;
-  return new FiscalInvoiceProcessor(
-    redisStub,
+  const orchestrator = new FiscalContingencyOrchestrator(
     ds,
     app.get<IArcaService>(ARCA_SERVICE),
     app.get(InvoiceTypeResolverService),
     new FiscalNumberingService(ds),
     app.get(ConfigService),
+  );
+  return new FiscalInvoiceProcessor(
+    redisStub,
+    ds,
+    orchestrator,
     app.get(PdfGenerateQueueService),
   );
 }
