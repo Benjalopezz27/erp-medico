@@ -5,6 +5,7 @@ import {
   CustomerPricingRuleApplied,
   FiscalDocumentType,
   PaymentMethod,
+  PdfArtifactStatus,
   ProductTaxTreatment,
   SaleStatus,
 } from '@erp/shared-types';
@@ -60,6 +61,10 @@ export class FiscalDocumentResponseDto {
   @ApiPropertyOptional({ nullable: true }) cae: string | null;
   @ApiPropertyOptional({ nullable: true }) caeExpirationDate: string | null;
   @ApiPropertyOptional({ nullable: true }) issuedAt: Date | string | null;
+  @ApiProperty({ enum: PdfArtifactStatus }) pdfStatus: PdfArtifactStatus;
+  @ApiProperty() qrAvailable: boolean;
+  @ApiPropertyOptional({ nullable: true }) pdfGeneratedAt: Date | string | null;
+  @ApiPropertyOptional({ nullable: true }) pdfSizeBytes: number | null;
 }
 
 export class AccountReceivableResponseDto {

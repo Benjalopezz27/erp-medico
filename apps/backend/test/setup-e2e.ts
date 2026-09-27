@@ -1,6 +1,7 @@
 process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 process.env.ARCA_ENV = process.env.ARCA_ENV || 'development';
 process.env.ARCA_PUNTO_VENTA = process.env.ARCA_PUNTO_VENTA || '1';
+process.env.ARCA_CUIT = process.env.ARCA_CUIT || '20345678901';
 process.env.JWT_SECRET =
   process.env.JWT_SECRET ||
   'test_ci_jwt_secret_key_minimum_32_characters_long!';

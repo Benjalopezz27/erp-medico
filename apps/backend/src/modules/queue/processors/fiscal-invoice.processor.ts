@@ -9,12 +9,13 @@ import { ConfigService } from '@nestjs/config';
 import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { DataSource, EntityManager } from 'typeorm';
-import { ArcaStatus, CustomerDocumentType } from '@erp/shared-types';
+import { ArcaStatus } from '@erp/shared-types';
 import {
   REDIS_CONNECTION,
   FISCAL_INVOICE_QUEUE_NAME,
 } from '../queue.constants';
 import { FiscalInvoiceJobData } from '../services/fiscal-invoice.queue';
+import { PdfGenerateQueueService } from '../services/pdf-generate.queue';
 import { ARCA_SERVICE } from '../../arca/arca.constants';
 import { IArcaService } from '../../arca/interfaces/arca-service.interface';
 import { InvoiceTypeResolverService } from '../../arca/services/invoice-type-resolver.service';
@@ -25,6 +26,7 @@ import {
 import { WsfeRejectedError } from '../../arca/services/wsfe-soap-client.service';
 import { redactSecrets } from '../../../common/utils/sanitizer.utils';
 import { FiscalNumberingService } from '../../sales/services/fiscal-numbering.service';
+import { resolveReceiverDocument } from '../../sales/utils/fiscal-receiver.util';
 import { FiscalDocument } from '../../sales/entities/fiscal-document.entity';
 import { Sale } from '../../sales/entities/sale.entity';
 import { SaleItem } from '../../sales/entities/sale-item.entity';
@@ -56,6 +58,7 @@ export class FiscalInvoiceProcessor implements OnModuleInit, OnModuleDestroy {
     private readonly invoiceTypeResolver: InvoiceTypeResolverService,
     private readonly numberingService: FiscalNumberingService,
     private readonly configService: ConfigService,
+    private readonly pdfGenerateQueueService: PdfGenerateQueueService,
   ) {}
 
   onModuleInit(): void {
@@ -95,9 +98,29 @@ export class FiscalInvoiceProcessor implements OnModuleInit, OnModuleDestroy {
     // FiscalDocument for the whole external round-trip: a concurrent worker
     // picking up the same job blocks on the lock instead of also calling
     // ARCA, and sees the already-resolved status once it acquires it.
-    return this.dataSource.transaction((manager) =>
+    const result = await this.dataSource.transaction((manager) =>
       this.processWithLock(manager, job, fiscalDocumentId),
     );
+
+    if (result.status === 'emitted') {
+      // Post-commit, never inside the transaction: a failure to enqueue the
+      // documental job must never roll back an already-authorized CAE. The
+      // document simply stays without an artifact until a download retries
+      // the enqueue (see PdfGenerateProcessor / the download endpoint).
+      try {
+        await this.pdfGenerateQueueService.enqueue({ fiscalDocumentId });
+      } catch (enqueueError) {
+        this.logger.warn(
+          `No se pudo encolar la generación de PDF/QR del documento ${fiscalDocumentId}; queda pendiente para recuperación. ${
+            enqueueError instanceof Error
+              ? enqueueError.message
+              : String(enqueueError)
+          }`,
+        );
+      }
+    }
+
+    return result;
   }
 
   private async processWithLock(
@@ -160,7 +183,7 @@ export class FiscalInvoiceProcessor implements OnModuleInit, OnModuleDestroy {
         manager,
       );
 
-      const { docType, docNumber } = this.resolveReceiverDocument(customer);
+      const { docType, docNumber } = resolveReceiverDocument(customer);
 
       const caeResponse = await this.arcaService.requestCAE({
         ...fiscalAmounts,
@@ -279,19 +302,6 @@ export class FiscalInvoiceProcessor implements OnModuleInit, OnModuleDestroy {
       );
     }
     return configured;
-  }
-
-  private resolveReceiverDocument(customer: Customer | null): {
-    docType: number;
-    docNumber: string;
-  } {
-    if (!customer) {
-      return { docType: 99, docNumber: '0' };
-    }
-    return {
-      docType: customer.documentType === CustomerDocumentType.CUIT ? 80 : 96,
-      docNumber: customer.cuitOrDni,
-    };
   }
 
   private formatCaeExpiration(caeExpiration: string): string {

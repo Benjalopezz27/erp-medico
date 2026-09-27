@@ -2,12 +2,13 @@ import { ConfigService } from '@nestjs/config';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import * as request from 'supertest';
+import * as QRCode from 'qrcode';
 import { DataSource } from 'typeorm';
 import {
   ArcaStatus,
   CustomerDocumentType,
-  FiscalDocumentType,
   PaymentMethod,
+  PdfArtifactStatus,
   ProductStatus,
   ProductTaxTreatment,
   SaleReturnItemQuality,
@@ -29,17 +30,18 @@ import { IArcaService } from '../src/modules/arca/interfaces/arca-service.interf
 import { InvoiceTypeResolverService } from '../src/modules/arca/services/invoice-type-resolver.service';
 import { FiscalNumberingService } from '../src/modules/sales/services/fiscal-numbering.service';
 import { FiscalInvoiceProcessor } from '../src/modules/queue/processors/fiscal-invoice.processor';
+import { PdfGenerateProcessor } from '../src/modules/queue/processors/pdf-generate.processor';
 import { PdfGenerateQueueService } from '../src/modules/queue/services/pdf-generate.queue';
+import { FiscalQrPayloadService } from '../src/modules/sales/services/fiscal-qr-payload.service';
+import { FiscalPdfTemplateService } from '../src/modules/sales/services/fiscal-pdf-template.service';
 
 /**
- * Runs the wsfe-emit consumer in-process (no BullMQ/Redis worker involved)
- * against the real Postgres datasource and the app's own ARCA_SERVICE
- * (ArcaMockService, since ARCA_ENV=development in e2e — see setup-e2e.ts).
- * This lets the tests below assert the full sale/return -> job -> EMITIDO
- * pipeline deterministically, without a separate worker process.
+ * Runs wsfe-emit and pdf-generate in-process (no BullMQ/Redis worker
+ * involved) against the real Postgres datasource, exercising the full
+ * sale -> EMITIDO -> PDF/QR artifact -> download pipeline for #225.
  */
-function buildProcessor(app: INestApplication, ds: DataSource) {
-  const redisStub = {} as any; // only used by onModuleInit(), never called here
+function buildFiscalInvoiceProcessor(app: INestApplication, ds: DataSource) {
+  const redisStub = {} as any;
   return new FiscalInvoiceProcessor(
     redisStub,
     ds,
@@ -51,7 +53,23 @@ function buildProcessor(app: INestApplication, ds: DataSource) {
   );
 }
 
-describe('Fiscal invoice emission pipeline (E2E)', () => {
+function buildPdfGenerateProcessor(app: INestApplication, ds: DataSource) {
+  const redisStub = {} as any;
+  const configService = app.get(ConfigService);
+  // FiscalQrPayloadService/FiscalPdfTemplateService only live in
+  // QueueConsumerModule (the worker process), not in AppModule's graph —
+  // both have no other dependencies, so they're constructed directly here,
+  // same as FiscalNumberingService above.
+  return new PdfGenerateProcessor(
+    redisStub,
+    ds,
+    new FiscalQrPayloadService(configService),
+    new FiscalPdfTemplateService(),
+    configService,
+  );
+}
+
+describe('Fiscal PDF/QR artifact pipeline (E2E)', () => {
   let app: INestApplication;
   let ds: DataSource;
   let stockService: StockService;
@@ -64,9 +82,9 @@ describe('Fiscal invoice emission pipeline (E2E)', () => {
     ds = await dataSource.initialize();
     await ds.runMigrations();
     await runInitialSeed(ds, {
-      adminEmail: 'fiscal-emission-admin@erp.com',
+      adminEmail: 'fiscal-pdf-admin@erp.com',
       adminPassword: 'AdminPassword123!',
-      vendedorEmail: 'fiscal-emission-seller@erp.com',
+      vendedorEmail: 'fiscal-pdf-seller@erp.com',
       vendedorPassword: 'SellerPassword123!',
     });
     const moduleRef = await Test.createTestingModule({
@@ -85,16 +103,16 @@ describe('Fiscal invoice emission pipeline (E2E)', () => {
     stockService = app.get(StockService);
     seller = await ds
       .getRepository(User)
-      .findOneByOrFail({ email: 'fiscal-emission-seller@erp.com' });
+      .findOneByOrFail({ email: 'fiscal-pdf-seller@erp.com' });
     adminToken = (
       await request(app.getHttpServer()).post('/api/v1/auth/login').send({
-        email: 'fiscal-emission-admin@erp.com',
+        email: 'fiscal-pdf-admin@erp.com',
         password: 'AdminPassword123!',
       })
     ).body.accessToken;
     sellerToken = (
       await request(app.getHttpServer()).post('/api/v1/auth/login').send({
-        email: 'fiscal-emission-seller@erp.com',
+        email: 'fiscal-pdf-seller@erp.com',
         password: 'SellerPassword123!',
       })
     ).body.accessToken;
@@ -126,10 +144,10 @@ describe('Fiscal invoice emission pipeline (E2E)', () => {
     });
     const unit = await ds.getRepository(Unit).save({
       name: `Unidad ${id}`,
-      symbol: `fe${productSequence}`,
+      symbol: `pq${productSequence}`,
     });
     const product = await ds.getRepository(Product).save({
-      internalCode: `FE-${productSequence}`,
+      internalCode: `PQ-${productSequence}`,
       name: `Producto ${id}`,
       description: null,
       categoryId: category.id,
@@ -146,20 +164,18 @@ describe('Fiscal invoice emission pipeline (E2E)', () => {
       productId: product.id,
       movementType: StockMovementType.AJUSTE_ENTRADA,
       quantityBase: stock,
-      reason: 'Stock inicial test emisión fiscal',
+      reason: 'Stock inicial test PDF/QR',
       userId: seller.id,
     });
     return product;
   }
 
-  async function createCustomer(
-    taxCondition = TaxCondition.RESPONSABLE_INSCRIPTO,
-  ): Promise<Customer> {
+  async function createCustomer(): Promise<Customer> {
     return ds.getRepository(Customer).save({
-      businessName: 'Cliente Test Emisión Fiscal SA',
+      businessName: 'Cliente Test PDF/QR SA',
       documentType: CustomerDocumentType.CUIT,
       cuitOrDni: '30712345678',
-      taxCondition,
+      taxCondition: TaxCondition.RESPONSABLE_INSCRIPTO,
       email: null,
       phone: null,
       address: null,
@@ -169,8 +185,8 @@ describe('Fiscal invoice emission pipeline (E2E)', () => {
     });
   }
 
-  it('emits a Factura A with CAE for a credit sale to a RESPONSABLE_INSCRIPTO customer', async () => {
-    const product = await createProduct('FA1', 10);
+  it('generates a downloadable PDF and a decodable QR after CAE issuance', async () => {
+    const product = await createProduct('PDF1', 10);
     const customer = await createCustomer();
 
     const saleRes = await request(app.getHttpServer())
@@ -185,59 +201,106 @@ describe('Fiscal invoice emission pipeline (E2E)', () => {
       })
       .expect(201);
 
-    expect(saleRes.body.fiscalDocument).toMatchObject({
-      arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
-    });
-
-    await buildProcessor(app, ds).process({
+    await buildFiscalInvoiceProcessor(app, ds).process({
       data: { fiscalDocumentId: saleRes.body.fiscalDocument.id },
     } as any);
 
-    const queryRes = await request(app.getHttpServer())
+    // Artifact not ready yet: pdf-generate was only enqueued, not processed.
+    await request(app.getHttpServer())
+      .get(`/api/v1/sales/${saleRes.body.id}/fiscal-document/pdf`)
+      .set('Authorization', `Bearer ${sellerToken}`)
+      .expect(409);
+
+    await buildPdfGenerateProcessor(app, ds).process({
+      data: { fiscalDocumentId: saleRes.body.fiscalDocument.id },
+    } as any);
+
+    const detail = await request(app.getHttpServer())
       .get(`/api/v1/sales/${saleRes.body.id}/fiscal-document`)
       .set('Authorization', `Bearer ${sellerToken}`)
       .expect(200);
-
-    expect(queryRes.body).toMatchObject({
-      documentType: FiscalDocumentType.FACTURA_A,
+    expect(detail.body).toMatchObject({
       arcaStatus: ArcaStatus.EMITIDO,
+      pdfStatus: PdfArtifactStatus.DISPONIBLE,
+      qrAvailable: true,
     });
-    expect(queryRes.body.cae).toBeTruthy();
-    expect(queryRes.body.documentNumber).toBeGreaterThan(0);
+
+    const pdfRes = await request(app.getHttpServer())
+      .get(`/api/v1/sales/${saleRes.body.id}/fiscal-document/pdf`)
+      .set('Authorization', `Bearer ${sellerToken}`)
+      .expect(200);
+    expect(pdfRes.headers['content-type']).toBe('application/pdf');
+    expect(pdfRes.headers['content-disposition']).toMatch(
+      /attachment; filename="factura-a-/,
+    );
+    expect(Buffer.from(pdfRes.body).slice(0, 5).toString('ascii')).toBe(
+      '%PDF-',
+    );
+
+    const qrRes = await request(app.getHttpServer())
+      .get(`/api/v1/sales/${saleRes.body.id}/fiscal-document/qr`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(qrRes.headers['content-type']).toBe('image/png');
+
+    const fiscalDocument = await ds
+      .getRepository(FiscalDocument)
+      .findOneByOrFail({ id: saleRes.body.fiscalDocument.id });
+    expect(fiscalDocument.qrCodeData).toBeTruthy();
+    const decoded = await QRCode.toString(fiscalDocument.qrCodeData!, {
+      type: 'utf8',
+    });
+    expect(decoded).toBeTruthy();
+    const payloadUrl = fiscalDocument.qrCodeData!;
+    const encoded = payloadUrl.split('?p=')[1];
+    const payload = JSON.parse(Buffer.from(encoded, 'base64').toString('utf8'));
+    expect(payload).toMatchObject({
+      cuit: 20345678901,
+      codAut: Number(fiscalDocument.cae),
+    });
   });
 
-  it('emits a Factura B for a cash sale without a registered customer', async () => {
-    const product = await createProduct('FB1', 10);
+  it('does not duplicate the artifact when pdf-generate runs twice concurrently', async () => {
+    const product = await createProduct('PDF2', 10);
+    const customer = await createCustomer();
 
     const saleRes = await request(app.getHttpServer())
       .post('/api/v1/sales')
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        customerId: null,
-        isCreditSale: false,
+        customerId: customer.id,
+        isCreditSale: true,
         requiresFiscalInvoice: true,
-        paymentMethod: PaymentMethod.EFECTIVO,
+        paymentMethod: PaymentMethod.CTA_CTE,
         items: [{ productId: product.id, quantityBase: 1 }],
       })
       .expect(201);
 
-    await buildProcessor(app, ds).process({
+    await buildFiscalInvoiceProcessor(app, ds).process({
       data: { fiscalDocumentId: saleRes.body.fiscalDocument.id },
     } as any);
 
-    const queryRes = await request(app.getHttpServer())
-      .get(`/api/v1/sales/${saleRes.body.id}/fiscal-document`)
-      .set('Authorization', `Bearer ${adminToken}`)
-      .expect(200);
+    const jobData = {
+      data: { fiscalDocumentId: saleRes.body.fiscalDocument.id },
+    } as any;
+    const [first, second] = await Promise.all([
+      buildPdfGenerateProcessor(app, ds).process(jobData),
+      buildPdfGenerateProcessor(app, ds).process(jobData),
+    ]);
 
-    expect(queryRes.body).toMatchObject({
-      documentType: FiscalDocumentType.FACTURA_B,
-      arcaStatus: ArcaStatus.EMITIDO,
-    });
+    // One run generates, the other serializes on the row lock and then
+    // no-ops (already DISPONIBLE at the current template version).
+    const statuses = [first.status, second.status].sort();
+    expect(statuses).toEqual(['generated', 'skipped']);
+
+    const fiscalDocument = await ds
+      .getRepository(FiscalDocument)
+      .findOneByOrFail({ id: saleRes.body.fiscalDocument.id });
+    expect(fiscalDocument.pdfStatus).toBe(PdfArtifactStatus.DISPONIBLE);
   });
 
-  it('emits a Credit Note linked to the original invoice for a return on an invoiced sale', async () => {
-    const product = await createProduct('CN1', 10);
+  it('links the Nota de Crédito PDF/QR to the return without touching the original Factura', async () => {
+    const product = await createProduct('NC1', 10);
     const customer = await createCustomer();
 
     const saleRes = await request(app.getHttpServer())
@@ -252,118 +315,55 @@ describe('Fiscal invoice emission pipeline (E2E)', () => {
       })
       .expect(201);
 
-    const processor = buildProcessor(app, ds);
-    await processor.process({
+    await buildFiscalInvoiceProcessor(app, ds).process({
+      data: { fiscalDocumentId: saleRes.body.fiscalDocument.id },
+    } as any);
+    await buildPdfGenerateProcessor(app, ds).process({
       data: { fiscalDocumentId: saleRes.body.fiscalDocument.id },
     } as any);
 
-    const invoice = await ds
-      .getRepository(FiscalDocument)
-      .findOneByOrFail({ id: saleRes.body.fiscalDocument.id });
-    expect(invoice.documentType).toBe(FiscalDocumentType.FACTURA_A);
-    expect(invoice.pointOfSale).toBeTruthy();
-
+    const saleItemId = saleRes.body.items[0].id;
     const returnRes = await request(app.getHttpServer())
       .post(`/api/v1/sales/${saleRes.body.id}/returns`)
       .set('Authorization', `Bearer ${adminToken}`)
       .send({
-        reason: 'Devolución para nota de crédito',
+        reason: 'Producto defectuoso',
         items: [
           {
-            saleItemId: saleRes.body.items[0].id,
+            saleItemId,
             quantityBase: 1,
-            quality: SaleReturnItemQuality.APTO,
+            quality: SaleReturnItemQuality.NO_APTO,
           },
         ],
       })
       .expect(201);
 
-    const creditNoteDoc = returnRes.body.fiscalDocument;
-    expect(creditNoteDoc).toMatchObject({
-      arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
-    });
-
-    await processor.process({
-      data: { fiscalDocumentId: creditNoteDoc.id },
+    await buildFiscalInvoiceProcessor(app, ds).process({
+      data: { fiscalDocumentId: returnRes.body.fiscalDocument.id },
+    } as any);
+    await buildPdfGenerateProcessor(app, ds).process({
+      data: { fiscalDocumentId: returnRes.body.fiscalDocument.id },
     } as any);
 
-    const persistedCreditNote = await ds
+    const ncPdf = await request(app.getHttpServer())
+      .get(
+        `/api/v1/sales/${saleRes.body.id}/returns/${returnRes.body.id}/fiscal-document/pdf`,
+      )
+      .set('Authorization', `Bearer ${sellerToken}`)
+      .expect(200);
+    expect(Buffer.from(ncPdf.body).slice(0, 5).toString('ascii')).toBe('%PDF-');
+
+    const originalFiscalDoc = await ds
       .getRepository(FiscalDocument)
-      .findOneByOrFail({ id: creditNoteDoc.id });
+      .findOneByOrFail({ id: saleRes.body.fiscalDocument.id });
+    expect(originalFiscalDoc.arcaStatus).toBe(ArcaStatus.EMITIDO);
+    expect(originalFiscalDoc.pdfStatus).toBe(PdfArtifactStatus.DISPONIBLE);
 
-    expect(persistedCreditNote.arcaStatus).toBe(ArcaStatus.EMITIDO);
-    expect(persistedCreditNote.documentType).toBe(
-      FiscalDocumentType.NOTA_CREDITO_A,
-    );
-    expect(persistedCreditNote.pointOfSale).toBe(invoice.pointOfSale);
-    expect(persistedCreditNote.cae).toBeTruthy();
-  });
-
-  it('does not create a fiscal document or job for a cash sale without invoice, or a credit sale that already requires one', async () => {
-    const product = await createProduct('REG1', 10);
-
-    const cashRes = await request(app.getHttpServer())
-      .post('/api/v1/sales')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        customerId: null,
-        isCreditSale: false,
-        requiresFiscalInvoice: false,
-        paymentMethod: PaymentMethod.EFECTIVO,
-        items: [{ productId: product.id, quantityBase: 1 }],
-      })
-      .expect(201);
-
-    expect(cashRes.body.fiscalDocument).toBeNull();
-
-    const fiscalDocCount = await ds
+    const ncFiscalDoc = await ds
       .getRepository(FiscalDocument)
-      .count({ where: { saleId: cashRes.body.id } });
-    expect(fiscalDocCount).toBe(0);
-  });
-
-  it('two workers racing the same document against real Postgres: only one calls ARCA and persists a CAE', async () => {
-    const product = await createProduct('RACE1', 10);
-    const customer = await createCustomer();
-
-    const saleRes = await request(app.getHttpServer())
-      .post('/api/v1/sales')
-      .set('Authorization', `Bearer ${adminToken}`)
-      .send({
-        customerId: customer.id,
-        isCreditSale: true,
-        requiresFiscalInvoice: true,
-        paymentMethod: PaymentMethod.CTA_CTE,
-        items: [{ productId: product.id, quantityBase: 1 }],
-      })
-      .expect(201);
-
-    const fiscalDocumentId = saleRes.body.fiscalDocument.id;
-    const arcaService = app.get<IArcaService>(ARCA_SERVICE);
-    const requestCAESpy = jest.spyOn(arcaService, 'requestCAE');
-
-    // Two independent processor instances (as two worker processes would be),
-    // firing at the same document at the same time via Promise.all: this is
-    // what the pessimistic row lock in fiscal-invoice.processor.ts and the
-    // same-connection numbering in fiscal-numbering.service.ts must
-    // serialize — without them this either double-submits to ARCA or hangs.
-    const [first, second] = await Promise.all([
-      buildProcessor(app, ds).process({
-        data: { fiscalDocumentId },
-      } as any),
-      buildProcessor(app, ds).process({
-        data: { fiscalDocumentId },
-      } as any),
-    ]);
-
-    const outcomes = [first.status, second.status].sort();
-    expect(outcomes).toEqual(['emitted', 'skipped']);
-    expect(requestCAESpy).toHaveBeenCalledTimes(1);
-
-    const persisted = await ds
-      .getRepository(FiscalDocument)
-      .findOneByOrFail({ id: fiscalDocumentId });
-    expect(persisted.arcaStatus).toBe(ArcaStatus.EMITIDO);
-    expect(persisted.cae).toBeTruthy();
+      .findOneByOrFail({ id: returnRes.body.fiscalDocument.id });
+    expect(ncFiscalDoc.saleReturnId).toBe(returnRes.body.id);
+    expect(ncFiscalDoc.pdfStatus).toBe(PdfArtifactStatus.DISPONIBLE);
+    expect(ncFiscalDoc.pdfData).not.toEqual(originalFiscalDoc.pdfData);
   });
 });

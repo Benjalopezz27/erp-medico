@@ -13,6 +13,7 @@ import { AccountReceivable } from '../receivables/entities/account-receivable.en
 import { ReceivablesService } from '../receivables/receivables.service';
 import { StockService } from '../stock/stock.service';
 import { FiscalInvoiceQueueService } from '../queue/services/fiscal-invoice.queue';
+import { PdfGenerateQueueService } from '../queue/services/pdf-generate.queue';
 import { FiscalDocument } from './entities/fiscal-document.entity';
 import { SaleItem } from './entities/sale-item.entity';
 import { Sale } from './entities/sale.entity';
@@ -45,6 +46,9 @@ describe('SalesService', () => {
   let auditService: jest.Mocked<Pick<AuditService, 'record'>>;
   let fiscalInvoiceQueueService: jest.Mocked<
     Pick<FiscalInvoiceQueueService, 'enqueueCaeRequest'>
+  >;
+  let pdfGenerateQueueService: jest.Mocked<
+    Pick<PdfGenerateQueueService, 'enqueue'>
   >;
   let service: SalesService;
 
@@ -159,6 +163,9 @@ describe('SalesService', () => {
     fiscalInvoiceQueueService = {
       enqueueCaeRequest: jest.fn().mockResolvedValue({ jobId: 'job-1' }),
     };
+    pdfGenerateQueueService = {
+      enqueue: jest.fn().mockResolvedValue({ jobId: 'pdf-generate-doc-1' }),
+    };
     service = new SalesService(
       dataSource,
       customerPricingService as any,
@@ -166,6 +173,7 @@ describe('SalesService', () => {
       receivablesService as any,
       auditService as any,
       fiscalInvoiceQueueService as any,
+      pdfGenerateQueueService as any,
     );
   });
 
@@ -389,6 +397,125 @@ describe('SalesService', () => {
         {
           response: expect.objectContaining({
             code: SalesErrorCode.SALE_NOT_FOUND,
+          }),
+        },
+      );
+    });
+  });
+
+  describe('getFiscalDocumentPdf', () => {
+    it('returns the stored PDF buffer and a derived filename when DISPONIBLE', async () => {
+      sale = { id: 'sale-1' };
+      fiscalDocument = {
+        id: 'fiscal-1',
+        saleId: 'sale-1',
+        saleReturnId: null,
+        documentType: 'FACTURA_B',
+        pointOfSale: 3,
+        documentNumber: 102,
+        arcaStatus: ArcaStatus.EMITIDO,
+        pdfStatus: 'DISPONIBLE',
+        pdfData: Buffer.from('%PDF-1.7 fake'),
+      };
+
+      const result = await service.getFiscalDocumentPdf('sale-1');
+
+      expect(result.buffer).toEqual(Buffer.from('%PDF-1.7 fake'));
+      expect(result.filename).toBe('factura-b-00003-00000102.pdf');
+      expect(pdfGenerateQueueService.enqueue).not.toHaveBeenCalled();
+    });
+
+    it('throws 409 and re-enqueues generation when EMITIDO but artifact is still pending', async () => {
+      sale = { id: 'sale-1' };
+      fiscalDocument = {
+        id: 'fiscal-1',
+        saleId: 'sale-1',
+        saleReturnId: null,
+        arcaStatus: ArcaStatus.EMITIDO,
+        pdfStatus: 'PENDIENTE',
+        pdfData: null,
+      };
+
+      await expect(
+        service.getFiscalDocumentPdf('sale-1'),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: SalesErrorCode.SALE_FISCAL_ARTIFACT_NOT_AVAILABLE,
+        }),
+      });
+      expect(pdfGenerateQueueService.enqueue).toHaveBeenCalledWith({
+        fiscalDocumentId: 'fiscal-1',
+      });
+    });
+
+    it('throws 409 without enqueueing when the document has no CAE yet', async () => {
+      sale = { id: 'sale-1' };
+      fiscalDocument = {
+        id: 'fiscal-1',
+        saleId: 'sale-1',
+        saleReturnId: null,
+        arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
+        pdfStatus: 'PENDIENTE',
+        pdfData: null,
+      };
+
+      await expect(
+        service.getFiscalDocumentPdf('sale-1'),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: SalesErrorCode.SALE_FISCAL_ARTIFACT_NOT_AVAILABLE,
+        }),
+      });
+      expect(pdfGenerateQueueService.enqueue).not.toHaveBeenCalled();
+    });
+
+    it('throws 404 when the sale has no fiscal document', async () => {
+      sale = { id: 'sale-1' };
+      fiscalDocument = null;
+
+      await expect(
+        service.getFiscalDocumentPdf('sale-1'),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: SalesErrorCode.SALE_FISCAL_DOCUMENT_NOT_FOUND,
+        }),
+      });
+    });
+  });
+
+  describe('getFiscalDocumentQr', () => {
+    it('returns a PNG buffer decoding to the persisted QR payload when EMITIDO', async () => {
+      sale = { id: 'sale-1' };
+      fiscalDocument = {
+        id: 'fiscal-1',
+        saleId: 'sale-1',
+        saleReturnId: null,
+        arcaStatus: ArcaStatus.EMITIDO,
+        pdfStatus: 'DISPONIBLE',
+        qrCodeData: 'https://www.afip.gob.ar/fe/qr/?p=dGVzdA==',
+      };
+
+      const buffer = await service.getFiscalDocumentQr('sale-1');
+
+      expect(Buffer.isBuffer(buffer)).toBe(true);
+      expect(buffer.slice(0, 8).toString('hex')).toBe('89504e470d0a1a0a'); // PNG signature
+    });
+
+    it('throws 409 when EMITIDO but the QR payload is not persisted yet', async () => {
+      sale = { id: 'sale-1' };
+      fiscalDocument = {
+        id: 'fiscal-1',
+        saleId: 'sale-1',
+        saleReturnId: null,
+        arcaStatus: ArcaStatus.EMITIDO,
+        pdfStatus: 'PENDIENTE',
+        qrCodeData: null,
+      };
+
+      await expect(service.getFiscalDocumentQr('sale-1')).rejects.toMatchObject(
+        {
+          response: expect.objectContaining({
+            code: SalesErrorCode.SALE_FISCAL_ARTIFACT_NOT_AVAILABLE,
           }),
         },
       );

@@ -35,6 +35,7 @@ describe('FiscalInvoiceProcessor', () => {
   let invoiceTypeResolver: any;
   let numberingService: any;
   let configService: any;
+  let pdfGenerateQueueService: any;
 
   const fiscalDocument: FiscalDocument = {
     id: 'doc-1',
@@ -126,6 +127,10 @@ describe('FiscalInvoiceProcessor', () => {
 
     configService = { get: jest.fn().mockReturnValue(1) };
 
+    pdfGenerateQueueService = {
+      enqueue: jest.fn().mockResolvedValue({ jobId: 'pdf-generate-doc-1' }),
+    };
+
     processor = new FiscalInvoiceProcessor(
       {} as any,
       dataSource,
@@ -133,6 +138,7 @@ describe('FiscalInvoiceProcessor', () => {
       invoiceTypeResolver,
       numberingService,
       configService,
+      pdfGenerateQueueService,
     );
   });
 
@@ -170,6 +176,34 @@ describe('FiscalInvoiceProcessor', () => {
         arcaStatus: ArcaStatus.EMITIDO,
       }),
     );
+    expect(result).toEqual({ status: 'emitted', fiscalDocumentId: 'doc-1' });
+    expect(pdfGenerateQueueService.enqueue).toHaveBeenCalledWith({
+      fiscalDocumentId: 'doc-1',
+    });
+  });
+
+  it('does not enqueue pdf-generate when the emission is rejected or skipped', async () => {
+    repos.FiscalDocument.findOne.mockResolvedValue({
+      ...fiscalDocument,
+      arcaStatus: ArcaStatus.EMITIDO,
+    });
+
+    await processor.process({
+      id: 'job-1',
+      data: { fiscalDocumentId: 'doc-1' },
+    } as any);
+
+    expect(pdfGenerateQueueService.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('a successful emission still returns emitted even if the pdf-generate enqueue fails', async () => {
+    pdfGenerateQueueService.enqueue.mockRejectedValue(new Error('Redis down'));
+
+    const result = await processor.process({
+      id: 'job-1',
+      data: { fiscalDocumentId: 'doc-1' },
+    } as any);
+
     expect(result).toEqual({ status: 'emitted', fiscalDocumentId: 'doc-1' });
   });
 

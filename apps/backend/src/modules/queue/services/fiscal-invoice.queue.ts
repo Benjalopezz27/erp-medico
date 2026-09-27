@@ -13,10 +13,11 @@ export interface FiscalInvoiceJobData {
 
 /**
  * Producer for the `wsfe-emit` queue. Uses a deterministic jobId
- * (`wsfe-emit:<fiscalDocumentId>`) so enqueuing the same fiscal document
+ * (`wsfe-emit-<fiscalDocumentId>`) so enqueuing the same fiscal document
  * twice (retry, duplicate call) never creates a second pending job — BullMQ
  * treats a repeated `add` with an existing jobId as a no-op while that job
- * hasn't been removed yet.
+ * hasn't been removed yet. Uses `-`, not `:`, as the separator — BullMQ
+ * (>=5.75) rejects a custom jobId containing `:`.
  */
 @Injectable()
 export class FiscalInvoiceQueueService implements OnModuleDestroy {
@@ -49,7 +50,7 @@ export class FiscalInvoiceQueueService implements OnModuleDestroy {
   async enqueueCaeRequest(
     data: FiscalInvoiceJobData,
   ): Promise<{ jobId: string }> {
-    const jobId = `wsfe-emit:${data.fiscalDocumentId}`;
+    const jobId = `wsfe-emit-${data.fiscalDocumentId}`;
     const queue = this.getQueue();
     const job = await queue.add(FISCAL_INVOICE_JOB_NAME, data, { jobId });
 

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
 import { formatCurrency, formatDecimal } from '@/features/products/utils/products.math';
 import { FiscalStatusBadge } from './FiscalStatusBadge';
+import { FiscalDocumentActions } from './FiscalDocumentActions';
 
 const ruleLabels: Record<CustomerPricingRuleApplied, string> = {
   FIXED_PRICE: 'Precio fijo',
@@ -165,8 +166,19 @@ export function SaleDetailView({ sale, extension }: { sale: ISale; extension?: R
           <FiscalStatusBadge document={sale.fiscalDocument} />
         </div>
         {sale.fiscalDocument?.cae && (
-          <p className="mt-3 font-mono text-xs">CAE: {sale.fiscalDocument.cae}</p>
+          <p className="mt-3 font-mono text-xs">
+            CAE: {sale.fiscalDocument.cae}
+            {sale.fiscalDocument.caeExpirationDate && (
+              <span className="ml-2 text-slate-500">
+                Vto:{' '}
+                {new Intl.DateTimeFormat('es-AR').format(
+                  new Date(sale.fiscalDocument.caeExpirationDate),
+                )}
+              </span>
+            )}
+          </p>
         )}
+        <FiscalDocumentActions saleId={sale.id} document={sale.fiscalDocument} />
       </div>
       {extension}
     </div>

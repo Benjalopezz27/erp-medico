@@ -17,6 +17,7 @@ import {
   SaleReturnErrorCode,
   SaleReturnItemQuality,
   SaleStatus,
+  SalesErrorCode,
   StockMovementType,
 } from '@erp/shared-types';
 import { Sale } from '../../entities/sale.entity';
@@ -32,6 +33,14 @@ import { CreateSaleReturnDto } from '../dto/create-sale-return.dto';
 import { SaleReturnResponseDto } from '../dto/sale-return-response.dto';
 import { SaleReturnsMapper } from '../mappers/sale-returns.mapper';
 import { FiscalInvoiceQueueService } from '../../../queue/services/fiscal-invoice.queue';
+import { PdfGenerateQueueService } from '../../../queue/services/pdf-generate.queue';
+import {
+  assertPdfAvailable,
+  assertQrAvailable,
+  buildArtifactFilename,
+  renderQrPng,
+  tryRecoverPdfGeneration,
+} from '../../utils/fiscal-artifact.util';
 
 @Injectable()
 export class SaleReturnsService {
@@ -48,6 +57,7 @@ export class SaleReturnsService {
     private readonly receivablesService: ReceivablesService,
     private readonly auditService: AuditService,
     private readonly fiscalInvoiceQueueService: FiscalInvoiceQueueService,
+    private readonly pdfGenerateQueueService: PdfGenerateQueueService,
   ) {}
 
   async createReturn(
@@ -441,6 +451,76 @@ export class SaleReturnsService {
       .getMany();
 
     return returns.map((r) => SaleReturnsMapper.toResponse(r));
+  }
+
+  async getFiscalDocumentPdf(
+    saleId: string,
+    returnId: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const document = await this.loadReturnFiscalDocumentOrFail(
+      saleId,
+      returnId,
+    );
+
+    try {
+      assertPdfAvailable(document);
+    } catch (err) {
+      tryRecoverPdfGeneration(
+        document,
+        this.pdfGenerateQueueService,
+        this.logger,
+      );
+      throw err;
+    }
+
+    return {
+      buffer: document.pdfData!,
+      filename: buildArtifactFilename(document, 'pdf'),
+    };
+  }
+
+  async getFiscalDocumentQr(saleId: string, returnId: string): Promise<Buffer> {
+    const document = await this.loadReturnFiscalDocumentOrFail(
+      saleId,
+      returnId,
+    );
+
+    try {
+      assertQrAvailable(document);
+    } catch (err) {
+      tryRecoverPdfGeneration(
+        document,
+        this.pdfGenerateQueueService,
+        this.logger,
+      );
+      throw err;
+    }
+
+    return renderQrPng(document);
+  }
+
+  private async loadReturnFiscalDocumentOrFail(
+    saleId: string,
+    returnId: string,
+  ): Promise<FiscalDocument> {
+    const saleReturn = await this.saleReturnRepository.findOne({
+      where: { id: returnId, saleId },
+    });
+    if (!saleReturn) {
+      throw new NotFoundException('La devolución no fue encontrada.');
+    }
+
+    const fiscalDocument = await this.dataSource
+      .getRepository(FiscalDocument)
+      .findOne({ where: { saleReturnId: returnId } });
+    if (!fiscalDocument) {
+      throw new NotFoundException({
+        code: SalesErrorCode.SALE_FISCAL_DOCUMENT_NOT_FOUND,
+        message: 'La devolución no tiene comprobante fiscal (Nota de Crédito).',
+      });
+    }
+
+    return fiscalDocument;
   }
 
   private async findOneDetail(id: string): Promise<SaleReturnResponseDto> {

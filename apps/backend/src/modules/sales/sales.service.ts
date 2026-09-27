@@ -22,6 +22,14 @@ import { AccountReceivable } from '../receivables/entities/account-receivable.en
 import { ReceivablesService } from '../receivables/receivables.service';
 import { StockService } from '../stock/stock.service';
 import { FiscalInvoiceQueueService } from '../queue/services/fiscal-invoice.queue';
+import { PdfGenerateQueueService } from '../queue/services/pdf-generate.queue';
+import {
+  assertPdfAvailable,
+  assertQrAvailable,
+  buildArtifactFilename,
+  renderQrPng,
+  tryRecoverPdfGeneration,
+} from './utils/fiscal-artifact.util';
 import {
   CreateSaleDto,
   FiscalDocumentResponseDto,
@@ -45,6 +53,7 @@ export class SalesService {
     private readonly receivablesService: ReceivablesService,
     private readonly auditService: AuditService,
     private readonly fiscalInvoiceQueueService: FiscalInvoiceQueueService,
+    private readonly pdfGenerateQueueService: PdfGenerateQueueService,
   ) {}
 
   async create(dto: CreateSaleDto, userId: string): Promise<SaleResponseDto> {
@@ -310,6 +319,50 @@ export class SalesService {
   }
 
   async findFiscalDocument(id: string): Promise<FiscalDocumentResponseDto> {
+    const fiscalDocument = await this.loadFiscalDocumentOrFail(id);
+    return SalesMapper.toFiscalDocumentResponse(fiscalDocument);
+  }
+
+  async getFiscalDocumentPdf(
+    id: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const document = await this.loadFiscalDocumentOrFail(id);
+
+    try {
+      assertPdfAvailable(document);
+    } catch (err) {
+      tryRecoverPdfGeneration(
+        document,
+        this.pdfGenerateQueueService,
+        this.logger,
+      );
+      throw err;
+    }
+
+    return {
+      buffer: document.pdfData!,
+      filename: buildArtifactFilename(document, 'pdf'),
+    };
+  }
+
+  async getFiscalDocumentQr(id: string): Promise<Buffer> {
+    const document = await this.loadFiscalDocumentOrFail(id);
+
+    try {
+      assertQrAvailable(document);
+    } catch (err) {
+      tryRecoverPdfGeneration(
+        document,
+        this.pdfGenerateQueueService,
+        this.logger,
+      );
+      throw err;
+    }
+
+    return renderQrPng(document);
+  }
+
+  private async loadFiscalDocumentOrFail(id: string): Promise<FiscalDocument> {
     const sale = await this.dataSource.manager
       .getRepository(Sale)
       .findOne({ where: { id } });
@@ -330,7 +383,7 @@ export class SalesService {
       });
     }
 
-    return SalesMapper.toFiscalDocumentResponse(fiscalDocument);
+    return fiscalDocument;
   }
 
   private validateCommercialContract(dto: CreateSaleDto): void {
