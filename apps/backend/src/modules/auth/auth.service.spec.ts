@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
@@ -22,6 +22,7 @@ describe('AuthService', () => {
   beforeEach(() => {
     usersService = {
       findByEmail: jest.fn(),
+      createInternal: jest.fn(),
     };
 
     jwtService = {
@@ -152,7 +153,7 @@ describe('AuthService', () => {
     ).rejects.toThrow(new UnauthorizedException('Invalid email or password'));
   });
 
-  it('should execute dummy compare and throw UnauthorizedException when user is inactive', async () => {
+  it('should throw ForbiddenException when password matches but user is inactive', async () => {
     const inactiveUser: User = {
       id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
       name: 'Inactive User',
@@ -173,12 +174,47 @@ describe('AuthService', () => {
         email: 'inactive@erp.com',
         password: rawPassword,
       }),
-    ).rejects.toThrow(new UnauthorizedException('Invalid email or password'));
+    ).rejects.toThrow(new ForbiddenException('Account pending approval'));
 
     expect(bcryptCompareSpy).toHaveBeenCalledWith(
       rawPassword,
       validPasswordHash,
     );
+  });
+
+  it('should throw UnauthorizedException (not Forbidden) when user is inactive and password is wrong', async () => {
+    usersService.findByEmail = jest.fn().mockResolvedValue({
+      id: 'u1',
+      email: 'inactive@erp.com',
+      passwordHash: validPasswordHash,
+      role: UserRole.VENDEDOR,
+      isActive: false,
+    });
+
+    await expect(
+      authService.login({ email: 'inactive@erp.com', password: 'Wrong123!' }),
+    ).rejects.toThrow(new UnauthorizedException('Invalid email or password'));
+  });
+
+  it('should register an inactive VENDEDOR with hashed password and no token', async () => {
+    (usersService.createInternal as jest.Mock).mockResolvedValue({});
+
+    const result = await authService.register({
+      name: 'Nuevo',
+      email: 'Nuevo@Erp.com',
+      password: rawPassword,
+    });
+
+    const input = (usersService.createInternal as jest.Mock).mock.calls[0][0];
+    expect(input).toMatchObject({
+      name: 'Nuevo',
+      email: 'Nuevo@Erp.com',
+      role: UserRole.VENDEDOR,
+      isActive: false,
+    });
+    expect(await bcrypt.compare(rawPassword, input.passwordHash)).toBe(true);
+    expect(result).not.toHaveProperty('accessToken');
+    expect(jwtService.signAsync).not.toHaveBeenCalled();
   });
 
   it('should handle corrupted or unparseable bcrypt hash without throwing 500 error', async () => {

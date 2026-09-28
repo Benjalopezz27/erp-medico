@@ -323,7 +323,7 @@ describe('Users Administrative CRUD & Audit Trail (E2E)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/login')
         .send({ email: 'seller@erp.com', password: sellerPassword })
-        .expect(401);
+        .expect(403);
     });
 
     it('should reject deactivating the last active administrator with 409 Conflict', async () => {

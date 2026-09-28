@@ -197,15 +197,15 @@ export const UserTable: React.FC<UserTableProps> = ({
                             onClick={() => onReactivateUser(user)}
                             disabled={isMutatingThis}
                             className="h-7 px-2 text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                            title="Reactivar usuario"
-                            aria-label={`Reactivar a ${user.name}`}
+                            title="Aprobar / activar usuario"
+                            aria-label={`Aprobar a ${user.name}`}
                           >
                             {isMutatingThis ? (
                               <Loader2 className="w-3.5 h-3.5 animate-spin" />
                             ) : (
                               <>
                                 <UserCheck className="w-3.5 h-3.5 mr-1" />
-                                <span className="hidden sm:inline">Reactivar</span>
+                                <span className="hidden sm:inline">Aprobar</span>
                               </>
                             )}
                           </Button>

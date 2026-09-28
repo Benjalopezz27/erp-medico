@@ -8,6 +8,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { LoginPage } from '@/pages/LoginPage';
+import { SignupPage } from '@/pages/SignupPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
@@ -550,6 +551,12 @@ const loginRoute = createRoute({
   component: () => <LoginPage />,
 });
 
+const signupRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: '/signup',
+  component: () => <SignupPage />,
+});
+
 // 3. App Routes (Protected / Shell)
 const appShellRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -819,7 +826,7 @@ const priceReviewsRoute = createRoute({
 
 // 4. Build Route Tree
 const routeTree = rootRoute.addChildren([
-  authLayoutRoute.addChildren([loginRoute]),
+  authLayoutRoute.addChildren([loginRoute, signupRoute]),
   appShellRoute.addChildren([
     indexRoute,
     productsRoute,

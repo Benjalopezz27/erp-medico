@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from '@tanstack/react-router';
-import { Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { Mail, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { loginSchema, type LoginCredentials } from '@/features/auth/auth.schema';
+import { getLoginErrorMessage } from '@/features/auth/auth.errors';
+import { PasswordInput } from '@/features/auth/components/PasswordInput';
 import { useLoginMutation } from '@/features/auth/hooks/use-login-mutation';
 import {
   Card,
@@ -17,15 +18,6 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-
-export function getLoginErrorMessage(error: unknown): string {
-  if (axios.isAxiosError(error)) {
-    if (error.response?.status === 401) return 'Credenciales inválidas';
-    if (error.response?.status === 400) return 'Datos de inicio de sesión inválidos';
-    if (!error.response) return 'No se pudo conectar con el servidor. Intente nuevamente.';
-  }
-  return 'No se pudo iniciar sesión. Intente nuevamente.';
-}
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -109,22 +101,17 @@ export const LoginPage: React.FC = () => {
             <label htmlFor="login-password" className="text-xs font-medium text-slate-300">
               Contraseña
             </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" aria-hidden="true" />
-              <Input
-                id="login-password"
-                type="password"
-                autoComplete="new-password"
-                readOnly
-                onFocus={(e) => e.currentTarget.removeAttribute('readOnly')}
-                placeholder="••••••••••••"
-                aria-invalid={Boolean(errors.password)}
-                aria-describedby={errors.password ? 'login-password-error' : undefined}
-                disabled={loginMutation.isPending}
-                className="pl-9 bg-slate-900 border-slate-800 text-white placeholder:text-slate-600 focus-visible:ring-blue-500"
-                {...register('password')}
-              />
-            </div>
+            <PasswordInput
+              id="login-password"
+              autoComplete="new-password"
+              readOnly
+              onFocus={(e) => e.currentTarget.removeAttribute('readOnly')}
+              placeholder="Ingrese su contraseña"
+              aria-invalid={Boolean(errors.password)}
+              aria-describedby={errors.password ? 'login-password-error' : undefined}
+              disabled={loginMutation.isPending}
+              {...register('password')}
+            />
             {errors.password && (
               <p id="login-password-error" role="alert" className="text-xs text-red-300">
                 {errors.password.message}
@@ -144,6 +131,12 @@ export const LoginPage: React.FC = () => {
           </Button>
         </CardFooter>
       </form>
+      <p className="pb-6 text-center text-xs text-slate-400">
+        ¿No tiene cuenta?{' '}
+        <Link to="/signup" className="text-blue-400 hover:text-blue-300 underline">
+          Regístrese
+        </Link>
+      </p>
     </Card>
   );
 };

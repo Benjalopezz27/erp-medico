@@ -126,6 +126,7 @@ export class WsfeSoapClientService {
             <ar:ImpIVA>${data.ivaAmount.toFixed(2)}</ar:ImpIVA>
             <ar:MonId>PES</ar:MonId>
             <ar:MonCotiz>1</ar:MonCotiz>
+            <ar:CondicionIVAReceptorId>${data.receiverIvaConditionId ?? 5}</ar:CondicionIVAReceptorId>
             <ar:Iva>
           ${ivaItems}
             </ar:Iva>

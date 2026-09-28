@@ -20,7 +20,10 @@ import {
 } from '../../arca/utils/fiscal-amounts.util';
 import { redactSecrets } from '../../../common/utils/sanitizer.utils';
 import { FiscalNumberingService } from '../../sales/services/fiscal-numbering.service';
-import { resolveReceiverDocument } from '../../sales/utils/fiscal-receiver.util';
+import {
+  resolveReceiverDocument,
+  resolveReceiverIvaConditionId,
+} from '../../sales/utils/fiscal-receiver.util';
 import { FiscalDocument } from '../../sales/entities/fiscal-document.entity';
 import { Sale } from '../../sales/entities/sale.entity';
 import { SaleItem } from '../../sales/entities/sale-item.entity';
@@ -177,6 +180,7 @@ export class FiscalContingencyOrchestrator {
         concept: 1,
         docType,
         docNumber,
+        receiverIvaConditionId: resolveReceiverIvaConditionId(customer),
       });
       caeObtained = true;
 

@@ -648,8 +648,8 @@ describe('UsersPage administrative user management', () => {
     });
   });
 
-  describe('Reactivation Flow', () => {
-    it('reactivates inactive user on button click and shows feedback', async () => {
+  describe('Approval Flow', () => {
+    it('approves inactive user after confirmation and shows feedback', async () => {
       let patchBody: any;
       server.use(
         http.get(`${baseUrl}/users`, () => {
@@ -677,16 +677,17 @@ describe('UsersPage administrative user management', () => {
       const { user } = renderUsersPage();
 
       const reactivateBtn = await screen.findByRole('button', {
-        name: `Reactivar a ${mockInactiveUser.name}`,
+        name: `Aprobar a ${mockInactiveUser.name}`,
       });
       await user.click(reactivateBtn);
+      await user.click(await screen.findByRole('button', { name: 'Aprobar Usuario' }));
 
       await waitFor(() => {
         expect(patchBody).toEqual({ isActive: true });
       });
 
       expect(
-        screen.getByText(`El usuario "${mockInactiveUser.name}" fue reactivado exitosamente.`),
+        await screen.findByText(`El usuario "${mockInactiveUser.name}" fue aprobado exitosamente.`),
       ).toBeInTheDocument();
     });
   });

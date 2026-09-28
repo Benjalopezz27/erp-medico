@@ -1,4 +1,4 @@
-import { CustomerDocumentType } from '@erp/shared-types';
+import { CustomerDocumentType, TaxCondition } from '@erp/shared-types';
 import { Customer } from '../../customers/entities/customer.entity';
 
 export interface FiscalReceiverDocument {
@@ -23,4 +23,18 @@ export function resolveReceiverDocument(
     docType: customer.documentType === CustomerDocumentType.CUIT ? 80 : 96,
     docNumber: customer.cuitOrDni,
   };
+}
+
+const IVA_CONDITION_ID: Record<TaxCondition, number> = {
+  [TaxCondition.RESPONSABLE_INSCRIPTO]: 1,
+  [TaxCondition.EXENTO]: 4,
+  [TaxCondition.CONSUMIDOR_FINAL]: 5,
+  [TaxCondition.MONOTRIBUTO]: 6,
+};
+
+/** WSFE `CondicionIVAReceptorId` (RG 5616); sin cliente = Consumidor Final. */
+export function resolveReceiverIvaConditionId(
+  customer: Customer | null,
+): number {
+  return (customer && IVA_CONDITION_ID[customer.taxCondition]) || 5;
 }
