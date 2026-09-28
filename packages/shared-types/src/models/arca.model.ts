@@ -24,6 +24,12 @@ export interface FiscalDocumentData extends FiscalAmounts {
   docNumber?: string;
   receiverIvaConditionId?: number; // FEParamGetCondicionIvaReceptor: 1 RI, 4 Exento, 5 CF, 6 Monotributo
   documentDate?: string; // YYYYMMDD
+  /** Required by WSFE for Notas de Crédito/Débito: the invoice being credited/debited. */
+  associatedDocument?: {
+    documentType: FiscalDocumentType;
+    pointOfSale: number;
+    documentNumber: number;
+  };
 }
 
 export interface FiscalIvaBreakdown {
