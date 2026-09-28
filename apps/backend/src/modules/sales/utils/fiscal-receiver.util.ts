@@ -33,6 +33,8 @@ const IVA_CONDITION_ID: Record<TaxCondition, number> = {
 };
 
 /** WSFE `CondicionIVAReceptorId` (RG 5616); sin cliente = Consumidor Final. */
-export function resolveReceiverIvaConditionId(customer: Customer | null): number {
+export function resolveReceiverIvaConditionId(
+  customer: Customer | null,
+): number {
   return (customer && IVA_CONDITION_ID[customer.taxCondition]) || 5;
 }
