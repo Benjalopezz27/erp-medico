@@ -25,11 +25,13 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import {
   CreateSaleDto,
+  FiscalDocumentPreviewResponseDto,
   FiscalDocumentResponseDto,
   PaginatedSalesResponseDto,
   QuerySalesDto,
   SaleResponseDto,
 } from './dto';
+import { RetryFiscalDocumentResponseDto } from './dto/pending-fiscal-response.dto';
 import { SalesService } from './sales.service';
 
 @ApiTags('sales')
@@ -88,6 +90,41 @@ export class SalesController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<FiscalDocumentResponseDto> {
     return this.salesService.findFiscalDocument(id);
+  }
+
+  @Get(':id/fiscal-document/preview')
+  @ApiOperation({
+    summary:
+      'Ver el preview del comprobante a emitir (tipo calculado, receptor, ítems, totales) sin llamar a ARCA',
+  })
+  @ApiResponse({ status: 200, type: FiscalDocumentPreviewResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'Venta inexistente o sin comprobante fiscal',
+  })
+  previewFiscalDocument(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<FiscalDocumentPreviewResponseDto> {
+    return this.salesService.previewFiscalDocument(id);
+  }
+
+  @Post(':id/fiscal-document/emit')
+  @ApiOperation({ summary: 'Disparar la emisión del comprobante fiscal' })
+  @ApiResponse({ status: 200, type: RetryFiscalDocumentResponseDto })
+  @ApiResponse({
+    status: 404,
+    description: 'Venta inexistente o sin comprobante fiscal',
+  })
+  @ApiResponse({ status: 409, description: 'El comprobante ya está EMITIDO' })
+  @ApiResponse({
+    status: 422,
+    description: 'El comprobante no es emitible en su estado actual',
+  })
+  emitFiscalDocument(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<RetryFiscalDocumentResponseDto> {
+    return this.salesService.emitFiscalDocument(id, user.id);
   }
 
   @Get(':id/fiscal-document/pdf')

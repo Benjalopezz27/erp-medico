@@ -461,9 +461,9 @@ describe('ARCA contingency engine (E2E)', () => {
       const { fiscalDocumentId } = await createInvoicedSale();
       await buildProcessor(app, ds).process(makeJob(fiscalDocumentId, 0));
 
-      // No real worker consumes the job BullMQ enqueued at sale creation in
-      // this suite (see file header) — evict it, as a real worker having
-      // processed it successfully would have left it `completed`.
+      // Sale creation no longer auto-enqueues (manual-invoice-emission
+      // change) — this is a defensive no-op guard, kept in case a future
+      // change reintroduces an enqueue at creation time.
       const queueService = app.get(FiscalInvoiceQueueService);
       const staleJob = await queueService.getJob(fiscalDocumentId);
       if (staleJob) await staleJob.remove();
@@ -503,10 +503,11 @@ describe('ARCA contingency engine (E2E)', () => {
     const { fiscalDocumentId } = await createInvoicedSale();
     const queueService = app.get(FiscalInvoiceQueueService);
 
-    // Simulate the post-commit enqueue failing (Redis unavailable at that
-    // moment): evict the job sales.service.ts just enqueued, and backdate
-    // updatedAt past the sweep's grace period (raw SQL: repository.update()
-    // would let the ORM stamp its own `now()` over our value).
+    // Sale creation no longer auto-enqueues (manual-invoice-emission
+    // change), so the document already has no active job here — this guard
+    // is defensive. Backdate updatedAt past the sweep's grace period (raw
+    // SQL: repository.update() would let the ORM stamp its own `now()` over
+    // our value).
     const orphanedJob = await queueService.getJob(fiscalDocumentId);
     if (orphanedJob) await orphanedJob.remove();
     await ds.query(

@@ -71,6 +71,41 @@ export class FiscalDocumentResponseDto {
   @ApiPropertyOptional({ nullable: true }) pdfSizeBytes: number | null;
 }
 
+export class FiscalDocumentPreviewReceiverDto {
+  @ApiProperty() businessName: string;
+  @ApiProperty({
+    description: 'Código AFIP de tipo de documento receptor (80 CUIT, 96 DNI, 99 Consumidor Final).',
+  })
+  documentType: number;
+  @ApiProperty() documentNumber: string;
+}
+
+export class FiscalDocumentPreviewTotalsDto {
+  @ApiProperty() totalNet: string;
+  @ApiProperty() taxableNet: string;
+  @ApiProperty() exemptAmount: string;
+  @ApiProperty() nonTaxedAmount: string;
+  @ApiProperty() ivaTotal: string;
+  @ApiProperty() totalGross: string;
+}
+
+export class FiscalDocumentPreviewResponseDto {
+  @ApiProperty({ format: 'uuid' }) saleId: string;
+  @ApiProperty({
+    description: 'true si el comprobante ya tiene CAE asignado (datos reales, no un cálculo).',
+  })
+  isEmitted: boolean;
+  @ApiProperty({ enum: FiscalDocumentType }) invoiceType: FiscalDocumentType;
+  @ApiPropertyOptional({ nullable: true }) pointOfSale: number | null;
+  @ApiPropertyOptional({ nullable: true }) documentNumber: number | null;
+  @ApiPropertyOptional({ nullable: true }) cae: string | null;
+  @ApiProperty({ type: FiscalDocumentPreviewReceiverDto })
+  receiver: FiscalDocumentPreviewReceiverDto;
+  @ApiProperty({ type: [SaleItemResponseDto] }) items: SaleItemResponseDto[];
+  @ApiProperty({ type: FiscalDocumentPreviewTotalsDto })
+  totals: FiscalDocumentPreviewTotalsDto;
+}
+
 export class AccountReceivableResponseDto {
   @ApiProperty({ format: 'uuid' }) id: string;
   @ApiProperty({ format: 'uuid' }) customerId: string;

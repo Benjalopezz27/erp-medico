@@ -1,23 +1,27 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import {
   ArcaStatus,
+  CustomerDocumentType,
   CustomerPricingRuleApplied,
+  FiscalDocumentType,
   PaymentMethod,
   SaleStatus,
   SalesErrorCode,
   ProductTaxTreatment,
+  TaxCondition,
 } from '@erp/shared-types';
 import { AuditService } from '../audit/audit.service';
 import { CustomerPricingService } from '../customers/special-prices/services/customer-pricing.service';
 import { AccountReceivable } from '../receivables/entities/account-receivable.entity';
 import { ReceivablesService } from '../receivables/receivables.service';
 import { StockService } from '../stock/stock.service';
-import { FiscalInvoiceQueueService } from '../queue/services/fiscal-invoice.queue';
 import { PdfGenerateQueueService } from '../queue/services/pdf-generate.queue';
+import { InvoiceTypeResolverService } from '../arca/services/invoice-type-resolver.service';
 import { FiscalDocument } from './entities/fiscal-document.entity';
 import { SaleItem } from './entities/sale-item.entity';
 import { Sale } from './entities/sale.entity';
 import { SalesService } from './sales.service';
+import { PendingFiscalService } from './services/pending-fiscal.service';
 
 describe('SalesService', () => {
   const userId = '10000000-0000-4000-8000-000000000001';
@@ -34,6 +38,7 @@ describe('SalesService', () => {
   let items: any[];
   let fiscalDocument: any;
   let debt: any;
+  let customer: any;
   let manager: any;
   let dataSource: any;
   let customerPricingService: jest.Mocked<
@@ -44,12 +49,13 @@ describe('SalesService', () => {
     Pick<ReceivablesService, 'recordCreditSaleDebt'>
   >;
   let auditService: jest.Mocked<Pick<AuditService, 'record'>>;
-  let fiscalInvoiceQueueService: jest.Mocked<
-    Pick<FiscalInvoiceQueueService, 'enqueueCaeRequest'>
-  >;
   let pdfGenerateQueueService: jest.Mocked<
     Pick<PdfGenerateQueueService, 'enqueue'>
   >;
+  let invoiceTypeResolverService: jest.Mocked<
+    Pick<InvoiceTypeResolverService, 'resolve'>
+  >;
+  let pendingFiscalService: jest.Mocked<Pick<PendingFiscalService, 'retry'>>;
   let service: SalesService;
 
   beforeEach(() => {
@@ -57,6 +63,7 @@ describe('SalesService', () => {
     items = [];
     fiscalDocument = null;
     debt = null;
+    customer = null;
     const detailQuery = {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       innerJoinAndSelect: jest.fn().mockReturnThis(),
@@ -66,7 +73,7 @@ describe('SalesService', () => {
         sale
           ? {
               ...sale,
-              customer: null,
+              customer,
               user: { id: userId, name: 'Vendedor' },
               items: items.map((item) => ({
                 ...item,
@@ -160,11 +167,19 @@ describe('SalesService', () => {
       }),
     };
     auditService = { record: jest.fn().mockResolvedValue({} as any) };
-    fiscalInvoiceQueueService = {
-      enqueueCaeRequest: jest.fn().mockResolvedValue({ jobId: 'job-1' }),
-    };
     pdfGenerateQueueService = {
       enqueue: jest.fn().mockResolvedValue({ jobId: 'pdf-generate-doc-1' }),
+    };
+    invoiceTypeResolverService = {
+      resolve: jest.fn().mockReturnValue(FiscalDocumentType.FACTURA_B),
+    };
+    pendingFiscalService = {
+      retry: jest.fn().mockResolvedValue({
+        fiscalDocumentId: 'fiscal-1',
+        arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
+        jobId: 'wsfe-emit-fiscal-1',
+        created: true,
+      }),
     };
     service = new SalesService(
       dataSource,
@@ -172,8 +187,9 @@ describe('SalesService', () => {
       stockService as any,
       receivablesService as any,
       auditService as any,
-      fiscalInvoiceQueueService as any,
       pdfGenerateQueueService as any,
+      invoiceTypeResolverService as any,
+      pendingFiscalService as any,
     );
   });
 
@@ -298,22 +314,10 @@ describe('SalesService', () => {
       originalAmount: '12.10',
       currentBalance: '12.10',
     });
-    expect(fiscalInvoiceQueueService.enqueueCaeRequest).toHaveBeenCalledWith({
-      fiscalDocumentId: result.fiscalDocument!.id,
-    });
+    expect(pendingFiscalService.retry).not.toHaveBeenCalled();
   });
 
-  it('does not enqueue a fiscal job for a cash sale without invoice', async () => {
-    await service.create(baseDto, userId);
-
-    expect(fiscalInvoiceQueueService.enqueueCaeRequest).not.toHaveBeenCalled();
-  });
-
-  it('confirms the sale even if enqueuing the fiscal job fails', async () => {
-    fiscalInvoiceQueueService.enqueueCaeRequest.mockRejectedValueOnce(
-      new Error('Redis unavailable'),
-    );
-
+  it('never auto-enqueues fiscal emission; the sale stays PENDIENTE_FACTURACION until manually emitted', async () => {
     const result = await service.create(
       {
         ...baseDto,
@@ -329,6 +333,7 @@ describe('SalesService', () => {
     expect(result.fiscalDocument).toMatchObject({
       arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
     });
+    expect(pendingFiscalService.retry).not.toHaveBeenCalled();
   });
 
   describe('findFiscalDocument', () => {
@@ -400,6 +405,122 @@ describe('SalesService', () => {
           }),
         },
       );
+    });
+  });
+
+  describe('previewFiscalDocument', () => {
+    it('computes the invoice type without touching ARCA for a PENDIENTE_FACTURACION document', async () => {
+      sale = {
+        id: 'sale-1',
+        totalNet: '10.00',
+        taxableNet: '10.00',
+        exemptAmount: '0.00',
+        nonTaxedAmount: '0.00',
+        ivaTotal: '2.10',
+        totalGross: '12.10',
+      };
+      items = [];
+      customer = {
+        businessName: 'Cliente SA',
+        documentType: CustomerDocumentType.CUIT,
+        cuitOrDni: '20304050607',
+        taxCondition: TaxCondition.RESPONSABLE_INSCRIPTO,
+      };
+      fiscalDocument = {
+        saleReturnId: null,
+        arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
+        documentType: null,
+        pointOfSale: null,
+        documentNumber: null,
+        cae: null,
+      };
+      invoiceTypeResolverService.resolve.mockReturnValue(
+        FiscalDocumentType.FACTURA_A,
+      );
+
+      const result = await service.previewFiscalDocument('sale-1');
+
+      expect(invoiceTypeResolverService.resolve).toHaveBeenCalledWith({
+        taxCondition: TaxCondition.RESPONSABLE_INSCRIPTO,
+        documentType: CustomerDocumentType.CUIT,
+      });
+      expect(result).toMatchObject({
+        saleId: 'sale-1',
+        isEmitted: false,
+        invoiceType: FiscalDocumentType.FACTURA_A,
+        cae: null,
+        receiver: {
+          businessName: 'Cliente SA',
+          documentType: 80,
+          documentNumber: '20304050607',
+        },
+        totals: { totalGross: '12.10' },
+      });
+    });
+
+    it('returns the real emitted data instead of a computed type once CAE exists', async () => {
+      sale = {
+        id: 'sale-1',
+        totalNet: '10.00',
+        taxableNet: '10.00',
+        exemptAmount: '0.00',
+        nonTaxedAmount: '0.00',
+        ivaTotal: '2.10',
+        totalGross: '12.10',
+      };
+      items = [];
+      customer = null;
+      fiscalDocument = {
+        saleReturnId: null,
+        arcaStatus: ArcaStatus.EMITIDO,
+        documentType: FiscalDocumentType.FACTURA_B,
+        pointOfSale: 1,
+        documentNumber: 101,
+        cae: '75123456789012',
+      };
+
+      const result = await service.previewFiscalDocument('sale-1');
+
+      expect(invoiceTypeResolverService.resolve).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        isEmitted: true,
+        invoiceType: FiscalDocumentType.FACTURA_B,
+        documentNumber: 101,
+        cae: '75123456789012',
+        receiver: { businessName: 'Consumidor Final', documentType: 99 },
+      });
+    });
+
+    it('throws 404 when the sale does not require a fiscal document', async () => {
+      sale = { id: 'sale-1', totalNet: '0.00' };
+      items = [];
+      fiscalDocument = null;
+
+      await expect(
+        service.previewFiscalDocument('sale-1'),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: SalesErrorCode.SALE_FISCAL_DOCUMENT_NOT_FOUND,
+        }),
+      });
+    });
+  });
+
+  describe('emitFiscalDocument', () => {
+    it('delegates to PendingFiscalService.retry with the sale fiscal document id', async () => {
+      sale = { id: 'sale-1' };
+      fiscalDocument = { id: 'fiscal-1', saleId: 'sale-1', saleReturnId: null };
+
+      const result = await service.emitFiscalDocument('sale-1', userId);
+
+      expect(pendingFiscalService.retry).toHaveBeenCalledWith(
+        'fiscal-1',
+        userId,
+      );
+      expect(result).toMatchObject({
+        fiscalDocumentId: 'fiscal-1',
+        created: true,
+      });
     });
   });
 
