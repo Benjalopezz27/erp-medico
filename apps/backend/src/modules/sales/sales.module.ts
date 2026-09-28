@@ -15,6 +15,7 @@ import { SaleReturnItem } from './returns/entities/sale-return-item.entity';
 import { SaleReturnsController } from './returns/sale-returns.controller';
 import { SaleReturnsService } from './returns/services/sale-returns.service';
 import { QueueModule } from '../queue/queue.module';
+import { ArcaModule } from '../arca/arca.module';
 import { PendingFiscalController } from './pending-fiscal.controller';
 import { PendingFiscalService } from './services/pending-fiscal.service';
 
@@ -33,6 +34,7 @@ import { PendingFiscalService } from './services/pending-fiscal.service';
     ReceivablesModule,
     QuarantineModule,
     QueueModule,
+    ArcaModule,
   ],
   // PendingFiscalController registered before SalesController: its literal
   // routes (sales/pending-fiscal, .../count, .../metrics) must be matched

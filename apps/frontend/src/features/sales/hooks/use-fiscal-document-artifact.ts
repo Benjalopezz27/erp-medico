@@ -1,5 +1,12 @@
-import { useMutation } from '@tanstack/react-query';
-import { downloadFiscalDocumentPdfApi, fetchFiscalDocumentQrApi } from '../api/sales.api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { IEmitFiscalDocumentResponse } from '@erp/shared-types';
+import {
+  downloadFiscalDocumentPdfApi,
+  emitFiscalDocumentApi,
+  fetchFiscalDocumentQrApi,
+  getFiscalDocumentPreviewApi,
+} from '../api/sales.api';
+import { salesKeys } from './sales-keys';
 
 export function useDownloadFiscalDocumentPdf() {
   return useMutation<void, Error, { saleId: string; returnId?: string; filename: string }>({
@@ -25,6 +32,25 @@ export function useFiscalDocumentQr() {
     mutationFn: async ({ saleId, returnId }) => {
       const blob = await fetchFiscalDocumentQrApi(saleId, returnId);
       return window.URL.createObjectURL(blob);
+    },
+  });
+}
+
+export function useFiscalDocumentPreview(saleId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: salesKeys.fiscalPreview(saleId),
+    queryFn: () => getFiscalDocumentPreviewApi(saleId),
+    enabled,
+  });
+}
+
+export function useEmitFiscalDocument(saleId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<IEmitFiscalDocumentResponse, Error, void>({
+    mutationFn: () => emitFiscalDocumentApi(saleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: salesKeys.detail(saleId) });
+      queryClient.invalidateQueries({ queryKey: salesKeys.fiscalPreview(saleId) });
     },
   });
 }

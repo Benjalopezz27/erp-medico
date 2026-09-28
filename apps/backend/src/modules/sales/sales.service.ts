@@ -21,8 +21,8 @@ import { CustomerPricingService } from '../customers/special-prices/services/cus
 import { AccountReceivable } from '../receivables/entities/account-receivable.entity';
 import { ReceivablesService } from '../receivables/receivables.service';
 import { StockService } from '../stock/stock.service';
-import { FiscalInvoiceQueueService } from '../queue/services/fiscal-invoice.queue';
 import { PdfGenerateQueueService } from '../queue/services/pdf-generate.queue';
+import { InvoiceTypeResolverService } from '../arca/services/invoice-type-resolver.service';
 import {
   assertPdfAvailable,
   assertQrAvailable,
@@ -30,8 +30,10 @@ import {
   renderQrPng,
   tryRecoverPdfGeneration,
 } from './utils/fiscal-artifact.util';
+import { resolveReceiverDocument } from './utils/fiscal-receiver.util';
 import {
   CreateSaleDto,
+  FiscalDocumentPreviewResponseDto,
   FiscalDocumentResponseDto,
   PaginatedSalesResponseDto,
   QuerySalesDto,
@@ -41,6 +43,8 @@ import { FiscalDocument } from './entities/fiscal-document.entity';
 import { SaleItem } from './entities/sale-item.entity';
 import { Sale } from './entities/sale.entity';
 import { SalesMapper } from './mappers/sales.mapper';
+import { PendingFiscalService } from './services/pending-fiscal.service';
+import { RetryFiscalDocumentResponseDto } from './dto/pending-fiscal-response.dto';
 
 @Injectable()
 export class SalesService {
@@ -52,8 +56,9 @@ export class SalesService {
     private readonly stockService: StockService,
     private readonly receivablesService: ReceivablesService,
     private readonly auditService: AuditService,
-    private readonly fiscalInvoiceQueueService: FiscalInvoiceQueueService,
     private readonly pdfGenerateQueueService: PdfGenerateQueueService,
+    private readonly invoiceTypeResolverService: InvoiceTypeResolverService,
+    private readonly pendingFiscalService: PendingFiscalService,
   ) {}
 
   async create(dto: CreateSaleDto, userId: string): Promise<SaleResponseDto> {
@@ -63,8 +68,6 @@ export class SalesService {
     const orderedItems = dto.items
       .map((item, itemIndex) => ({ ...item, itemIndex }))
       .sort((left, right) => left.productId.localeCompare(right.productId));
-
-    let fiscalDocumentId: string | null = null;
 
     try {
       const result = await this.dataSource.transaction(async (manager) => {
@@ -190,7 +193,6 @@ export class SalesService {
               issuedAt: null,
             }),
           );
-          fiscalDocumentId = fiscalDocument.id;
         }
 
         let accountReceivable: AccountReceivable | null = null;
@@ -250,22 +252,6 @@ export class SalesService {
         return this.loadDetail(manager, sale.id);
       });
 
-      if (fiscalDocumentId) {
-        try {
-          await this.fiscalInvoiceQueueService.enqueueCaeRequest({
-            fiscalDocumentId,
-          });
-        } catch (enqueueError) {
-          this.logger.warn(
-            `No se pudo encolar la emisión fiscal del documento ${fiscalDocumentId}; queda PENDIENTE_FACTURACION para recuperación. ${
-              enqueueError instanceof Error
-                ? enqueueError.message
-                : String(enqueueError)
-            }`,
-          );
-        }
-      }
-
       return result;
     } catch (error) {
       const databaseCode = this.databaseErrorCode(error);
@@ -321,6 +307,64 @@ export class SalesService {
   async findFiscalDocument(id: string): Promise<FiscalDocumentResponseDto> {
     const fiscalDocument = await this.loadFiscalDocumentOrFail(id);
     return SalesMapper.toFiscalDocumentResponse(fiscalDocument);
+  }
+
+  async previewFiscalDocument(
+    id: string,
+  ): Promise<FiscalDocumentPreviewResponseDto> {
+    const sale = await this.loadSaleWithRelations(this.dataSource.manager, id);
+    const fiscalDocument =
+      (sale.fiscalDocuments ?? []).find((doc) => !doc.saleReturnId) ?? null;
+    if (!fiscalDocument) {
+      throw new NotFoundException({
+        code: SalesErrorCode.SALE_FISCAL_DOCUMENT_NOT_FOUND,
+        message: 'La venta no tiene comprobante fiscal.',
+      });
+    }
+
+    const isEmitted = fiscalDocument.arcaStatus === ArcaStatus.EMITIDO;
+    const invoiceType = isEmitted
+      ? fiscalDocument.documentType!
+      : this.invoiceTypeResolverService.resolve(
+          sale.customer
+            ? {
+                taxCondition: sale.customer.taxCondition,
+                documentType: sale.customer.documentType,
+              }
+            : null,
+        );
+    const receiverDocument = resolveReceiverDocument(sale.customer ?? null);
+
+    return {
+      saleId: sale.id,
+      isEmitted,
+      invoiceType,
+      pointOfSale: fiscalDocument.pointOfSale,
+      documentNumber: fiscalDocument.documentNumber,
+      cae: fiscalDocument.cae,
+      receiver: {
+        businessName: sale.customer?.businessName ?? 'Consumidor Final',
+        documentType: receiverDocument.docType,
+        documentNumber: receiverDocument.docNumber,
+      },
+      items: SalesMapper.toItemsResponse(sale.items ?? []),
+      totals: {
+        totalNet: new Decimal(sale.totalNet).toFixed(2),
+        taxableNet: new Decimal(sale.taxableNet).toFixed(2),
+        exemptAmount: new Decimal(sale.exemptAmount).toFixed(2),
+        nonTaxedAmount: new Decimal(sale.nonTaxedAmount).toFixed(2),
+        ivaTotal: new Decimal(sale.ivaTotal).toFixed(2),
+        totalGross: new Decimal(sale.totalGross).toFixed(2),
+      },
+    };
+  }
+
+  async emitFiscalDocument(
+    id: string,
+    userId: string,
+  ): Promise<RetryFiscalDocumentResponseDto> {
+    const fiscalDocument = await this.loadFiscalDocumentOrFail(id);
+    return this.pendingFiscalService.retry(fiscalDocument.id, userId);
   }
 
   async getFiscalDocumentPdf(
@@ -477,10 +521,10 @@ export class SalesService {
     return result.saleNumber;
   }
 
-  private async loadDetail(
+  private async loadSaleWithRelations(
     manager: EntityManager,
     id: string,
-  ): Promise<SaleResponseDto> {
+  ): Promise<Sale> {
     const sale = await manager
       .getRepository(Sale)
       .createQueryBuilder('sale')
@@ -502,6 +546,14 @@ export class SalesService {
         message: 'La venta no existe.',
       });
     }
+    return sale;
+  }
+
+  private async loadDetail(
+    manager: EntityManager,
+    id: string,
+  ): Promise<SaleResponseDto> {
+    const sale = await this.loadSaleWithRelations(manager, id);
     const accountReceivable = await manager
       .getRepository(AccountReceivable)
       .findOne({ where: { saleId: id } });

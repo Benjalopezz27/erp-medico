@@ -85,7 +85,7 @@ export function FiscalAlertsTable({
               </td>
               <td className="px-4 py-3 font-medium">{row.customerName}</td>
               <td className="px-4 py-3">{formatDateTime(row.createdAt)}</td>
-              <td className="px-4 py-3">{row.documentType.replace(/_/g, ' ')}</td>
+              <td className="px-4 py-3">{row.documentType?.replace(/_/g, ' ') ?? '—'}</td>
               <td className="px-4 py-3">
                 <FiscalStatusBadge document={toFiscalDocument(row)} />
               </td>

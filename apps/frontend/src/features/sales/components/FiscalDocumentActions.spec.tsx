@@ -1,11 +1,39 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
-import { ArcaStatus, PdfArtifactStatus, type IFiscalDocument } from '@erp/shared-types';
+import {
+  ArcaStatus,
+  FiscalDocumentType,
+  PdfArtifactStatus,
+  type IFiscalDocument,
+  type IFiscalDocumentPreview,
+} from '@erp/shared-types';
 import { renderWithProviders } from '@/test/test-utils';
 import * as api from '../api/sales.api';
 import { FiscalDocumentActions } from './FiscalDocumentActions';
 
 vi.mock('../api/sales.api');
+
+function makePreview(overrides: Partial<IFiscalDocumentPreview> = {}): IFiscalDocumentPreview {
+  return {
+    saleId: 'sale-1',
+    isEmitted: false,
+    invoiceType: FiscalDocumentType.FACTURA_B,
+    pointOfSale: null,
+    documentNumber: null,
+    cae: null,
+    receiver: { businessName: 'Consumidor Final', documentType: 99, documentNumber: '0' },
+    items: [],
+    totals: {
+      totalNet: '100.00',
+      taxableNet: '100.00',
+      exemptAmount: '0.00',
+      nonTaxedAmount: '0.00',
+      ivaTotal: '21.00',
+      totalGross: '121.00',
+    },
+    ...overrides,
+  };
+}
 
 function makeDocument(overrides: Partial<IFiscalDocument> = {}): IFiscalDocument {
   return {
@@ -38,14 +66,42 @@ describe('FiscalDocumentActions', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders nothing while the comprobante is not EMITIDO yet', () => {
+  it('renders nothing while the comprobante is not EMITIDO yet, when scoped to a return', () => {
     const { container } = renderWithProviders(
+      <FiscalDocumentActions
+        saleId="sale-1"
+        returnId="return-1"
+        document={makeDocument({ arcaStatus: ArcaStatus.PENDIENTE_FACTURACION })}
+      />,
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it('opens the preview modal on "Emitir factura" and emits only after confirming', async () => {
+    vi.mocked(api.getFiscalDocumentPreviewApi).mockResolvedValue(makePreview());
+    vi.mocked(api.emitFiscalDocumentApi).mockResolvedValue({
+      fiscalDocumentId: 'doc-1',
+      arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
+      jobId: 'wsfe-emit-doc-1',
+      created: true,
+    });
+
+    const { user } = renderWithProviders(
       <FiscalDocumentActions
         saleId="sale-1"
         document={makeDocument({ arcaStatus: ArcaStatus.PENDIENTE_FACTURACION })}
       />,
     );
-    expect(container).toBeEmptyDOMElement();
+
+    expect(api.getFiscalDocumentPreviewApi).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: /Emitir factura/i }));
+
+    expect(await screen.findByText(/Factura B a Consumidor Final/i)).toBeInTheDocument();
+    expect(screen.getByText(/Total: 121\.00/)).toBeInTheDocument();
+    expect(api.emitFiscalDocumentApi).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: /Confirmar emisión/i }));
+    await waitFor(() => expect(api.emitFiscalDocumentApi).toHaveBeenCalledWith('sale-1'));
   });
 
   it('disables actions and shows a generating message while the artifact is pending', () => {

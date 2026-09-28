@@ -1,6 +1,8 @@
 import type {
   ICreateSalePayload,
   ICreateSaleReturnPayload,
+  IEmitFiscalDocumentResponse,
+  IFiscalDocumentPreview,
   IPaginatedSalesResponse,
   ISale,
   ISaleReturn,
@@ -89,5 +91,16 @@ export async function fetchFiscalDocumentQrApi(saleId: string, returnId?: string
     await apiClient.get(fiscalDocumentArtifactPath(saleId, 'qr', returnId), {
       responseType: 'blob',
     })
+  ).data;
+}
+
+export async function getFiscalDocumentPreviewApi(saleId: string): Promise<IFiscalDocumentPreview> {
+  return (await apiClient.get<IFiscalDocumentPreview>(`/sales/${saleId}/fiscal-document/preview`))
+    .data;
+}
+
+export async function emitFiscalDocumentApi(saleId: string): Promise<IEmitFiscalDocumentResponse> {
+  return (
+    await apiClient.post<IEmitFiscalDocumentResponse>(`/sales/${saleId}/fiscal-document/emit`)
   ).data;
 }

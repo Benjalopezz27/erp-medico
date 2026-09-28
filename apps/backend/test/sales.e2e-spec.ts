@@ -3,7 +3,9 @@ import { Test } from '@nestjs/testing';
 import * as request from 'supertest';
 import { DataSource } from 'typeorm';
 import {
+  ArcaStatus,
   CustomerDocumentType,
+  FiscalDocumentType,
   PaymentMethod,
   ProductStatus,
   ProductTaxTreatment,
@@ -15,6 +17,7 @@ import dataSource from '../src/database/data-source';
 import { runInitialSeed } from '../src/database/seeds/initial.seed';
 import { Category } from '../src/modules/categories/entities/category.entity';
 import { Customer } from '../src/modules/customers/entities/customer.entity';
+import { FiscalDocument } from '../src/modules/sales/entities/fiscal-document.entity';
 import { Product } from '../src/modules/products/entities/product.entity';
 import { Stock } from '../src/modules/stock/entities/stock.entity';
 import { StockMovement } from '../src/modules/stock/entities/stock-movement.entity';
@@ -238,9 +241,10 @@ describe('Sales domain and API (E2E)', () => {
       .get(`/api/v1/sales/${created.body.id}/fiscal-document/qr`)
       .expect(401);
 
-    // A fiscal invoice sale still gets its FiscalDocument created
-    // PENDIENTE_FACTURACION synchronously (the wsfe-emit job isn't running
-    // in this suite), so the artifact endpoints must 409, not 200 or 500.
+    // A fiscal invoice sale gets its FiscalDocument created
+    // PENDIENTE_FACTURACION and stays there — sale creation no longer
+    // auto-enqueues the wsfe-emit job (manual-invoice-emission change) — so
+    // the artifact endpoints must 409, not 200 or 500.
     await request(app.getHttpServer())
       .get(`/api/v1/sales/${created.body.id}/fiscal-document/pdf`)
       .set('Authorization', `Bearer ${sellerToken}`)
@@ -249,6 +253,146 @@ describe('Sales domain and API (E2E)', () => {
       .get(`/api/v1/sales/${created.body.id}/fiscal-document/qr`)
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(409);
+  });
+
+  describe('fiscal-document preview and manual emission', () => {
+    it('previews the computed invoice type, receiver and totals while pending, without touching ARCA', async () => {
+      const product = await createProduct(
+        '10000000-0000-4000-8000-000000000010',
+        10,
+      );
+      const customer = await createCustomer();
+      const created = await request(app.getHttpServer())
+        .post('/api/v1/sales')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          ...cashPayload(product.id),
+          customerId: customer.id,
+          requiresFiscalInvoice: true,
+        })
+        .expect(201);
+
+      const preview = await request(app.getHttpServer())
+        .get(`/api/v1/sales/${created.body.id}/fiscal-document/preview`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(preview.body).toMatchObject({
+        saleId: created.body.id,
+        isEmitted: false,
+        invoiceType: 'FACTURA_B',
+        cae: null,
+        receiver: {
+          businessName: 'Cliente crédito',
+          documentType: 96,
+          documentNumber: '35123456',
+        },
+        totals: { totalGross: '121.00' },
+      });
+
+      // Preview must not have reserved numbering or a CAE as a side effect.
+      const stillPending = await request(app.getHttpServer())
+        .get(`/api/v1/sales/${created.body.id}/fiscal-document`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+      expect(stillPending.body).toMatchObject({
+        arcaStatus: 'PENDIENTE_FACTURACION',
+        cae: null,
+      });
+    });
+
+    it('previews the real emitted data once the document has a CAE', async () => {
+      const product = await createProduct(
+        '10000000-0000-4000-8000-000000000011',
+        10,
+      );
+      const created = await request(app.getHttpServer())
+        .post('/api/v1/sales')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ ...cashPayload(product.id), requiresFiscalInvoice: true })
+        .expect(201);
+
+      await ds.getRepository(FiscalDocument).update(
+        { id: created.body.fiscalDocument.id },
+        {
+          arcaStatus: ArcaStatus.EMITIDO,
+          documentType: FiscalDocumentType.FACTURA_B,
+          pointOfSale: 1,
+          documentNumber: 555,
+          cae: '75123456789012',
+        },
+      );
+
+      const preview = await request(app.getHttpServer())
+        .get(`/api/v1/sales/${created.body.id}/fiscal-document/preview`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200);
+
+      expect(preview.body).toMatchObject({
+        isEmitted: true,
+        invoiceType: 'FACTURA_B',
+        documentNumber: 555,
+        cae: '75123456789012',
+      });
+    });
+
+    it('404s previewing a sale that does not require a fiscal document', async () => {
+      const product = await createProduct(
+        '10000000-0000-4000-8000-000000000012',
+        10,
+      );
+      const created = await request(app.getHttpServer())
+        .post('/api/v1/sales')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(cashPayload(product.id))
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .get(`/api/v1/sales/${created.body.id}/fiscal-document/preview`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(404);
+    });
+
+    it('lets a VENDEDOR trigger manual emission, is idempotent, and 409s once EMITIDO', async () => {
+      const product = await createProduct(
+        '10000000-0000-4000-8000-000000000013',
+        10,
+      );
+      const created = await request(app.getHttpServer())
+        .post('/api/v1/sales')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ ...cashPayload(product.id), requiresFiscalInvoice: true })
+        .expect(201);
+      const fiscalDocumentId = created.body.fiscalDocument.id;
+
+      const firstEmit = await request(app.getHttpServer())
+        .post(`/api/v1/sales/${created.body.id}/fiscal-document/emit`)
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .expect(201);
+      expect(firstEmit.body).toMatchObject({
+        fiscalDocumentId,
+        created: true,
+      });
+
+      const secondEmit = await request(app.getHttpServer())
+        .post(`/api/v1/sales/${created.body.id}/fiscal-document/emit`)
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .expect(201);
+      expect(secondEmit.body).toMatchObject({
+        fiscalDocumentId,
+        created: false,
+        jobId: firstEmit.body.jobId,
+      });
+
+      await ds
+        .getRepository(FiscalDocument)
+        .update({ id: fiscalDocumentId }, { arcaStatus: ArcaStatus.EMITIDO });
+
+      await request(app.getHttpServer())
+        .post(`/api/v1/sales/${created.body.id}/fiscal-document/emit`)
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .expect(409);
+    });
   });
 
   it('persists and totals a mixed taxable, exempt and non-taxed sale', async () => {
@@ -357,6 +501,19 @@ describe('Sales domain and API (E2E)', () => {
       currentBalance: '121.00',
       status: 'PENDIENTE',
     });
+
+    // Sale creation no longer auto-enqueues emission — the document sits
+    // PENDIENTE_FACTURACION until manually emitted, which is exactly what
+    // the pending-fiscal admin listing must surface.
+    const pendingList = await request(app.getHttpServer())
+      .get('/api/v1/sales/pending-fiscal')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(
+      pendingList.body.data.some(
+        (d: any) => d.id === credit.body.fiscalDocument.id,
+      ),
+    ).toBe(true);
   });
 
   it('rolls back earlier item deductions when a later item lacks stock', async () => {
