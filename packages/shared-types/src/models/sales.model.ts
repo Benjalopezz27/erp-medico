@@ -2,6 +2,7 @@ import {
   SaleStatus,
   FiscalDocumentType,
   ArcaStatus,
+  PdfArtifactStatus,
   SaleReturnItemQuality,
 } from '../enums/sales.enum';
 import { AccountReceivableStatus, PaymentMethod } from '../enums/financial.enum';
@@ -57,6 +58,47 @@ export interface IFiscalDocument {
   arcaErrorMessage?: string | null;
   qrCodeData?: string | null;
   issuedAt?: Date | string | null;
+  pdfStatus: PdfArtifactStatus;
+  qrAvailable: boolean;
+  pdfGeneratedAt?: Date | string | null;
+  pdfSizeBytes?: number | null;
+}
+
+export interface IFiscalDocumentPreviewReceiver {
+  businessName: string;
+  /** Código AFIP de tipo de documento receptor (80 CUIT, 96 DNI, 99 Consumidor Final). */
+  documentType: number;
+  documentNumber: string;
+}
+
+export interface IFiscalDocumentPreviewTotals {
+  totalNet: string;
+  taxableNet: string;
+  exemptAmount: string;
+  nonTaxedAmount: string;
+  ivaTotal: string;
+  totalGross: string;
+}
+
+export interface IFiscalDocumentPreview {
+  saleId: string;
+  /** true si el comprobante ya tiene CAE asignado (datos reales, no un cálculo). */
+  isEmitted: boolean;
+  invoiceType: FiscalDocumentType;
+  pointOfSale: number | null;
+  documentNumber: number | null;
+  cae: string | null;
+  receiver: IFiscalDocumentPreviewReceiver;
+  items: ISaleItem[];
+  totals: IFiscalDocumentPreviewTotals;
+}
+
+export interface IEmitFiscalDocumentResponse {
+  fiscalDocumentId: string;
+  arcaStatus: ArcaStatus;
+  jobId: string;
+  /** false cuando ya había un job en curso para este documento. */
+  created: boolean;
 }
 
 export interface ISaleAccountReceivable {

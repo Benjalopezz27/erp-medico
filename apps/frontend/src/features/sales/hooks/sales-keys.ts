@@ -7,4 +7,5 @@ export const salesKeys = {
   details: () => [...salesKeys.all, 'detail'] as const,
   detail: (id: string) => [...salesKeys.details(), id] as const,
   returns: (saleId: string) => [...salesKeys.detail(saleId), 'returns'] as const,
+  fiscalPreview: (saleId: string) => [...salesKeys.detail(saleId), 'fiscal-preview'] as const,
 };

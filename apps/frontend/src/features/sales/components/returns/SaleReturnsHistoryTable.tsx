@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatDecimal } from '@/features/products/utils/products.math';
 import { useAuthStore } from '@/stores/authStore';
+import { FiscalDocumentActions } from '../FiscalDocumentActions';
 
 interface SaleReturnsHistoryTableProps {
   sale: ISale;
@@ -16,6 +17,7 @@ interface SaleReturnsHistoryTableProps {
 }
 
 export const SaleReturnsHistoryTable: React.FC<SaleReturnsHistoryTableProps> = ({
+  sale,
   returns,
   isLoading,
   isError,
@@ -154,6 +156,13 @@ export const SaleReturnsHistoryTable: React.FC<SaleReturnsHistoryTableProps> = (
                 ))}
               </tbody>
             </table>
+            {ret.fiscalDocument && (
+              <FiscalDocumentActions
+                saleId={sale.id}
+                returnId={ret.id}
+                document={ret.fiscalDocument}
+              />
+            )}
           </div>
         </div>
       ))}

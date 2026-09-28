@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -14,14 +15,26 @@ import {
   StockMovementType,
 } from '@erp/shared-types';
 import Decimal from 'decimal.js';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, IsNull } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { CustomerPricingService } from '../customers/special-prices/services/customer-pricing.service';
 import { AccountReceivable } from '../receivables/entities/account-receivable.entity';
 import { ReceivablesService } from '../receivables/receivables.service';
 import { StockService } from '../stock/stock.service';
+import { PdfGenerateQueueService } from '../queue/services/pdf-generate.queue';
+import { InvoiceTypeResolverService } from '../arca/services/invoice-type-resolver.service';
+import {
+  assertPdfAvailable,
+  assertQrAvailable,
+  buildArtifactFilename,
+  renderQrPng,
+  tryRecoverPdfGeneration,
+} from './utils/fiscal-artifact.util';
+import { resolveReceiverDocument } from './utils/fiscal-receiver.util';
 import {
   CreateSaleDto,
+  FiscalDocumentPreviewResponseDto,
+  FiscalDocumentResponseDto,
   PaginatedSalesResponseDto,
   QuerySalesDto,
   SaleResponseDto,
@@ -30,15 +43,22 @@ import { FiscalDocument } from './entities/fiscal-document.entity';
 import { SaleItem } from './entities/sale-item.entity';
 import { Sale } from './entities/sale.entity';
 import { SalesMapper } from './mappers/sales.mapper';
+import { PendingFiscalService } from './services/pending-fiscal.service';
+import { RetryFiscalDocumentResponseDto } from './dto/pending-fiscal-response.dto';
 
 @Injectable()
 export class SalesService {
+  private readonly logger = new Logger(SalesService.name);
+
   constructor(
     private readonly dataSource: DataSource,
     private readonly customerPricingService: CustomerPricingService,
     private readonly stockService: StockService,
     private readonly receivablesService: ReceivablesService,
     private readonly auditService: AuditService,
+    private readonly pdfGenerateQueueService: PdfGenerateQueueService,
+    private readonly invoiceTypeResolverService: InvoiceTypeResolverService,
+    private readonly pendingFiscalService: PendingFiscalService,
   ) {}
 
   async create(dto: CreateSaleDto, userId: string): Promise<SaleResponseDto> {
@@ -50,7 +70,7 @@ export class SalesService {
       .sort((left, right) => left.productId.localeCompare(right.productId));
 
     try {
-      return await this.dataSource.transaction(async (manager) => {
+      const result = await this.dataSource.transaction(async (manager) => {
         const saleNumber = await this.nextSaleNumber(manager);
         const saleRepository = manager.getRepository(Sale);
         const itemRepository = manager.getRepository(SaleItem);
@@ -231,6 +251,8 @@ export class SalesService {
 
         return this.loadDetail(manager, sale.id);
       });
+
+      return result;
     } catch (error) {
       const databaseCode = this.databaseErrorCode(error);
       if (databaseCode === '40P01' || databaseCode === '40001') {
@@ -280,6 +302,132 @@ export class SalesService {
 
   findOne(id: string): Promise<SaleResponseDto> {
     return this.loadDetail(this.dataSource.manager, id);
+  }
+
+  async findFiscalDocument(id: string): Promise<FiscalDocumentResponseDto> {
+    const fiscalDocument = await this.loadFiscalDocumentOrFail(id);
+    return SalesMapper.toFiscalDocumentResponse(fiscalDocument);
+  }
+
+  async previewFiscalDocument(
+    id: string,
+  ): Promise<FiscalDocumentPreviewResponseDto> {
+    const sale = await this.loadSaleWithRelations(this.dataSource.manager, id);
+    const fiscalDocument =
+      (sale.fiscalDocuments ?? []).find((doc) => !doc.saleReturnId) ?? null;
+    if (!fiscalDocument) {
+      throw new NotFoundException({
+        code: SalesErrorCode.SALE_FISCAL_DOCUMENT_NOT_FOUND,
+        message: 'La venta no tiene comprobante fiscal.',
+      });
+    }
+
+    const isEmitted = fiscalDocument.arcaStatus === ArcaStatus.EMITIDO;
+    const invoiceType = isEmitted
+      ? fiscalDocument.documentType!
+      : this.invoiceTypeResolverService.resolve(
+          sale.customer
+            ? {
+                taxCondition: sale.customer.taxCondition,
+                documentType: sale.customer.documentType,
+              }
+            : null,
+        );
+    const receiverDocument = resolveReceiverDocument(sale.customer ?? null);
+
+    return {
+      saleId: sale.id,
+      isEmitted,
+      invoiceType,
+      pointOfSale: fiscalDocument.pointOfSale,
+      documentNumber: fiscalDocument.documentNumber,
+      cae: fiscalDocument.cae,
+      receiver: {
+        businessName: sale.customer?.businessName ?? 'Consumidor Final',
+        documentType: receiverDocument.docType,
+        documentNumber: receiverDocument.docNumber,
+      },
+      items: SalesMapper.toItemsResponse(sale.items ?? []),
+      totals: {
+        totalNet: new Decimal(sale.totalNet).toFixed(2),
+        taxableNet: new Decimal(sale.taxableNet).toFixed(2),
+        exemptAmount: new Decimal(sale.exemptAmount).toFixed(2),
+        nonTaxedAmount: new Decimal(sale.nonTaxedAmount).toFixed(2),
+        ivaTotal: new Decimal(sale.ivaTotal).toFixed(2),
+        totalGross: new Decimal(sale.totalGross).toFixed(2),
+      },
+    };
+  }
+
+  async emitFiscalDocument(
+    id: string,
+    userId: string,
+  ): Promise<RetryFiscalDocumentResponseDto> {
+    const fiscalDocument = await this.loadFiscalDocumentOrFail(id);
+    return this.pendingFiscalService.retry(fiscalDocument.id, userId);
+  }
+
+  async getFiscalDocumentPdf(
+    id: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const document = await this.loadFiscalDocumentOrFail(id);
+
+    try {
+      assertPdfAvailable(document);
+    } catch (err) {
+      tryRecoverPdfGeneration(
+        document,
+        this.pdfGenerateQueueService,
+        this.logger,
+      );
+      throw err;
+    }
+
+    return {
+      buffer: document.pdfData!,
+      filename: buildArtifactFilename(document, 'pdf'),
+    };
+  }
+
+  async getFiscalDocumentQr(id: string): Promise<Buffer> {
+    const document = await this.loadFiscalDocumentOrFail(id);
+
+    try {
+      assertQrAvailable(document);
+    } catch (err) {
+      tryRecoverPdfGeneration(
+        document,
+        this.pdfGenerateQueueService,
+        this.logger,
+      );
+      throw err;
+    }
+
+    return renderQrPng(document);
+  }
+
+  private async loadFiscalDocumentOrFail(id: string): Promise<FiscalDocument> {
+    const sale = await this.dataSource.manager
+      .getRepository(Sale)
+      .findOne({ where: { id } });
+    if (!sale) {
+      throw new NotFoundException({
+        code: SalesErrorCode.SALE_NOT_FOUND,
+        message: 'La venta no existe.',
+      });
+    }
+
+    const fiscalDocument = await this.dataSource.manager
+      .getRepository(FiscalDocument)
+      .findOne({ where: { saleId: id, saleReturnId: IsNull() } });
+    if (!fiscalDocument) {
+      throw new NotFoundException({
+        code: SalesErrorCode.SALE_FISCAL_DOCUMENT_NOT_FOUND,
+        message: 'La venta no tiene comprobante fiscal.',
+      });
+    }
+
+    return fiscalDocument;
   }
 
   private validateCommercialContract(dto: CreateSaleDto): void {
@@ -373,10 +521,10 @@ export class SalesService {
     return result.saleNumber;
   }
 
-  private async loadDetail(
+  private async loadSaleWithRelations(
     manager: EntityManager,
     id: string,
-  ): Promise<SaleResponseDto> {
+  ): Promise<Sale> {
     const sale = await manager
       .getRepository(Sale)
       .createQueryBuilder('sale')
@@ -398,6 +546,14 @@ export class SalesService {
         message: 'La venta no existe.',
       });
     }
+    return sale;
+  }
+
+  private async loadDetail(
+    manager: EntityManager,
+    id: string,
+  ): Promise<SaleResponseDto> {
+    const sale = await this.loadSaleWithRelations(manager, id);
     const accountReceivable = await manager
       .getRepository(AccountReceivable)
       .findOne({ where: { saleId: id } });

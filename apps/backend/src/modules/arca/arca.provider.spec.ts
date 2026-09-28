@@ -5,11 +5,13 @@ import { ArcaDisabledService } from './arca-disabled.service';
 import { ArcaHomologationService } from './services/arca-homologation.service';
 import { ArcaCertificateLoader } from './services/arca-certificate-loader.service';
 import { ArcaClockSyncService } from './services/arca-clock-sync.service';
+import { ArcaTicketCacheService } from './services/arca-ticket-cache.service';
 
 describe('arcaServiceProvider', () => {
   let mockConfigService: jest.Mocked<ConfigService>;
   let mockCertLoader: jest.Mocked<ArcaCertificateLoader>;
   let mockClockSync: jest.Mocked<ArcaClockSyncService>;
+  let mockTicketCache: jest.Mocked<ArcaTicketCacheService>;
 
   beforeEach(() => {
     mockConfigService = {
@@ -21,11 +23,20 @@ describe('arcaServiceProvider', () => {
     mockClockSync = {
       verifyClockSync: jest.fn(),
     } as any;
+    mockTicketCache = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+    } as any;
   });
 
   const getService = () => {
     const factory = (arcaServiceProvider as any).useFactory;
-    return factory(mockConfigService, mockCertLoader, mockClockSync);
+    return factory(
+      mockConfigService,
+      mockCertLoader,
+      mockClockSync,
+      mockTicketCache,
+    );
   };
 
   it('returns ArcaDisabledService when ARCA_ENV=disabled', () => {

@@ -6,6 +6,7 @@ import { ArcaDisabledService } from './arca-disabled.service';
 import { ArcaHomologationService } from './services/arca-homologation.service';
 import { ArcaCertificateLoader } from './services/arca-certificate-loader.service';
 import { ArcaClockSyncService } from './services/arca-clock-sync.service';
+import { ArcaTicketCacheService } from './services/arca-ticket-cache.service';
 import { IArcaService } from './interfaces/arca-service.interface';
 
 export const arcaServiceProvider: Provider = {
@@ -14,6 +15,7 @@ export const arcaServiceProvider: Provider = {
     configService: ConfigService,
     certLoader: ArcaCertificateLoader,
     clockSyncService: ArcaClockSyncService,
+    ticketCache: ArcaTicketCacheService,
   ): IArcaService => {
     const nodeEnv = configService.get<string>('NODE_ENV')?.trim().toLowerCase();
     const arcaEnv = configService.get<string>('ARCA_ENV')?.trim().toLowerCase();
@@ -42,6 +44,7 @@ export const arcaServiceProvider: Provider = {
         certLoader,
         clockSyncService,
         configService,
+        ticketCache,
       );
     }
 
@@ -56,5 +59,10 @@ export const arcaServiceProvider: Provider = {
       `[FATAL] Invalid ARCA environment configuration: NODE_ENV=${nodeEnv}, ARCA_ENV=${arcaEnv}. Allowed values: ARCA_ENV=disabled, development, homologation.`,
     );
   },
-  inject: [ConfigService, ArcaCertificateLoader, ArcaClockSyncService],
+  inject: [
+    ConfigService,
+    ArcaCertificateLoader,
+    ArcaClockSyncService,
+    ArcaTicketCacheService,
+  ],
 };

@@ -1,6 +1,8 @@
 import type {
   ICreateSalePayload,
   ICreateSaleReturnPayload,
+  IEmitFiscalDocumentResponse,
+  IFiscalDocumentPreview,
   IPaginatedSalesResponse,
   ISale,
   ISaleReturn,
@@ -61,4 +63,44 @@ export async function createSaleReturnApi(
   payload: ICreateSaleReturnPayload,
 ): Promise<ISaleReturn> {
   return (await apiClient.post<ISaleReturn>(`/sales/${saleId}/returns`, payload)).data;
+}
+
+function fiscalDocumentArtifactPath(
+  saleId: string,
+  artifact: 'pdf' | 'qr',
+  returnId?: string,
+): string {
+  return returnId
+    ? `/sales/${saleId}/returns/${returnId}/fiscal-document/${artifact}`
+    : `/sales/${saleId}/fiscal-document/${artifact}`;
+}
+
+export async function downloadFiscalDocumentPdfApi(
+  saleId: string,
+  returnId?: string,
+): Promise<Blob> {
+  return (
+    await apiClient.get(fiscalDocumentArtifactPath(saleId, 'pdf', returnId), {
+      responseType: 'blob',
+    })
+  ).data;
+}
+
+export async function fetchFiscalDocumentQrApi(saleId: string, returnId?: string): Promise<Blob> {
+  return (
+    await apiClient.get(fiscalDocumentArtifactPath(saleId, 'qr', returnId), {
+      responseType: 'blob',
+    })
+  ).data;
+}
+
+export async function getFiscalDocumentPreviewApi(saleId: string): Promise<IFiscalDocumentPreview> {
+  return (await apiClient.get<IFiscalDocumentPreview>(`/sales/${saleId}/fiscal-document/preview`))
+    .data;
+}
+
+export async function emitFiscalDocumentApi(saleId: string): Promise<IEmitFiscalDocumentResponse> {
+  return (
+    await apiClient.post<IEmitFiscalDocumentResponse>(`/sales/${saleId}/fiscal-document/emit`)
+  ).data;
 }

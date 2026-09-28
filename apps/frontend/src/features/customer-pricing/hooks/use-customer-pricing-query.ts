@@ -16,6 +16,7 @@ export function useCustomerSpecialPricesQuery(
     queryFn: () => getCustomerSpecialPricesApi(customerId, params),
     enabled: Boolean(customerId),
     placeholderData: keepPreviousData,
+    meta: { skipGlobalErrorToast: true },
   });
 }
 

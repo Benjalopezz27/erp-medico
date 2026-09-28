@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import type { ISale } from '@erp/shared-types';
 import { Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,7 @@ import { FiscalStatusBadge } from './FiscalStatusBadge';
 import { formatCurrency } from '@/features/products/utils/products.math';
 
 export function SalesTable({ sales, loading }: { sales: ISale[]; loading: boolean }) {
+  const navigate = useNavigate();
   if (loading)
     return (
       <div
@@ -38,7 +39,11 @@ export function SalesTable({ sales, loading }: { sales: ISale[]; loading: boolea
         </thead>
         <tbody className="divide-y divide-slate-100">
           {sales.map((sale) => (
-            <tr key={sale.id} className="hover:bg-slate-50">
+            <tr
+              key={sale.id}
+              className="cursor-pointer hover:bg-slate-50"
+              onClick={() => navigate({ to: '/sales/$id', params: { id: sale.id } })}
+            >
               <td className="px-4 py-3 font-mono font-bold text-blue-700">{sale.saleNumber}</td>
               <td className="px-4 py-3">
                 {new Intl.DateTimeFormat('es-AR', {

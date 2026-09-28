@@ -4,7 +4,7 @@ export type FiscalAlertTab = 'PENDIENTE_FACTURACION' | 'RECHAZADO';
 
 export interface IFiscalAlertRow {
   id: string;
-  documentType: FiscalDocumentType;
+  documentType: FiscalDocumentType | null;
   arcaStatus: ArcaStatus;
   saleId: string;
   saleNumber: string;

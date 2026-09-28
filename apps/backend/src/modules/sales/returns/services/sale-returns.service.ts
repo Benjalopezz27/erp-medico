@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -16,6 +17,7 @@ import {
   SaleReturnErrorCode,
   SaleReturnItemQuality,
   SaleStatus,
+  SalesErrorCode,
   StockMovementType,
 } from '@erp/shared-types';
 import { Sale } from '../../entities/sale.entity';
@@ -30,9 +32,20 @@ import { SaleReturnItem } from '../entities/sale-return-item.entity';
 import { CreateSaleReturnDto } from '../dto/create-sale-return.dto';
 import { SaleReturnResponseDto } from '../dto/sale-return-response.dto';
 import { SaleReturnsMapper } from '../mappers/sale-returns.mapper';
+import { FiscalInvoiceQueueService } from '../../../queue/services/fiscal-invoice.queue';
+import { PdfGenerateQueueService } from '../../../queue/services/pdf-generate.queue';
+import {
+  assertPdfAvailable,
+  assertQrAvailable,
+  buildArtifactFilename,
+  renderQrPng,
+  tryRecoverPdfGeneration,
+} from '../../utils/fiscal-artifact.util';
 
 @Injectable()
 export class SaleReturnsService {
+  private readonly logger = new Logger(SaleReturnsService.name);
+
   constructor(
     private readonly dataSource: DataSource,
     @InjectRepository(SaleReturn)
@@ -43,6 +56,8 @@ export class SaleReturnsService {
     private readonly quarantineService: QuarantineService,
     private readonly receivablesService: ReceivablesService,
     private readonly auditService: AuditService,
+    private readonly fiscalInvoiceQueueService: FiscalInvoiceQueueService,
+    private readonly pdfGenerateQueueService: PdfGenerateQueueService,
   ) {}
 
   async createReturn(
@@ -52,6 +67,7 @@ export class SaleReturnsService {
   ): Promise<SaleReturnResponseDto> {
     this.validatePayload(dto);
     const requestHash = this.computeRequestHash(dto);
+    let fiscalDocumentId: string | null = null;
 
     try {
       const returnId = await this.dataSource.transaction(async (manager) => {
@@ -339,6 +355,7 @@ export class SaleReturnsService {
               arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
             }),
           );
+          fiscalDocumentId = fiscalDoc.id;
         }
 
         // 9. Account Receivable compensation movement (if credit sale)
@@ -382,6 +399,22 @@ export class SaleReturnsService {
         return savedSaleReturn.id;
       });
 
+      if (fiscalDocumentId) {
+        try {
+          await this.fiscalInvoiceQueueService.enqueueCaeRequest({
+            fiscalDocumentId,
+          });
+        } catch (enqueueError) {
+          this.logger.warn(
+            `No se pudo encolar la emisión fiscal del documento ${fiscalDocumentId}; queda PENDIENTE_FACTURACION para recuperación. ${
+              enqueueError instanceof Error
+                ? enqueueError.message
+                : String(enqueueError)
+            }`,
+          );
+        }
+      }
+
       return this.findOneDetail(returnId);
     } catch (error) {
       const databaseCode = this.databaseErrorCode(error);
@@ -418,6 +451,76 @@ export class SaleReturnsService {
       .getMany();
 
     return returns.map((r) => SaleReturnsMapper.toResponse(r));
+  }
+
+  async getFiscalDocumentPdf(
+    saleId: string,
+    returnId: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const document = await this.loadReturnFiscalDocumentOrFail(
+      saleId,
+      returnId,
+    );
+
+    try {
+      assertPdfAvailable(document);
+    } catch (err) {
+      tryRecoverPdfGeneration(
+        document,
+        this.pdfGenerateQueueService,
+        this.logger,
+      );
+      throw err;
+    }
+
+    return {
+      buffer: document.pdfData!,
+      filename: buildArtifactFilename(document, 'pdf'),
+    };
+  }
+
+  async getFiscalDocumentQr(saleId: string, returnId: string): Promise<Buffer> {
+    const document = await this.loadReturnFiscalDocumentOrFail(
+      saleId,
+      returnId,
+    );
+
+    try {
+      assertQrAvailable(document);
+    } catch (err) {
+      tryRecoverPdfGeneration(
+        document,
+        this.pdfGenerateQueueService,
+        this.logger,
+      );
+      throw err;
+    }
+
+    return renderQrPng(document);
+  }
+
+  private async loadReturnFiscalDocumentOrFail(
+    saleId: string,
+    returnId: string,
+  ): Promise<FiscalDocument> {
+    const saleReturn = await this.saleReturnRepository.findOne({
+      where: { id: returnId, saleId },
+    });
+    if (!saleReturn) {
+      throw new NotFoundException('La devolución no fue encontrada.');
+    }
+
+    const fiscalDocument = await this.dataSource
+      .getRepository(FiscalDocument)
+      .findOne({ where: { saleReturnId: returnId } });
+    if (!fiscalDocument) {
+      throw new NotFoundException({
+        code: SalesErrorCode.SALE_FISCAL_DOCUMENT_NOT_FOUND,
+        message: 'La devolución no tiene comprobante fiscal (Nota de Crédito).',
+      });
+    }
+
+    return fiscalDocument;
   }
 
   private async findOneDetail(id: string): Promise<SaleReturnResponseDto> {

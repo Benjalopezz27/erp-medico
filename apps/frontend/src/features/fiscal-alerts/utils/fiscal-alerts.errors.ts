@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { FiscalRetryErrorCode, type ParsedFiscalRetryError } from '../types/fiscal-alerts.types';
+import { parseApiError } from '@/lib/errors/parse-api-error';
 
 const messages: Record<string, string> = {
   [FiscalRetryErrorCode.FISCAL_DOCUMENT_NOT_FOUND]:
@@ -27,6 +28,7 @@ export function parseFiscalRetryError(error: unknown): ParsedFiscalRetryError {
     };
   }
 
+  const apiError = parseApiError(error);
   if (!error.response) {
     return {
       message: 'No se recibió confirmación del servidor. Verificá el estado antes de reintentar.',
@@ -34,14 +36,12 @@ export function parseFiscalRetryError(error: unknown): ParsedFiscalRetryError {
     };
   }
 
-  const body = error.response.data as { code?: string; message?: string | string[] };
-  const code = body?.code;
-  const backendMessage = Array.isArray(body?.message) ? body.message.join(' ') : body?.message;
+  const code = apiError.code;
 
   return {
-    status: error.response.status,
+    status: apiError.statusCode,
     code,
-    message: (code && messages[code]) || backendMessage || 'No fue posible solicitar el reintento.',
+    message: (code && messages[code]) || apiError.message,
     requiresReconciliation: Boolean(code && reconciliationCodes.includes(code)),
   };
 }

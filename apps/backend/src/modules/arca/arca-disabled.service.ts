@@ -2,6 +2,7 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import {
   ArcaAuthTicket,
   FiscalDocumentData,
+  FiscalDocumentType,
   ArcaCaeResponse,
   ArcaFiscalDocument,
 } from '@erp/shared-types';
@@ -31,6 +32,15 @@ export class ArcaDisabledService implements IArcaService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _documentNumber: number,
   ): Promise<ArcaFiscalDocument | null> {
+    throw new ServiceUnavailableException(ArcaDisabledService.DISABLED_MESSAGE);
+  }
+
+  async getLastAuthorizedNumber(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _documentType: FiscalDocumentType,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _pointOfSale: number,
+  ): Promise<number> {
     throw new ServiceUnavailableException(ArcaDisabledService.DISABLED_MESSAGE);
   }
 }
