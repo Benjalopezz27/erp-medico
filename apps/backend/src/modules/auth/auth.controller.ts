@@ -10,6 +10,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 
 @ApiTags('auth')
@@ -42,9 +43,10 @@ export class AuthController {
     status: 400,
     description: 'Invalid input payload (e.g. invalid email format)',
   })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @ApiResponse({
-    status: 401,
-    description: 'Invalid credentials or inactive user',
+    status: 403,
+    description: 'Valid credentials but account pending approval',
   })
   @ApiResponse({
     status: 429,
@@ -53,5 +55,26 @@ export class AuthController {
   })
   async login(@Body() loginDto: LoginDto): Promise<AuthResponseDto> {
     return this.authService.login(loginDto);
+  }
+
+  @Post('register')
+  @Throttle({
+    default: {
+      limit: Number(process.env.THROTTLE_LIMIT_LOGIN || 5),
+      ttl: Number(process.env.THROTTLE_TTL_MS || 60000),
+    },
+  })
+  @ApiOperation({
+    summary: 'Self-register an account (inactive until admin approval)',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Account created, pending approval',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid input payload' })
+  @ApiResponse({ status: 409, description: 'Email already registered' })
+  @ApiResponse({ status: 429, description: 'Too Many Requests' })
+  async register(@Body() dto: RegisterDto): Promise<{ message: string }> {
+    return this.authService.register(dto);
   }
 }

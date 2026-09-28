@@ -166,20 +166,18 @@ describe('Auth & Role Authorization (E2E)', () => {
       });
     });
 
-    it('should return uniform 401 Unauthorized for inactive user', async () => {
-      const response = await request(app.getHttpServer())
+    it('should return 403 for inactive user with correct password', async () => {
+      await request(app.getHttpServer())
         .post('/api/v1/auth/login')
-        .send({
-          email: 'inactive@erp.com',
-          password: inactivePassword,
-        })
-        .expect(401);
+        .send({ email: 'inactive@erp.com', password: inactivePassword })
+        .expect(403);
+    });
 
-      expect(response.body).toEqual({
-        statusCode: 401,
-        message: 'Invalid email or password',
-        error: 'Unauthorized',
-      });
+    it('should return uniform 401 for inactive user with wrong password', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ email: 'inactive@erp.com', password: 'WrongPassword123!' })
+        .expect(401);
     });
 
     it('should return 400 Bad Request for invalid email format', async () => {
@@ -205,6 +203,75 @@ describe('Auth & Role Authorization (E2E)', () => {
 
       expect(response.body.statusCode).toBe(400);
       expect(response.body.message).toContain('Password is required');
+    });
+  });
+
+  describe('POST /api/v1/auth/register', () => {
+    const body = {
+      name: 'Nuevo Usuario',
+      email: 'nuevo@erp.com',
+      password: 'NuevoPassword123!',
+    };
+
+    it('should create inactive VENDEDOR without token, ignoring role/isActive', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send(body)
+        .expect(201);
+      expect(res.body).not.toHaveProperty('accessToken');
+
+      const saved = await ds
+        .getRepository(User)
+        .findOneByOrFail({ email: body.email });
+      expect(saved.isActive).toBe(false);
+      expect(saved.role).toBe(UserRole.VENDEDOR);
+    });
+
+    it('should reject role/isActive in payload (whitelist)', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({ ...body, role: UserRole.ADMINISTRADOR, isActive: true })
+        .expect(400);
+    });
+
+    it('should return 409 for duplicate email and 400 for weak password', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({ ...body, email: 'admin@erp.com' })
+        .expect(409);
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send({ ...body, password: 'short' })
+        .expect(400);
+    });
+
+    it('should block login until admin approves, then allow it', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/register')
+        .send(body)
+        .expect(201);
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ email: body.email, password: body.password })
+        .expect(403);
+
+      const adminLogin = await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ email: 'admin@erp.com', password: adminPassword })
+        .expect(200);
+      const saved = await ds
+        .getRepository(User)
+        .findOneByOrFail({ email: body.email });
+      await request(app.getHttpServer())
+        .patch(`/api/v1/users/${saved.id}`)
+        .set('Authorization', `Bearer ${adminLogin.body.accessToken}`)
+        .send({ isActive: true })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/auth/login')
+        .send({ email: body.email, password: body.password })
+        .expect(200);
     });
   });
 

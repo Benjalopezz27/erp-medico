@@ -1,9 +1,15 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { normalizeEmail } from '../../common/utils/string.utils';
+import { UserRole } from '@erp/shared-types';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { DUMMY_BCRYPT_HASH } from './constants/auth.constants';
@@ -17,6 +23,18 @@ export class AuthService {
 
   getStatus(): { module: string; status: string } {
     return { module: 'auth', status: 'initialized' };
+  }
+
+  async register(dto: RegisterDto): Promise<{ message: string }> {
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+    await this.usersService.createInternal({
+      name: dto.name,
+      email: dto.email,
+      passwordHash,
+      role: UserRole.VENDEDOR,
+      isActive: false,
+    });
+    return { message: 'Account created, pending administrator approval' };
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
@@ -33,8 +51,13 @@ export class AuthService {
       await bcrypt.compare(loginDto.password, DUMMY_BCRYPT_HASH);
     }
 
-    if (!user || !storedHash || !user.isActive || !passwordMatches) {
+    if (!user || !storedHash || !passwordMatches) {
       throw new UnauthorizedException('Invalid email or password');
+    }
+
+    // Only reachable with a correct password, so it does not reveal whether an email exists.
+    if (!user.isActive) {
+      throw new ForbiddenException('Account pending approval');
     }
 
     const payload: JwtPayload = {
