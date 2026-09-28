@@ -95,9 +95,8 @@ export async function fetchFiscalDocumentQrApi(saleId: string, returnId?: string
 }
 
 export async function getFiscalDocumentPreviewApi(saleId: string): Promise<IFiscalDocumentPreview> {
-  return (
-    await apiClient.get<IFiscalDocumentPreview>(`/sales/${saleId}/fiscal-document/preview`)
-  ).data;
+  return (await apiClient.get<IFiscalDocumentPreview>(`/sales/${saleId}/fiscal-document/preview`))
+    .data;
 }
 
 export async function emitFiscalDocumentApi(saleId: string): Promise<IEmitFiscalDocumentResponse> {

@@ -74,7 +74,8 @@ export class FiscalDocumentResponseDto {
 export class FiscalDocumentPreviewReceiverDto {
   @ApiProperty() businessName: string;
   @ApiProperty({
-    description: 'Código AFIP de tipo de documento receptor (80 CUIT, 96 DNI, 99 Consumidor Final).',
+    description:
+      'Código AFIP de tipo de documento receptor (80 CUIT, 96 DNI, 99 Consumidor Final).',
   })
   documentType: number;
   @ApiProperty() documentNumber: string;
@@ -92,7 +93,8 @@ export class FiscalDocumentPreviewTotalsDto {
 export class FiscalDocumentPreviewResponseDto {
   @ApiProperty({ format: 'uuid' }) saleId: string;
   @ApiProperty({
-    description: 'true si el comprobante ya tiene CAE asignado (datos reales, no un cálculo).',
+    description:
+      'true si el comprobante ya tiene CAE asignado (datos reales, no un cálculo).',
   })
   isEmitted: boolean;
   @ApiProperty({ enum: FiscalDocumentType }) invoiceType: FiscalDocumentType;

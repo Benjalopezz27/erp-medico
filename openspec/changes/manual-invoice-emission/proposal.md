@@ -16,10 +16,12 @@ Hoy la emisión fiscal es automática: al confirmar una venta con "Requiere fact
 ## Capabilities
 
 ### New Capabilities
+
 - `sales/fiscal-invoice-preview`: expone preview de comprobante (tipo calculado, receptor, ítems, totales) sin llamar a ARCA, para un `FiscalDocument` pendiente.
 - `sales/manual-invoice-emission-trigger`: reemplaza el auto-enqueue en creación de venta por un endpoint de disparo manual que encola el job de emisión existente.
 
 ### Modified Capabilities
+
 (ninguna — no hay specs archivadas aún para el flujo de emisión actual; el comportamiento existente vive solo en código, sin spec previa)
 
 ## Impact

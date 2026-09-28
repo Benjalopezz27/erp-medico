@@ -11,11 +11,13 @@ Ver proposal.md para el motivo del cambio.
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Reutilizar el pipeline de emisión/contingencia/PDF existente sin tocarlo.
 - Reutilizar `PendingFiscalService.retry()` como motor del disparo manual, en vez de reimplementar la lógica de encolado/idempotencia.
 - Exponer preview y emisión manual con el mismo nivel de acceso que ya tiene la creación de ventas (`ADMINISTRADOR`, `VENDEDOR`), no solo admin.
 
 **Non-Goals:**
+
 - No cambia `InvoiceTypeResolverService`, `FiscalContingencyOrchestrator`, `FiscalInvoiceProcessor` ni el procesamiento de PDF.
 - No cambia el contrato del API `pending-fiscal` admin existente.
 - No agrega selección de tipo de comprobante por el usuario.
