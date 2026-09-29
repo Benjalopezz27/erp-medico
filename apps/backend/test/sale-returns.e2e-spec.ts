@@ -441,12 +441,17 @@ describe('Customer returns domain and API (E2E)', () => {
     expect(Number(ar.currentBalance)).toBe(121.0);
     expect(ar.status).toBe('PARCIAL');
 
-    const movements = await ds.getRepository(AccountReceivableMovement).findBy({
-      accountReceivableId: ar.id,
+    const movements = await ds.getRepository(AccountReceivableMovement).find({
+      where: { accountReceivableId: ar.id },
+      order: { createdAt: 'ASC' },
     });
-    expect(movements).toHaveLength(1);
-    expect(Number(movements[0].amount)).toBe(121.0);
-    expect(movements[0].saleReturnId).toBe(ret1.body.id);
+    // FACTURA de la venta + NOTA_CREDITO de la devolución.
+    expect(movements.map((m) => m.movementType)).toEqual([
+      'FACTURA',
+      'NOTA_CREDITO',
+    ]);
+    expect(Number(movements[1].amount)).toBe(121.0);
+    expect(movements[1].saleReturnId).toBe(ret1.body.id);
 
     // 3. Return remaining 1 unit ($121 gross)
     await request(app.getHttpServer())

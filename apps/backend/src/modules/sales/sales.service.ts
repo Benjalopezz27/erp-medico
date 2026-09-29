@@ -204,6 +204,7 @@ export class SalesService {
               fiscalDocumentId: fiscalDocument!.id,
               saleNumber,
               totalGross: totalGross.toFixed(2),
+              userId: sale.userId,
             });
         }
 

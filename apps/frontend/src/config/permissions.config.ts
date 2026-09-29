@@ -4,7 +4,6 @@ export const ADMIN_ROUTES = [
   '/admin',
   '/purchases',
   '/suppliers',
-  '/receivables',
   '/treasury',
   '/reports',
   '/importer',

@@ -1,6 +1,7 @@
 import {
   AccountReceivableStatus,
   AccountReceivableMovementType,
+  DebtorStatus,
   PaymentMethod,
   CheckStatus,
 } from '../enums/financial.enum';
@@ -23,12 +24,74 @@ export interface IAccountReceivableMovement {
   id: string;
   accountReceivableId: string;
   movementType: AccountReceivableMovementType;
-  amount: number;
-  previousBalance: number;
-  subsequentBalance: number;
-  receiptId?: string | null;
+  amount: string;
+  previousBalance: string;
+  subsequentBalance: string;
+  fiscalDocumentId?: string | null;
+  saleReturnId?: string | null;
   userId: string;
   createdAt: Date | string;
+}
+
+export interface IReceivablesPaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+/** Saldo pendiente por tramo de antigüedad (días desde la creación de la factura). */
+export interface IReceivableAging {
+  days0to30: string;
+  days31to60: string;
+  days61plus: string;
+}
+
+export interface ICustomerAccountSummary {
+  customerId: string;
+  customerName: string;
+  customerDocument: string;
+  totalBalance: string;
+  pendingCount: number;
+  partialCount: number;
+  creditLimit: string;
+  exceedsCreditLimit: boolean;
+  aging: IReceivableAging;
+}
+
+export interface ICustomerLedgerEntry {
+  id: string;
+  createdAt: Date | string;
+  movementType: AccountReceivableMovementType;
+  documentReference: string;
+  /** Importe con signo: FACTURA y REVERSION_CHEQUE suman, el resto resta. */
+  signedAmount: string;
+  runningBalance: string;
+}
+
+export interface ICustomerAccountResponse {
+  summary: ICustomerAccountSummary;
+  pendingInvoices: IAccountReceivable[];
+  ledger: {
+    data: ICustomerLedgerEntry[];
+    meta: IReceivablesPaginationMeta;
+  };
+}
+
+export interface IReceivableDebtorRow {
+  customerId: string;
+  customerName: string;
+  customerDocument: string | null;
+  pendingCount: number;
+  totalBalance: string;
+  oldestDebtDate: Date | string;
+  aging: IReceivableAging;
+  status: DebtorStatus;
+}
+
+export interface IReceivableDebtorsResponse {
+  data: IReceivableDebtorRow[];
+  meta: IReceivablesPaginationMeta;
 }
 
 export interface IPaymentAllocation {

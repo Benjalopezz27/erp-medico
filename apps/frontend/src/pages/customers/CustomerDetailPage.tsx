@@ -26,6 +26,7 @@ import { useCustomerDetailQuery } from '@/features/customers/hooks/use-customers
 import { parseCustomerError } from '@/features/customers/utils/customers.errors';
 import { formatCurrency } from '@/features/products/utils/products.math';
 import { useAuthStore } from '@/stores/authStore';
+import { CustomerAccountTab } from '@/features/receivables/components/CustomerAccountTab';
 import { CustomerPricingPanel } from '@/features/customer-pricing/components/CustomerPricingPanel';
 
 export function CustomerDetailPage() {
@@ -115,6 +116,7 @@ export function CustomerDetailPage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="information">Información</TabsTrigger>
+          <TabsTrigger value="account">Cuenta corriente</TabsTrigger>
           <TabsTrigger value="special-prices">Precios especiales</TabsTrigger>
         </TabsList>
         <TabsContent value="information" className="space-y-4">
@@ -160,8 +162,8 @@ export function CustomerDetailPage() {
                 </p>
               </div>
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
-                <strong>No es un saldo ni crédito disponible.</strong> La cuenta corriente,
-                movimientos y cobranzas estarán disponibles en Sprint 9.
+                <strong>No es un saldo ni crédito disponible.</strong> El saldo y los movimientos
+                están en la pestaña Cuenta corriente.
               </div>
             </CardContent>
           </Card>
@@ -169,6 +171,9 @@ export function CustomerDetailPage() {
             <Clock3 className="h-3.5 w-3.5" />
             Última actualización: {new Date(customer.updatedAt).toLocaleString('es-AR')}
           </p>
+        </TabsContent>
+        <TabsContent value="account">
+          <CustomerAccountTab customerId={customer.id} />
         </TabsContent>
         <TabsContent value="special-prices">
           <CustomerPricingPanel customer={customer} canManage={isAdmin} />
