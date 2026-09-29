@@ -17,9 +17,9 @@
 
 ## 4. Cobro y recibo
 
-- [ ] 4.1 Tests que fallan primero para `ReceiptNumberService`: números `0001-00000001`, `0001-00000002` consecutivos y rollback de la transacción que devuelve el número. Implementar con `receipt_counters` y `FOR UPDATE`. Verificar que los tests pasan.
-- [ ] 4.2 Implementar `PaymentsService.register` (valida cliente, crea `Payment`, `applyPayment`, `Receipt`, todo en una transacción) y DTOs validados con Swagger; importar `ReceivablesModule` y las entidades en `PaymentsModule`. Verificar con spec de servicio: cobro exitoso crea pago, aplicaciones, movimientos y recibo; error en una aplicación no deja nada; medio `CHEQUE` da 400; montos con más de 2 decimales dan 400.
-- [ ] 4.3 Agregar `POST /payments` y `GET /receipts/:id` con `@UseGuards(JwtAuthGuard, RolesGuard)` + `@Roles(ADMINISTRADOR, VENDEDOR)`, 404 para cliente o recibo inexistente y conservar `GET /payments/status`. Verificar con e2e: 401 sin token, 201 como VENDEDOR, 404, 409 por exceso y `status` sigue respondiendo.
+- [x] 4.1 Tests que fallan primero para `ReceiptNumberService`: números `0001-00000001`, `0001-00000002` consecutivos y rollback de la transacción que devuelve el número. Implementar con `receipt_counters` y `FOR UPDATE`. Verificar que los tests pasan.
+- [x] 4.2 Implementar `PaymentsService.register` (valida cliente, crea `Payment`, `applyPayment`, `Receipt`, todo en una transacción) y DTOs validados con Swagger; importar `ReceivablesModule` y las entidades en `PaymentsModule`. Verificar con spec de servicio: cobro exitoso crea pago, aplicaciones, movimientos y recibo; error en una aplicación no deja nada; medio `CHEQUE` da 400; montos con más de 2 decimales dan 400.
+- [x] 4.3 Agregar `POST /payments` y `GET /receipts/:id` con `@UseGuards(JwtAuthGuard, RolesGuard)` + `@Roles(ADMINISTRADOR, VENDEDOR)`, 404 para cliente o recibo inexistente y conservar `GET /payments/status`. Verificar con e2e: 401 sin token, 201 como VENDEDOR, 404, 409 por exceso y `status` sigue respondiendo.
 
 ## 5. PDF
 
