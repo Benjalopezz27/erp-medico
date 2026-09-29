@@ -3,6 +3,7 @@ import {
   AccountReceivableMovementType,
   DebtorStatus,
   PaymentMethod,
+  PaymentAllocationType,
   CheckStatus,
 } from '../enums/financial.enum';
 
@@ -29,6 +30,7 @@ export interface IAccountReceivableMovement {
   subsequentBalance: string;
   fiscalDocumentId?: string | null;
   saleReturnId?: string | null;
+  paymentId?: string | null;
   userId: string;
   createdAt: Date | string;
 }
@@ -98,15 +100,16 @@ export interface IPaymentAllocation {
   id: string;
   paymentId: string;
   accountReceivableId: string;
-  amountAllocated: number;
+  amountAllocated: string;
+  allocationType: PaymentAllocationType;
 }
 
 export interface IReceipt {
   id: string;
   receiptNumber: string;
+  paymentId: string;
   customerId: string;
-  totalAmount: number;
-  notes?: string | null;
+  totalAmount: string;
   userId: string;
   createdAt: Date | string;
 }
@@ -133,13 +136,60 @@ export interface ICheck {
 export interface IPayment {
   id: string;
   customerId: string;
-  receiptId?: string | null;
-  totalAmount: number;
+  totalAmount: string;
   paymentMethod: PaymentMethod;
-  checkId?: string | null;
+  notes?: string | null;
   allocations?: IPaymentAllocation[];
   receipt?: IReceipt | null;
-  check?: ICheck | null;
   userId: string;
   createdAt: Date | string;
+}
+
+/** Cobro con aplicación dirigida: el cliente indica el monto por factura. */
+export interface IRegisterPaymentDirectedRequest {
+  customerId: string;
+  paymentMethod: PaymentMethod.EFECTIVO | PaymentMethod.TRANSFERENCIA;
+  notes?: string;
+  mode: PaymentAllocationType.DIRECTED;
+  allocations: { accountReceivableId: string; amount: string }[];
+}
+
+/** Cobro por antigüedad: el servidor cancela desde la factura más vieja. */
+export interface IRegisterPaymentByAgeRequest {
+  customerId: string;
+  paymentMethod: PaymentMethod.EFECTIVO | PaymentMethod.TRANSFERENCIA;
+  notes?: string;
+  mode: PaymentAllocationType.GLOBAL_AGE;
+  totalAmount: string;
+}
+
+export type IRegisterPaymentRequest =
+  | IRegisterPaymentDirectedRequest
+  | IRegisterPaymentByAgeRequest;
+
+export interface IReceiptAppliedInvoice {
+  accountReceivableId: string;
+  documentReference: string;
+  invoiceDate: Date | string;
+  originalAmount: string;
+  amountApplied: string;
+}
+
+export interface IReceiptDetail {
+  id: string;
+  receiptNumber: string;
+  paymentId: string;
+  createdAt: Date | string;
+  customerId: string;
+  customerName: string;
+  customerDocument: string;
+  paymentMethod: PaymentMethod;
+  notes: string | null;
+  applied: IReceiptAppliedInvoice[];
+  totalAmount: string;
+}
+
+export interface IRegisterPaymentResponse {
+  payment: IPayment;
+  receipt: IReceipt;
 }

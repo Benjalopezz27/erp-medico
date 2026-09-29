@@ -2,7 +2,7 @@
 
 ## 1. Shared types
 
-- [ ] 1.1 Alinear `IPayment`, `IPaymentAllocation`, `IReceipt` en `packages/shared-types/src/models/receivables.model.ts` (montos `string`, `allocationType`, `paymentId` en movimiento) y agregar tipos de request (unión `DIRECTED | GLOBAL_AGE`), respuesta de recibo y códigos de error de cobro. Verificar con `pnpm build` en `packages/shared-types` y typecheck de backend y frontend sin errores.
+- [x] 1.1 Alinear `IPayment`, `IPaymentAllocation`, `IReceipt` en `packages/shared-types/src/models/receivables.model.ts` (montos `string`, `allocationType`, `paymentId` en movimiento) y agregar tipos de request (unión `DIRECTED | GLOBAL_AGE`), respuesta de recibo y códigos de error de cobro. Verificar con `pnpm build` en `packages/shared-types` y typecheck de backend y frontend sin errores.
 
 ## 2. Migración y entidades
 
