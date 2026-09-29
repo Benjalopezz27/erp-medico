@@ -1,9 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, IsNull } from 'typeorm';
 import {
   ArcaStatus,
+  FiscalDocumentData,
   FiscalErrorCode,
   FiscalFailureStage,
 } from '@erp/shared-types';
@@ -172,7 +173,35 @@ export class FiscalContingencyOrchestrator {
 
       const { docType, docNumber } = resolveReceiverDocument(customer);
 
+      // Notas de Crédito must reference the original emitted invoice (CbteAsoc).
+      let associatedDocument: FiscalDocumentData['associatedDocument'];
+      if (document.saleReturnId) {
+        const original = await manager.getRepository(FiscalDocument).findOne({
+          where: {
+            saleId: document.saleId,
+            saleReturnId: IsNull(),
+            arcaStatus: ArcaStatus.EMITIDO,
+          },
+        });
+        if (
+          !original?.documentType ||
+          original.pointOfSale == null ||
+          original.documentNumber == null
+        ) {
+          throw new WsfeRejectedError(
+            'La nota de crédito no tiene factura original emitida para asociar.',
+            'Sin comprobante asociado (CbteAsoc).',
+          );
+        }
+        associatedDocument = {
+          documentType: original.documentType,
+          pointOfSale: original.pointOfSale,
+          documentNumber: original.documentNumber,
+        };
+      }
+
       const caeResponse = await this.arcaService.requestCAE({
+        associatedDocument,
         ...fiscalAmounts,
         documentType,
         pointOfSale,

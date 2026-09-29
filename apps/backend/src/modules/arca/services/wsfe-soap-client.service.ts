@@ -95,6 +95,18 @@ export class WsfeSoapClientService {
 
     const documentDate = data.documentDate ?? this.formatDate(new Date());
 
+    const assoc = data.associatedDocument;
+    const cbtesAsoc = assoc
+      ? `
+            <ar:CbtesAsoc>
+              <ar:CbteAsoc>
+                <ar:Tipo>${CBTE_TIPO_BY_DOCUMENT_TYPE[assoc.documentType]}</ar:Tipo>
+                <ar:PtoVta>${assoc.pointOfSale}</ar:PtoVta>
+                <ar:Nro>${assoc.documentNumber}</ar:Nro>
+              </ar:CbteAsoc>
+            </ar:CbtesAsoc>`
+      : '';
+
     const envelope = `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ar="http://ar.gov.afip.dif.FEV1/">
   <soapenv:Header/>
@@ -126,7 +138,7 @@ export class WsfeSoapClientService {
             <ar:ImpIVA>${data.ivaAmount.toFixed(2)}</ar:ImpIVA>
             <ar:MonId>PES</ar:MonId>
             <ar:MonCotiz>1</ar:MonCotiz>
-            <ar:CondicionIVAReceptorId>${data.receiverIvaConditionId ?? 5}</ar:CondicionIVAReceptorId>
+            <ar:CondicionIVAReceptorId>${data.receiverIvaConditionId ?? 5}</ar:CondicionIVAReceptorId>${cbtesAsoc}
             <ar:Iva>
           ${ivaItems}
             </ar:Iva>
