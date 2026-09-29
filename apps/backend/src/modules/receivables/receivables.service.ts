@@ -1,13 +1,55 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import {
   AccountReceivableMovementType,
   AccountReceivableStatus,
+  PaymentAllocationType,
+  PaymentErrorCode,
   SaleReturnErrorCode,
 } from '@erp/shared-types';
 import Decimal from 'decimal.js';
 import { EntityManager } from 'typeorm';
 import { AccountReceivable } from './entities/account-receivable.entity';
 import { AccountReceivableMovement } from './entities/account-receivable-movement.entity';
+
+export type ApplyPaymentInput = {
+  paymentId: string;
+  customerId: string;
+  userId: string;
+} & (
+  | {
+      mode: PaymentAllocationType.DIRECTED;
+      allocations: { accountReceivableId: string; amount: string }[];
+    }
+  | { mode: PaymentAllocationType.GLOBAL_AGE; totalAmount: string }
+);
+
+export interface ApplyPaymentResult {
+  total: string;
+  applied: { accountReceivableId: string; amount: string }[];
+}
+
+function positiveMoney(value: string, field: string): Decimal {
+  let amount: Decimal;
+  try {
+    amount = new Decimal(value);
+  } catch {
+    throw new BadRequestException({
+      code: PaymentErrorCode.PAYMENT_INVALID_ALLOCATION,
+      message: `${field} no es un importe válido.`,
+    });
+  }
+  if (!amount.greaterThan(0) || amount.decimalPlaces() > 2) {
+    throw new BadRequestException({
+      code: PaymentErrorCode.PAYMENT_INVALID_ALLOCATION,
+      message: `${field} debe ser mayor a 0 y tener hasta 2 decimales.`,
+    });
+  }
+  return amount;
+}
 
 @Injectable()
 export class ReceivablesService {
@@ -144,5 +186,125 @@ export class ReceivablesService {
     );
 
     return { movement, accountReceivable };
+  }
+
+  /**
+   * Aplica un cobro a las facturas del cliente y escribe un movimiento PAGO
+   * por cada una. Bloquea las cuentas involucradas; el llamador decide el
+   * commit, así que cualquier error deja todo sin cambios.
+   */
+  async applyPayment(
+    manager: EntityManager,
+    input: ApplyPaymentInput,
+  ): Promise<ApplyPaymentResult> {
+    if (!manager.queryRunner?.isTransactionActive) {
+      throw new Error(
+        'ReceivablesService.applyPayment requires an active transaction.',
+      );
+    }
+    const receivableRepo = manager.getRepository(AccountReceivable);
+    const movementRepo = manager.getRepository(AccountReceivableMovement);
+
+    // Cada asignación: cuenta bloqueada + monto a aplicar.
+    let plan: { account: AccountReceivable; amount: Decimal }[];
+
+    if (input.mode === PaymentAllocationType.DIRECTED) {
+      const ids = input.allocations.map((a) => a.accountReceivableId);
+      if (ids.length === 0 || new Set(ids).size !== ids.length) {
+        throw new BadRequestException({
+          code: PaymentErrorCode.PAYMENT_INVALID_ALLOCATION,
+          message: 'La lista de facturas está vacía o tiene repetidas.',
+        });
+      }
+      const amounts = new Map(
+        input.allocations.map((a) => [
+          a.accountReceivableId,
+          positiveMoney(a.amount, 'El monto a aplicar'),
+        ]),
+      );
+      const accounts = await receivableRepo
+        .createQueryBuilder('ar')
+        .setLock('pessimistic_write')
+        .where('ar.id IN (:...ids)', { ids })
+        .orderBy('ar.id', 'ASC')
+        .getMany();
+      if (
+        accounts.length !== ids.length ||
+        accounts.some((a) => a.customerId !== input.customerId)
+      ) {
+        throw new BadRequestException({
+          code: PaymentErrorCode.PAYMENT_INVALID_ALLOCATION,
+          message: 'Alguna factura no existe o no pertenece al cliente.',
+        });
+      }
+      plan = accounts.map((account) => ({
+        account,
+        amount: amounts.get(account.id) as Decimal,
+      }));
+      for (const { account, amount } of plan) {
+        if (amount.greaterThan(account.currentBalance)) {
+          throw new ConflictException({
+            code: PaymentErrorCode.PAYMENT_AMOUNT_EXCEEDS_BALANCE,
+            message: `El monto excede el saldo de la factura ${account.documentReference ?? account.id}.`,
+          });
+        }
+      }
+    } else {
+      let remaining = positiveMoney(input.totalAmount, 'El monto cobrado');
+      const accounts = await receivableRepo
+        .createQueryBuilder('ar')
+        .setLock('pessimistic_write')
+        .where('ar.customerId = :customerId', { customerId: input.customerId })
+        .andWhere('ar.currentBalance > 0')
+        .orderBy('ar.createdAt', 'ASC')
+        .addOrderBy('ar.id', 'ASC')
+        .getMany();
+      const debt = accounts.reduce(
+        (sum, a) => sum.plus(a.currentBalance),
+        new Decimal(0),
+      );
+      if (remaining.greaterThan(debt)) {
+        throw new ConflictException({
+          code: PaymentErrorCode.PAYMENT_AMOUNT_EXCEEDS_BALANCE,
+          message: 'El monto cobrado excede el saldo total del cliente.',
+        });
+      }
+      plan = [];
+      for (const account of accounts) {
+        if (!remaining.greaterThan(0)) break;
+        const amount = Decimal.min(remaining, account.currentBalance);
+        plan.push({ account, amount });
+        remaining = remaining.minus(amount);
+      }
+    }
+
+    const applied: ApplyPaymentResult['applied'] = [];
+    let total = new Decimal(0);
+    for (const { account, amount } of plan) {
+      const previous = new Decimal(account.currentBalance);
+      const next = previous.minus(amount);
+      account.currentBalance = next.toFixed(2);
+      account.status = next.isZero()
+        ? AccountReceivableStatus.CANCELADO
+        : AccountReceivableStatus.PARCIAL;
+      await receivableRepo.save(account);
+      await movementRepo.save(
+        movementRepo.create({
+          accountReceivableId: account.id,
+          movementType: AccountReceivableMovementType.PAGO,
+          amount: amount.toFixed(2),
+          previousBalance: previous.toFixed(2),
+          subsequentBalance: next.toFixed(2),
+          paymentId: input.paymentId,
+          userId: input.userId,
+        }),
+      );
+      applied.push({
+        accountReceivableId: account.id,
+        amount: amount.toFixed(2),
+      });
+      total = total.plus(amount);
+    }
+    return { total: total.toFixed(2), applied };
   }
 }

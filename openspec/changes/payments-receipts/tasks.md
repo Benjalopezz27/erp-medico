@@ -11,9 +11,9 @@
 
 ## 3. Aplicación de pagos en el ledger
 
-- [ ] 3.1 Tests que fallan primero en `receivables.service.spec.ts` para `applyPayment`: pago parcial (PARCIAL, previous/subsequent correctos), cancelación total (CANCELADO), monto mayor al saldo (409), factura de otro cliente (400), factura duplicada (400), sin transacción activa (error). Verificar que fallan antes del cambio.
-- [ ] 3.2 Implementar `ReceivablesService.applyPayment` con lock `pessimistic_write` ordenado por id y movimientos `PAGO` con `userId` y `paymentId`. Verificar que pasa `receivables.service.spec.ts`.
-- [ ] 3.3 Agregar la cascada por antigüedad (orden `created_at`, `id`, corte al agotar) y el rechazo si el monto excede el saldo total. Verificar con spec: facturas $150/$200/$100 y cobro $250 dejan CANCELADO, PARCIAL con "100.00" y sin cambio; cobro $500 sobre deuda $450 da 409.
+- [x] 3.1 Tests que fallan primero en `receivables.service.spec.ts` para `applyPayment`: pago parcial (PARCIAL, previous/subsequent correctos), cancelación total (CANCELADO), monto mayor al saldo (409), factura de otro cliente (400), factura duplicada (400), sin transacción activa (error). Verificar que fallan antes del cambio.
+- [x] 3.2 Implementar `ReceivablesService.applyPayment` con lock `pessimistic_write` ordenado por id y movimientos `PAGO` con `userId` y `paymentId`. Verificar que pasa `receivables.service.spec.ts`.
+- [x] 3.3 Agregar la cascada por antigüedad (orden `created_at`, `id`, corte al agotar) y el rechazo si el monto excede el saldo total. Verificar con spec: facturas $150/$200/$100 y cobro $250 dejan CANCELADO, PARCIAL con "100.00" y sin cambio; cobro $500 sobre deuda $450 da 409.
 
 ## 4. Cobro y recibo
 
