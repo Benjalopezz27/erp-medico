@@ -183,6 +183,20 @@ describe('Payments and receipts (E2E)', () => {
       await http().get('/api/v1/payments/status').expect(200);
     });
 
+    it('lets ADMINISTRADOR register a payment too', async () => {
+      const customer = await createCustomer('Cliente Admin', '30710000011');
+      await creditSale(customer.id, 1);
+      await post(
+        {
+          customerId: customer.id,
+          paymentMethod: PaymentMethod.EFECTIVO,
+          mode: PaymentAllocationType.GLOBAL_AGE,
+          totalAmount: '10.00',
+        },
+        adminToken,
+      ).expect(201);
+    });
+
     it('returns 404 for an unknown customer and for an unknown receipt', async () => {
       await post({
         customerId: '00000000-0000-4000-8000-000000000000',

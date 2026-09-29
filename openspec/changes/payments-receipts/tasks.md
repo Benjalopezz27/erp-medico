@@ -34,6 +34,6 @@
 
 ## 7. Cierre
 
-- [ ] 7.1 Escribir e2e `payments-receipts.e2e-spec.ts`: 3 ventas a crédito, cobro dirigido parcial, cobro por antigüedad, recibo y PDF, invariante saldo del cliente = suma con signo de movimientos y cobros concurrentes sobre una factura (uno gana, uno 409). Verificar con `pnpm --filter backend test:e2e`.
-- [ ] 7.2 Actualizar `docs/domain_model.md` (Payment, PaymentAllocation, Receipt, contador) y correr `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` sin errores.
-- [ ] 7.3 Smoke manual con `ArcaMockService`: crear 3 ventas a crédito, registrar cobro dirigido y por antigüedad desde la UI, ver saldo y ledger, abrir el recibo y descargar el PDF. Sin datos fiscales reales.
+- [x] 7.1 Escribir e2e `payments-receipts.e2e-spec.ts`: 3 ventas a crédito, cobro dirigido parcial, cobro por antigüedad, recibo y PDF, invariante saldo del cliente = suma con signo de movimientos y cobros concurrentes sobre una factura (uno gana, uno 409). Verificar con `pnpm --filter backend test:e2e`.
+- [x] 7.2 Actualizar `docs/domain_model.md` (Payment, PaymentAllocation, Receipt, contador) y correr `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` sin errores.
+- [x] 7.3 Smoke manual con `ArcaMockService`: crear 3 ventas a crédito, registrar cobro dirigido y por antigüedad desde la UI, ver saldo y ledger, abrir el recibo y descargar el PDF. Sin datos fiscales reales.
