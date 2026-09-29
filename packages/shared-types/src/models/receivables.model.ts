@@ -164,8 +164,7 @@ export interface IRegisterPaymentByAgeRequest {
 }
 
 export type IRegisterPaymentRequest =
-  | IRegisterPaymentDirectedRequest
-  | IRegisterPaymentByAgeRequest;
+  IRegisterPaymentDirectedRequest | IRegisterPaymentByAgeRequest;
 
 export interface IReceiptAppliedInvoice {
   accountReceivableId: string;
