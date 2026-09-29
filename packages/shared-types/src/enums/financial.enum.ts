@@ -28,6 +28,11 @@ export enum AccountReceivableMovementType {
   REVERSION_CHEQUE = 'REVERSION_CHEQUE',
 }
 
+export enum DebtorStatus {
+  MOROSO = 'MOROSO',
+  AL_DIA = 'AL_DIA',
+}
+
 export enum CheckStatus {
   RECIBIDO = 'RECIBIDO',
   EN_CARTERA = 'EN_CARTERA',
