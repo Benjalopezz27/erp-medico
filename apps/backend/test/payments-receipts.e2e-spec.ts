@@ -397,5 +397,40 @@ describe('Payments and receipts (E2E)', () => {
         '242.00',
       ]);
     });
+
+    it('downloads the receipt as a PDF', async () => {
+      const customer = await createCustomer('Cliente PDF', '30710000009');
+      const [s1] = await seedThree(customer.id);
+      const paid = await post({
+        customerId: customer.id,
+        paymentMethod: PaymentMethod.EFECTIVO,
+        mode: PaymentAllocationType.DIRECTED,
+        allocations: [
+          { accountReceivableId: await arIdOf(s1.id), amount: '121.00' },
+        ],
+      }).expect(201);
+
+      const res = await http()
+        .get(`/api/v1/receipts/${paid.body.receipt.id}/pdf`)
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .buffer(true)
+        .parse((response, cb) => {
+          const chunks: Buffer[] = [];
+          response.on('data', (c: Buffer) => chunks.push(c));
+          response.on('end', () => cb(null, Buffer.concat(chunks)));
+        })
+        .expect(200);
+      expect(res.headers['content-type']).toContain('application/pdf');
+      expect(res.headers['content-disposition']).toContain(
+        'recibo-0001-00000001.pdf',
+      );
+      expect((res.body as Buffer).subarray(0, 4).toString()).toBe('%PDF');
+    });
+
+    it('returns 404 and 401 on the PDF endpoint', async () => {
+      const id = '00000000-0000-4000-8000-000000000000';
+      await get(`/api/v1/receipts/${id}/pdf`).expect(404);
+      await http().get(`/api/v1/receipts/${id}/pdf`).expect(401);
+    });
   });
 });

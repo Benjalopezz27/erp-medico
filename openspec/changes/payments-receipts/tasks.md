@@ -23,8 +23,8 @@
 
 ## 5. PDF
 
-- [ ] 5.1 Función pura del total en letras (`Son pesos: ... con 00/100`) y `ReceiptPdfService` con `pdf-lib` (A4, cliente, comprobantes aplicados, medio, total, firma). Verificar con spec: `1250.50` da "mil doscientos cincuenta con 50/100", el resultado empieza con `%PDF` y un recibo con muchas facturas genera el documento.
-- [ ] 5.2 Agregar `GET /receipts/:id/pdf` con `Content-Type: application/pdf` y `Content-Disposition` con el número. Verificar con e2e: 200 y bytes `%PDF`, 404 y 401.
+- [x] 5.1 Función pura del total en letras (`Son pesos: ... con 00/100`) y `ReceiptPdfService` con `pdf-lib` (A4, cliente, comprobantes aplicados, medio, total, firma). Verificar con spec: `1250.50` da "mil doscientos cincuenta con 50/100", el resultado empieza con `%PDF` y un recibo con muchas facturas genera el documento.
+- [x] 5.2 Agregar `GET /receipts/:id/pdf` con `Content-Type: application/pdf` y `Content-Disposition` con el número. Verificar con e2e: 200 y bytes `%PDF`, 404 y 401.
 
 ## 6. Frontend
 

@@ -7,6 +7,7 @@ import { Receipt } from './entities/receipt.entity';
 import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
 import { ReceiptNumberService } from './receipt-number.service';
+import { ReceiptPdfService } from './receipt-pdf.service';
 import { ReceiptsController } from './receipts.controller';
 import { ReceiptsService } from './receipts.service';
 
@@ -16,7 +17,12 @@ import { ReceiptsService } from './receipts.service';
     ReceivablesModule,
   ],
   controllers: [PaymentsController, ReceiptsController],
-  providers: [PaymentsService, ReceiptNumberService, ReceiptsService],
+  providers: [
+    PaymentsService,
+    ReceiptNumberService,
+    ReceiptsService,
+    ReceiptPdfService,
+  ],
   exports: [PaymentsService, ReceiptsService],
 })
 export class PaymentsModule {}
