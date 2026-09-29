@@ -6,8 +6,8 @@
 
 ## 2. Migración y entidades
 
-- [ ] 2.1 Escribir migración `1700000000030` en `apps/backend/src/database/migrations/`: tablas `payments`, `payment_allocations` (CHECK monto > 0, UNIQUE por cobro y cuenta), `receipts`, `receipt_counters` sembrada en 0 y columna nullable `payment_id` en `account_receivable_movements`; `down` documentado. Verificar con spec de migración (patrón `database/migration-sales.spec.ts`): `up` crea todo, correr dos veces no falla y `down` lo elimina.
-- [ ] 2.2 Crear entidades `Payment`, `PaymentAllocation`, `Receipt` en `modules/payments/entities/` y agregar `paymentId` a `AccountReceivableMovement`. Verificar con `pnpm db:migrate` y `pnpm db:revert` solo en la base local sin errores; no ejecutar contra staging/producción.
+- [x] 2.1 Escribir migración `1700000000030` en `apps/backend/src/database/migrations/`: tablas `payments`, `payment_allocations` (CHECK monto > 0, UNIQUE por cobro y cuenta), `receipts`, `receipt_counters` sembrada en 0 y columna nullable `payment_id` en `account_receivable_movements`; `down` documentado. Verificar con spec de migración (patrón `database/migration-sales.spec.ts`): `up` crea todo, correr dos veces no falla y `down` lo elimina.
+- [x] 2.2 Crear entidades `Payment`, `PaymentAllocation`, `Receipt` en `modules/payments/entities/` y agregar `paymentId` a `AccountReceivableMovement`. Verificar con `pnpm db:migrate` y `pnpm db:revert` solo en la base local sin errores; no ejecutar contra staging/producción.
 
 ## 3. Aplicación de pagos en el ledger
 
