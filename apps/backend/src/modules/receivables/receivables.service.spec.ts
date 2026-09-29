@@ -1,31 +1,39 @@
-import { AccountReceivableStatus } from '@erp/shared-types';
+import {
+  AccountReceivableMovementType,
+  AccountReceivableStatus,
+} from '@erp/shared-types';
 import { AccountReceivable } from './entities/account-receivable.entity';
 import { ReceivablesService } from './receivables.service';
 
 describe('ReceivablesService', () => {
-  const repository = {
+  const receivableRepo = {
     create: jest.fn((value) => ({ id: 'debt-1', ...value })),
+    save: jest.fn(async (value) => value),
+  };
+  const movementRepo = {
+    create: jest.fn((value) => ({ id: 'mov-1', ...value })),
     save: jest.fn(async (value) => value),
   };
   const manager = {
     queryRunner: { isTransactionActive: true },
-    getRepository: jest.fn((entity) => {
-      expect(entity).toBe(AccountReceivable);
-      return repository;
-    }),
+    getRepository: jest.fn((entity) =>
+      entity === AccountReceivable ? receivableRepo : movementRepo,
+    ),
   };
   const service = new ReceivablesService();
+  const input = {
+    customerId: 'customer-1',
+    saleId: 'sale-1',
+    fiscalDocumentId: 'fiscal-1',
+    saleNumber: 'V-00000001',
+    totalGross: '121.00',
+    userId: 'user-1',
+  };
 
   beforeEach(() => jest.clearAllMocks());
 
-  it('creates the minimal debt in the supplied transaction', async () => {
-    const result = await service.recordCreditSaleDebt(manager as any, {
-      customerId: 'customer-1',
-      saleId: 'sale-1',
-      fiscalDocumentId: 'fiscal-1',
-      saleNumber: 'V-00000001',
-      totalGross: '121.00',
-    });
+  it('creates the debt and its FACTURA movement in the supplied transaction', async () => {
+    const result = await service.recordCreditSaleDebt(manager as any, input);
 
     expect(result).toMatchObject({
       originalAmount: '121.00',
@@ -33,20 +41,36 @@ describe('ReceivablesService', () => {
       status: AccountReceivableStatus.PENDIENTE,
       dueDate: null,
     });
-    expect(repository.save).toHaveBeenCalledTimes(1);
+    expect(receivableRepo.save).toHaveBeenCalledTimes(1);
+    expect(movementRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountReceivableId: 'debt-1',
+        movementType: AccountReceivableMovementType.FACTURA,
+        amount: '121.00',
+        previousBalance: '0.00',
+        subsequentBalance: '121.00',
+        fiscalDocumentId: 'fiscal-1',
+        userId: 'user-1',
+      }),
+    );
+  });
+
+  it('rejects a zero total instead of writing an empty ledger entry', async () => {
+    await expect(
+      service.recordCreditSaleDebt(manager as any, {
+        ...input,
+        totalGross: '0.00',
+      }),
+    ).rejects.toThrow('positive');
+    expect(receivableRepo.save).not.toHaveBeenCalled();
+    expect(movementRepo.save).not.toHaveBeenCalled();
   });
 
   it('rejects a manager without an active transaction', async () => {
     await expect(
       service.recordCreditSaleDebt(
         { ...manager, queryRunner: { isTransactionActive: false } } as any,
-        {
-          customerId: 'customer-1',
-          saleId: 'sale-1',
-          fiscalDocumentId: 'fiscal-1',
-          saleNumber: 'V-00000001',
-          totalGross: '121.00',
-        },
+        input,
       ),
     ).rejects.toThrow('requires an active transaction');
   });

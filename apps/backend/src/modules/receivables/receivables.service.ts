@@ -23,6 +23,7 @@ export class ReceivablesService {
       fiscalDocumentId: string;
       saleNumber: string;
       totalGross: string;
+      userId: string;
     },
   ): Promise<AccountReceivable> {
     if (!manager.queryRunner?.isTransactionActive) {
@@ -30,19 +31,42 @@ export class ReceivablesService {
         'ReceivablesService.recordCreditSaleDebt requires an active transaction.',
       );
     }
+    const total = new Decimal(input.totalGross);
+    if (!total.greaterThan(0)) {
+      throw new Error(
+        'ReceivablesService.recordCreditSaleDebt requires a positive total.',
+      );
+    }
+    const amount = total.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2);
+
     const repository = manager.getRepository(AccountReceivable);
-    return repository.save(
+    const accountReceivable = await repository.save(
       repository.create({
         customerId: input.customerId,
         saleId: input.saleId,
         fiscalDocumentId: input.fiscalDocumentId,
         documentReference: input.saleNumber,
-        originalAmount: input.totalGross,
-        currentBalance: input.totalGross,
+        originalAmount: amount,
+        currentBalance: amount,
         status: AccountReceivableStatus.PENDIENTE,
         dueDate: null,
       }),
     );
+
+    const movementRepo = manager.getRepository(AccountReceivableMovement);
+    await movementRepo.save(
+      movementRepo.create({
+        accountReceivableId: accountReceivable.id,
+        movementType: AccountReceivableMovementType.FACTURA,
+        amount,
+        previousBalance: '0.00',
+        subsequentBalance: amount,
+        fiscalDocumentId: input.fiscalDocumentId,
+        userId: input.userId,
+      }),
+    );
+
+    return accountReceivable;
   }
 
   async recordCreditNoteCompensation(
