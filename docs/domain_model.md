@@ -218,8 +218,8 @@ export enum CashRegisterStatus {
 
 ### 3.7 Cuentas Corrientes, Cobranzas y Cheques
 
-- **`AccountReceivable`**: `id`, `customerId`, `saleId`, `fiscalDocumentId`, `originalAmount`, `currentBalance`, `status` (`AccountReceivableStatus`), `dueDate`, `createdAt`.
-- **`AccountReceivableMovement`**: `id`, `accountReceivableId`, `movementType` (`AccountReceivableMovementType`), `amount`, `balanceAfter`, `referenceId`, `createdAt`.
+- **`AccountReceivable`**: `id`, `customerId`, `saleId`, `fiscalDocumentId`, `documentReference`, `originalAmount`, `currentBalance`, `status` (`AccountReceivableStatus`), `dueDate` (hoy siempre `null`; la antigüedad se cuenta desde `createdAt`), `createdAt`, `updatedAt`.
+- **`AccountReceivableMovement`** (ledger de solo inserción, `amount > 0`): `id`, `accountReceivableId`, `movementType` (`AccountReceivableMovementType`), `amount`, `previousBalance`, `subsequentBalance` (saldos de la cuenta, no del cliente), `fiscalDocumentId?`, `saleReturnId?`, `userId`, `createdAt`. Cada cuenta tiene exactamente un movimiento `FACTURA` (`previousBalance = 0`). Signo en el ledger del cliente: `FACTURA` y `REVERSION_CHEQUE` suman; `PAGO` y `NOTA_CREDITO` restan. El saldo corrido del cliente se calcula al consultar, sobre todo su historial.
 - **`Payment`**: `id`, `paymentNumber` (unique), `customerId`, `totalAmount`, `paymentDate`, `userId`, `createdAt`.
 - **`PaymentAllocation`**: `id`, `paymentId`, `accountReceivableId`, `allocatedAmount`, `allocationType` (`DIRECTED`|`GLOBAL_AGE`).
 - **`Receipt`**: `id`, `receiptNumber` (unique), `paymentId`, `customerId`, `printedAt`.
@@ -236,6 +236,6 @@ export enum CashRegisterStatus {
 ## 4. Invariantes de Dominio y Transacciones del Sistema
 
 1. **Invariante de Inventario:** `Stock.currentBaseStock = sum(StockMovement.quantityBaseUnits)` (donde Salidas son negativas). Se requiere comprobación transaccional con bloqueo de filas (`SELECT ... FOR UPDATE`).
-2. **Invariante de Cuenta Corriente:** `AccountReceivable.currentBalance = AccountReceivable.originalAmount - sum(PaymentAllocation.allocatedAmount) + sum(Reversals)`.
+2. **Invariante de Cuenta Corriente:** `AccountReceivable.currentBalance` es igual a la suma con signo de sus movimientos: `originalAmount - sum(NOTA_CREDITO) - sum(PAGO) + sum(REVERSION_CHEQUE)`.
 3. **Invariante de Venta a Crédito:** `Sale.isCreditSale = true` $\Rightarrow$ `Sale.isInvoiced = true` (Toda venta a crédito debe estar asociada a un `FiscalDocument`).
 4. **Invariante de Recepción:** `GoodsReceiptItem.receivedQtyBaseUnits = GoodsReceiptItem.receivedQtyPurchaseUnit * SupplierProduct.conversionFactor`.
