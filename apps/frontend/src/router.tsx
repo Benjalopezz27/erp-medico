@@ -174,6 +174,8 @@ import { SaleDetailPage } from '@/pages/sales/SaleDetailPage';
 import { validateSaleSearchParams } from '@/features/sales/schemas/sales.schema';
 export { validateSaleSearchParams };
 import { FiscalAlertsPage } from '@/pages/admin/FiscalAlertsPage';
+import { ReceivablesPage } from '@/pages/receivables/ReceivablesPage';
+import { validateReceivablesSearchParams } from '@/features/receivables/schemas/receivables.schema';
 import { validateFiscalAlertsSearchParams } from '@/features/fiscal-alerts/schemas/fiscal-alerts.schema';
 export { validateFiscalAlertsSearchParams };
 
@@ -751,13 +753,8 @@ const receivablesRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/receivables',
   beforeLoad: () => requireRoutePermission('/receivables'),
-  component: () => (
-    <PlaceholderPage
-      title="Cuentas Corrientes y Cobranzas"
-      description="Ledger de cuentas corrientes, aplicación de recibos y cheques"
-      sprint="Sprint 9 — US-29"
-    />
-  ),
+  validateSearch: validateReceivablesSearchParams,
+  component: () => <ReceivablesPage />,
 });
 
 const treasuryRoute = createRoute({

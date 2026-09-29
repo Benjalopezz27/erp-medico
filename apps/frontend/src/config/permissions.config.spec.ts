@@ -10,6 +10,12 @@ describe('route permissions', () => {
     expect(isRouteAllowed('/settings', UserRole.VENDEDOR)).toBe(true);
   });
 
+  it('lets sellers open the receivables ledger', () => {
+    expect(isRouteAllowed('/receivables', UserRole.VENDEDOR)).toBe(true);
+    expect(isRouteAllowed('/receivables', UserRole.ADMINISTRADOR)).toBe(true);
+    expect(isRouteAllowed('/treasury', UserRole.VENDEDOR)).toBe(false);
+  });
+
   it('allows only administrators on administrative routes and descendants', () => {
     expect(isRouteAllowed('/admin', UserRole.ADMINISTRADOR)).toBe(true);
     expect(isRouteAllowed('/admin', UserRole.VENDEDOR)).toBe(false);
