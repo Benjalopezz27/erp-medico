@@ -28,9 +28,9 @@
 
 ## 6. Frontend
 
-- [ ] 6.1 Crear `features/payments/` (api, keys, mutación de cobro, query de recibo, utilidades de cascada) con handlers MSW. Verificar con specs de API, hooks y de la utilidad de cascada (mismo resultado que el caso 3.3).
-- [ ] 6.2 Construir `/payments/new` (wireframe 27: cliente, modo antigüedad/manual, inputs por factura, medio efectivo/transferencia, total aplicado = cobrado) y registrar la ruta. Verificar con spec de página: llenado por antigüedad, botón deshabilitado con diferencia, envío y navegación al recibo.
-- [ ] 6.3 Construir `/receipts/:id` (wireframe 28) con Imprimir y Exportar PDF, y habilitar "Registrar Cobro" en la pestaña Cuenta Corriente con `customerId` preseleccionado. Verificar con `CustomerDetailPage.spec.tsx` actualizado, spec de la vista y que `router.spec.ts` sigue pasando.
+- [x] 6.1 Crear `features/payments/` (api, keys, mutación de cobro, query de recibo, utilidades de cascada) con handlers MSW. Verificar con specs de API, hooks y de la utilidad de cascada (mismo resultado que el caso 3.3).
+- [x] 6.2 Construir `/payments/new` (wireframe 27: cliente, modo antigüedad/manual, inputs por factura, medio efectivo/transferencia, total aplicado = cobrado) y registrar la ruta. Verificar con spec de página: llenado por antigüedad, botón deshabilitado con diferencia, envío y navegación al recibo.
+- [x] 6.3 Construir `/receipts/:id` (wireframe 28) con Imprimir y Exportar PDF, y habilitar "Registrar Cobro" en la pestaña Cuenta Corriente con `customerId` preseleccionado. Verificar con `CustomerDetailPage.spec.tsx` actualizado, spec de la vista y que `router.spec.ts` sigue pasando.
 
 ## 7. Cierre
 

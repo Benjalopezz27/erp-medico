@@ -175,6 +175,8 @@ import { validateSaleSearchParams } from '@/features/sales/schemas/sales.schema'
 export { validateSaleSearchParams };
 import { FiscalAlertsPage } from '@/pages/admin/FiscalAlertsPage';
 import { ReceivablesPage } from '@/pages/receivables/ReceivablesPage';
+import { PaymentFormPage } from '@/pages/payments/PaymentFormPage';
+import { ReceiptPage } from '@/pages/payments/ReceiptPage';
 import { validateReceivablesSearchParams } from '@/features/receivables/schemas/receivables.schema';
 import { validateFiscalAlertsSearchParams } from '@/features/fiscal-alerts/schemas/fiscal-alerts.schema';
 export { validateFiscalAlertsSearchParams };
@@ -757,6 +759,23 @@ const receivablesRoute = createRoute({
   component: () => <ReceivablesPage />,
 });
 
+const paymentsNewRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/payments/new',
+  beforeLoad: () => requireRoutePermission('/payments/new'),
+  validateSearch: (search: Record<string, unknown>): { customerId?: string } => ({
+    customerId: typeof search.customerId === 'string' ? search.customerId : undefined,
+  }),
+  component: () => <PaymentFormPage />,
+});
+
+const receiptRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/receipts/$id',
+  beforeLoad: () => requireRoutePermission('/receipts'),
+  component: () => <ReceiptPage />,
+});
+
 const treasuryRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/treasury',
@@ -852,6 +871,8 @@ const routeTree = rootRoute.addChildren([
     supplierCatalogRoute,
     importerRoute,
     receivablesRoute,
+    paymentsNewRoute,
+    receiptRoute,
     treasuryRoute,
     reportsRoute,
     settingsRoute,

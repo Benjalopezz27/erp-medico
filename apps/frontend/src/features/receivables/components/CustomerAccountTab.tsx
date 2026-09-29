@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { AlertCircle, AlertTriangle, Download, HandCoins } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Link } from '@tanstack/react-router';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/features/products/utils/products.math';
 import { parseApiError } from '@/lib/errors/parse-api-error';
@@ -61,16 +62,27 @@ export function CustomerAccountTab({ customerId }: { customerId: string }) {
             <Download className="mr-1.5 h-4 w-4" />
             Exportar PDF
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            disabled
-            title="Disponible al habilitar cobranzas"
-            aria-label="Registrar cobro"
-          >
-            <HandCoins className="mr-1.5 h-4 w-4" />
-            Registrar cobro
-          </Button>
+          {pendingInvoices.length > 0 ? (
+            <Link
+              to="/payments/new"
+              search={{ customerId }}
+              className={buttonVariants({ size: 'sm' })}
+            >
+              <HandCoins className="mr-1.5 h-4 w-4" />
+              Registrar cobro
+            </Link>
+          ) : (
+            <Button
+              type="button"
+              size="sm"
+              disabled
+              title="El cliente no tiene facturas pendientes"
+              aria-label="Registrar cobro"
+            >
+              <HandCoins className="mr-1.5 h-4 w-4" />
+              Registrar cobro
+            </Button>
+          )}
         </div>
       </div>
       {download.isError && (

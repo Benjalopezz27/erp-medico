@@ -365,6 +365,46 @@ describe('Payments and receipts (E2E)', () => {
     });
   });
 
+  describe('ledger invariant', () => {
+    it('keeps customer balance and every account equal to the signed sum of movements after mixed payments', async () => {
+      const customer = await createCustomer(
+        'Cliente Invariante',
+        '30710000010',
+      );
+      const [s1] = await seedThree(customer.id);
+      await post({
+        customerId: customer.id,
+        paymentMethod: PaymentMethod.EFECTIVO,
+        mode: PaymentAllocationType.DIRECTED,
+        allocations: [
+          { accountReceivableId: await arIdOf(s1.id), amount: '50.50' },
+        ],
+      }).expect(201);
+      await post({
+        customerId: customer.id,
+        paymentMethod: PaymentMethod.TRANSFERENCIA,
+        mode: PaymentAllocationType.GLOBAL_AGE,
+        totalAmount: '300.00',
+      }).expect(201);
+
+      const rows = await ds.query(`
+        SELECT ar.current_balance::text AS balance,
+               COALESCE(SUM(CASE WHEN m.movement_type IN ('FACTURA','REVERSION_CHEQUE')
+                                 THEN m.amount ELSE -m.amount END), 0)::numeric(14,2)::text AS ledger
+        FROM account_receivables ar
+        LEFT JOIN account_receivable_movements m ON m.account_receivable_id = ar.id
+        GROUP BY ar.id`);
+      expect(rows).toHaveLength(3);
+      for (const row of rows) expect(row.balance).toBe(row.ledger);
+
+      const { body } = await get(
+        `/api/v1/customers/${customer.id}/account-receivable`,
+      ).expect(200);
+      expect(body.summary.totalBalance).toBe('375.50'); // 726 - 50.50 - 300
+      expect(body.ledger.data.at(-1).runningBalance).toBe('375.50');
+    });
+  });
+
   describe('receipt', () => {
     it('returns the receipt with applied invoices', async () => {
       const customer = await createCustomer('Cliente Recibo', '30710000008');
