@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ReceivablesModule } from '../receivables/receivables.module';
+import { Check } from '../checks/entities/check.entity';
 import { Payment } from './entities/payment.entity';
 import { PaymentAllocation } from './entities/payment-allocation.entity';
 import { Receipt } from './entities/receipt.entity';
@@ -13,7 +14,7 @@ import { ReceiptsService } from './receipts.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Payment, PaymentAllocation, Receipt]),
+    TypeOrmModule.forFeature([Payment, PaymentAllocation, Receipt, Check]),
     ReceivablesModule,
   ],
   controllers: [PaymentsController, ReceiptsController],

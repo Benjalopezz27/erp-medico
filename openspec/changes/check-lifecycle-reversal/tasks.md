@@ -6,8 +6,8 @@
 
 ## 2. Migración y entidades
 
-- [ ] 2.1 Escribir spec de migración que falla primero (patrón `migration-payments-receipts.spec.ts`), luego migración `1700000000031` (`checks` con constraints e índices, `payments.status` con CHECK y default, `down` documentado). Verificar: `up` crea todo, dos corridas no fallan y `down` lo elimina.
-- [ ] 2.2 Crear entidad `Check`, agregar `status` a `Payment` y registrar `Check` en `PaymentsModule` y `ChecksModule`. Verificar con `pnpm db:migrate` y `pnpm db:revert` solo en base local.
+- [x] 2.1 Escribir spec de migración que falla primero (patrón `migration-payments-receipts.spec.ts`), luego migración `1700000000031` (`checks` con constraints e índices, `payments.status` con CHECK y default, `down` documentado). Verificar: `up` crea todo, dos corridas no fallan y `down` lo elimina.
+- [x] 2.2 Crear entidad `Check`, agregar `status` a `Payment` y registrar `Check` en `PaymentsModule` y `ChecksModule`. Verificar con `pnpm db:migrate` y `pnpm db:revert` solo en base local.
 
 ## 3. Cobro con cheque (US-31)
 
