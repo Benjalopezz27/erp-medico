@@ -27,9 +27,9 @@
 
 ## 5. Ensayo de release local
 
-- [ ] 5.1 Escribir `ops/backup/rehearsal-local.sh` o procedimiento equivalente en el runbook: construir imágenes A (`dev`) y B (con migración de prueba descartable no commiteada), `docker-compose.prod.yml` con datos sintéticos, migración, `smoke` de health/ready, rollback a A. Verificar ejecutándolo y registrando tiempos.
-- [ ] 5.2 Caso de migración fallida: B no arranca y A sigue sirviendo. Verificar con `health/ready` de A durante el fallo.
-- [ ] 5.3 Crear plantilla `docs/deployment/evidence/_template.md` y completar `docs/deployment/evidence/local-rehearsal-<fecha>.md` con SHAs, tiempos de backup/restore/RTO medido, resultado del rollback y observaciones (sin secretos ni datos reales). Verificar que no contiene credenciales (`gitleaks`/secret-scan local).
+- [x] 5.1 Escribir `ops/backup/rehearsal-local.sh` o procedimiento equivalente en el runbook: construir imágenes A (`dev`) y B (con migración de prueba descartable no commiteada), `docker-compose.prod.yml` con datos sintéticos, migración, `smoke` de health/ready, rollback a A. Verificar ejecutándolo y registrando tiempos.
+- [x] 5.2 Caso de migración fallida: B no arranca y A sigue sirviendo. Verificar con `health/ready` de A durante el fallo.
+- [x] 5.3 Crear plantilla `docs/deployment/evidence/_template.md` y completar `docs/deployment/evidence/local-rehearsal-<fecha>.md` con SHAs, tiempos de backup/restore/RTO medido, resultado del rollback y observaciones (sin secretos ni datos reales). Verificar que no contiene credenciales (`gitleaks`/secret-scan local).
 
 ## 6. Documentación y runbooks
 
@@ -40,5 +40,5 @@
 ## 7. Verificación final
 
 - [ ] 7.1 Correr `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build && pnpm test:ops`; todos verdes.
-- [ ] 7.2 Smoke con claude-in-chrome: restaurar un backup sintético en Postgres temporal, levantar backend/frontend locales apuntando a esa base y verificar en el navegador login, productos, ventas y `/treasury/checks` con los datos restaurados; capturar resultado en la evidencia. Verificar sin errores de consola ni 5xx.
+- [x] 7.2 Smoke con claude-in-chrome: restaurar un backup sintético en Postgres temporal, levantar backend/frontend locales apuntando a esa base y verificar en el navegador login, productos, ventas y `/treasury/checks` con los datos restaurados; capturar resultado en la evidencia. Verificar sin errores de consola ni 5xx.
 - [ ] 7.3 Actualizar el estado de DoD de la issue en la evidencia: marcar pendiente lo bloqueado por gates (backup externo real, RPO/RTO aceptados, rehearsal en staging) sin cerrarlo. Commits atómicos por tarea, sin push.
