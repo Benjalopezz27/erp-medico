@@ -147,4 +147,67 @@ describe('PaymentFormPage', () => {
     await user.click(submit());
     expect(await screen.findByText(/excede el saldo total/i)).toBeInTheDocument();
   });
+
+  describe('cheque', () => {
+    const fillCheck = async (user: ReturnType<typeof renderPage>['user']) => {
+      await user.type(screen.getByLabelText('Banco'), 'Galicia');
+      await user.type(screen.getByLabelText('N° de cheque'), '12345678');
+      await user.type(screen.getByLabelText('Librador'), 'Juan Paz');
+      await user.type(screen.getByLabelText('Fecha de vencimiento'), '2026-12-15');
+    };
+
+    it('shows the check fields only when the method is Cheque', async () => {
+      serveAccount();
+      const { user } = renderPage();
+      await screen.findByText('V-00000001');
+      expect(screen.queryByLabelText('Banco')).not.toBeInTheDocument();
+
+      await user.selectOptions(screen.getByLabelText('Medio de cobro'), PaymentMethod.CHEQUE);
+      expect(screen.getByLabelText('Banco')).toBeInTheDocument();
+      expect(screen.getByLabelText('Fecha de vencimiento')).toBeInTheDocument();
+    });
+
+    it('keeps submit disabled until the check data is complete', async () => {
+      serveAccount();
+      const { user } = renderPage();
+      await screen.findByText('V-00000001');
+      await user.selectOptions(screen.getByLabelText('Medio de cobro'), PaymentMethod.CHEQUE);
+      await user.type(screen.getByLabelText('Total cobrado'), '250.00');
+      expect(submit()).toBeDisabled();
+
+      await fillCheck(user);
+      expect(submit()).toBeEnabled();
+    });
+
+    it('sends the check inside the payload', async () => {
+      serveAccount();
+      let body: unknown;
+      server.use(
+        http.post('*/api/v1/payments', async ({ request }) => {
+          body = await request.json();
+          return HttpResponse.json(buildRegisterResponse(), { status: 201 });
+        }),
+      );
+      const { user } = renderPage();
+      await screen.findByText('V-00000001');
+      await user.selectOptions(screen.getByLabelText('Medio de cobro'), PaymentMethod.CHEQUE);
+      await user.type(screen.getByLabelText('Total cobrado'), '250.00');
+      await fillCheck(user);
+      await user.click(submit());
+
+      await waitFor(() => expect(screen.getByText('Recibo emitido')).toBeInTheDocument());
+      expect(body).toEqual({
+        customerId: CUSTOMER_ID,
+        paymentMethod: PaymentMethod.CHEQUE,
+        mode: PaymentAllocationType.GLOBAL_AGE,
+        totalAmount: '250.00',
+        check: {
+          bankName: 'Galicia',
+          checkNumber: '12345678',
+          drawerName: 'Juan Paz',
+          dueDate: '2026-12-15',
+        },
+      });
+    });
+  });
 });

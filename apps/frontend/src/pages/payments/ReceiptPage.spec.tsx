@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { server } from '@/test/mocks/server';
 import { createTestRouter, renderWithRouter } from '@/test/test-utils';
+import { PaymentMethod, PaymentStatus } from '@erp/shared-types';
 import { RECEIPT_ID, buildReceipt } from '@/features/payments/testing/payments-fixtures';
 import { ReceiptPage } from './ReceiptPage';
 
@@ -27,6 +28,23 @@ describe('ReceiptPage', () => {
     expect(screen.getByText('Farmacia Central')).toBeInTheDocument();
     expect(screen.getByText('V-00000002')).toBeInTheDocument();
     expect(screen.getByText(/Total cobrado: .*250,00/)).toBeInTheDocument();
+  });
+
+  it('shows the check and the reverted mark for a rejected check payment', async () => {
+    server.use(
+      http.get(`*/api/v1/receipts/${RECEIPT_ID}`, () =>
+        HttpResponse.json(
+          buildReceipt({
+            paymentMethod: PaymentMethod.CHEQUE,
+            paymentStatus: PaymentStatus.REVERTIDO,
+            check: { bankName: 'Galicia', checkNumber: '12345678' },
+          }),
+        ),
+      ),
+    );
+    renderPage();
+    expect(await screen.findByText(/Cheque \(Banco Galicia, N° 12345678\)/)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/REVERTIDO/);
   });
 
   it('downloads the PDF when pressing Exportar PDF', async () => {

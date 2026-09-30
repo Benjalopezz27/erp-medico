@@ -14,6 +14,8 @@ describe('route permissions', () => {
     expect(isRouteAllowed('/receivables', UserRole.VENDEDOR)).toBe(true);
     expect(isRouteAllowed('/receivables', UserRole.ADMINISTRADOR)).toBe(true);
     expect(isRouteAllowed('/treasury', UserRole.VENDEDOR)).toBe(false);
+    expect(isRouteAllowed('/treasury/checks', UserRole.VENDEDOR)).toBe(false);
+    expect(isRouteAllowed('/treasury/checks', UserRole.ADMINISTRADOR)).toBe(true);
   });
 
   it('allows only administrators on administrative routes and descendants', () => {

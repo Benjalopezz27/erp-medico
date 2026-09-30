@@ -18,7 +18,9 @@ import { useCustomerAccountQuery } from '@/features/receivables/hooks/use-receiv
 import { formatDate } from '@/features/receivables/utils/receivables.format';
 import { parseApiError } from '@/lib/errors/parse-api-error';
 
-type Method = PaymentMethod.EFECTIVO | PaymentMethod.TRANSFERENCIA;
+type Method = PaymentMethod.EFECTIVO | PaymentMethod.TRANSFERENCIA | PaymentMethod.CHEQUE;
+
+const EMPTY_CHECK = { bankName: '', checkNumber: '', drawerName: '', dueDate: '', issueDate: '' };
 
 export function PaymentFormPage() {
   const navigate = useNavigate();
@@ -29,6 +31,7 @@ export function PaymentFormPage() {
   const [collected, setCollected] = useState('');
   const [manual, setManual] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState('');
+  const [check, setCheck] = useState(EMPTY_CHECK);
 
   const account = useCustomerAccountQuery(customerId, 1, 1);
   const register = useRegisterPaymentMutation();
@@ -50,13 +53,34 @@ export function PaymentFormPage() {
         sumAmounts([applied[invoice.id]]).greaterThan(invoice.currentBalance)),
   );
   const balanced = collectedValid && appliedTotal.equals(collectedTotal);
-  const canSubmit = Boolean(customerId) && balanced && !manualOverBalance && !register.isPending;
+  const isCheck = method === PaymentMethod.CHEQUE;
+  const checkComplete =
+    !isCheck ||
+    (check.bankName.trim() !== '' &&
+      check.checkNumber.trim() !== '' &&
+      check.drawerName.trim() !== '' &&
+      check.dueDate !== '');
+  const canSubmit =
+    Boolean(customerId) && balanced && !manualOverBalance && checkComplete && !register.isPending;
+  const setCheckField = (field: keyof typeof EMPTY_CHECK, value: string) =>
+    setCheck((previous) => ({ ...previous, [field]: value }));
 
   const submit = () => {
     const base = {
       customerId,
       paymentMethod: method,
       ...(notes.trim() ? { notes: notes.trim() } : {}),
+      ...(isCheck
+        ? {
+            check: {
+              bankName: check.bankName.trim(),
+              checkNumber: check.checkNumber.trim(),
+              drawerName: check.drawerName.trim(),
+              dueDate: check.dueDate,
+              ...(check.issueDate ? { issueDate: check.issueDate } : {}),
+            },
+          }
+        : {}),
     };
     const payload: IRegisterPaymentRequest = byAge
       ? { ...base, mode: PaymentAllocationType.GLOBAL_AGE, totalAmount: collectedTotal.toFixed(2) }
@@ -204,11 +228,13 @@ export function PaymentFormPage() {
               <label className="space-y-1 text-xs">
                 Medio de cobro
                 <Select
+                  aria-label="Medio de cobro"
                   value={method}
                   onChange={(event) => setMethod(event.target.value as Method)}
                 >
                   <option value={PaymentMethod.EFECTIVO}>Efectivo</option>
                   <option value={PaymentMethod.TRANSFERENCIA}>Transferencia</option>
+                  <option value={PaymentMethod.CHEQUE}>Cheque</option>
                 </Select>
               </label>
               <label className="space-y-1 text-xs">
@@ -230,6 +256,58 @@ export function PaymentFormPage() {
                   onChange={(event) => setNotes(event.target.value)}
                 />
               </label>
+              {isCheck && (
+                <fieldset className="grid gap-3 md:col-span-3 md:grid-cols-5">
+                  <legend className="mb-1 text-xs font-semibold">
+                    Datos del cheque (por el total cobrado)
+                  </legend>
+                  <label className="space-y-1 text-xs">
+                    Banco
+                    <Input
+                      aria-label="Banco"
+                      maxLength={100}
+                      value={check.bankName}
+                      onChange={(event) => setCheckField('bankName', event.target.value)}
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs">
+                    N° de cheque
+                    <Input
+                      aria-label="N° de cheque"
+                      maxLength={30}
+                      value={check.checkNumber}
+                      onChange={(event) => setCheckField('checkNumber', event.target.value)}
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs">
+                    Librador
+                    <Input
+                      aria-label="Librador"
+                      maxLength={150}
+                      value={check.drawerName}
+                      onChange={(event) => setCheckField('drawerName', event.target.value)}
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs">
+                    Fecha de vencimiento
+                    <Input
+                      aria-label="Fecha de vencimiento"
+                      type="date"
+                      value={check.dueDate}
+                      onChange={(event) => setCheckField('dueDate', event.target.value)}
+                    />
+                  </label>
+                  <label className="space-y-1 text-xs">
+                    Fecha de emisión (opcional)
+                    <Input
+                      aria-label="Fecha de emisión"
+                      type="date"
+                      value={check.issueDate}
+                      onChange={(event) => setCheckField('issueDate', event.target.value)}
+                    />
+                  </label>
+                </fieldset>
+              )}
               <div className="md:col-span-3 text-xs">
                 {collected !== '' && !collectedValid && (
                   <p role="alert" className="text-rose-700">

@@ -32,9 +32,9 @@
 
 ## 7. Frontend
 
-- [ ] 7.1 Crear `features/checks/` (api, keys, hooks de listado/detalle/transiciones/rechazo, utilidades de estado y acciones permitidas) con handlers MSW. Verificar con specs de API, hooks y de la utilidad de acciones por estado.
-- [ ] 7.2 Extender `PaymentFormPage`: opción "Cheque" con banco, número, librador, vencimiento y emisión opcional; validación con zod; envío con `check`. Verificar con `PaymentFormPage.spec.tsx`: campos aparecen solo con Cheque, botón deshabilitado con datos faltantes, envío correcto.
-- [ ] 7.3 Construir `/treasury/checks` (wireframe 29: tabla, filtros estado y vencimiento, banner y badge de 7 días, acciones según estado, modal de rechazo con impacto), registrar ruta, permiso solo ADMINISTRADOR y enlace de navegación. Mostrar cheque y marca REVERTIDO en `ReceiptPage`. Verificar con specs de página, del modal y `router.spec.ts`.
+- [x] 7.1 Crear `features/checks/` (api, keys, hooks de listado/detalle/transiciones/rechazo, utilidades de estado y acciones permitidas) con handlers MSW. Verificar con specs de API, hooks y de la utilidad de acciones por estado.
+- [x] 7.2 Extender `PaymentFormPage`: opción "Cheque" con banco, número, librador, vencimiento y emisión opcional; validación con zod; envío con `check`. Verificar con `PaymentFormPage.spec.tsx`: campos aparecen solo con Cheque, botón deshabilitado con datos faltantes, envío correcto.
+- [x] 7.3 Construir `/treasury/checks` (wireframe 29: tabla, filtros estado y vencimiento, banner y badge de 7 días, acciones según estado, modal de rechazo con impacto), registrar ruta, permiso solo ADMINISTRADOR y enlace de navegación. Mostrar cheque y marca REVERTIDO en `ReceiptPage`. Verificar con specs de página, del modal y `router.spec.ts`.
 
 ## 8. Cierre
 

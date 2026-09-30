@@ -86,6 +86,7 @@ const navigationEntries: NavigationEntry[] = [
     icon: Landmark,
     children: [
       { name: 'Tesorería', href: '/treasury', icon: Landmark },
+      { name: 'Cheques', href: '/treasury/checks', icon: Landmark },
       { name: 'Reportes', href: '/reports', icon: FileBarChart2 },
     ],
   },
