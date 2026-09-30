@@ -219,10 +219,11 @@ export enum CashRegisterStatus {
 ### 3.7 Cuentas Corrientes, Cobranzas y Cheques
 
 - **`AccountReceivable`**: `id`, `customerId`, `saleId`, `fiscalDocumentId`, `documentReference`, `originalAmount`, `currentBalance`, `status` (`AccountReceivableStatus`), `dueDate` (hoy siempre `null`; la antigüedad se cuenta desde `createdAt`), `createdAt`, `updatedAt`.
-- **`AccountReceivableMovement`** (ledger de solo inserción, `amount > 0`): `id`, `accountReceivableId`, `movementType` (`AccountReceivableMovementType`), `amount`, `previousBalance`, `subsequentBalance` (saldos de la cuenta, no del cliente), `fiscalDocumentId?`, `saleReturnId?`, `userId`, `createdAt`. Cada cuenta tiene exactamente un movimiento `FACTURA` (`previousBalance = 0`). Signo en el ledger del cliente: `FACTURA` y `REVERSION_CHEQUE` suman; `PAGO` y `NOTA_CREDITO` restan. El saldo corrido del cliente se calcula al consultar, sobre todo su historial.
-- **`Payment`**: `id`, `paymentNumber` (unique), `customerId`, `totalAmount`, `paymentDate`, `userId`, `createdAt`.
-- **`PaymentAllocation`**: `id`, `paymentId`, `accountReceivableId`, `allocatedAmount`, `allocationType` (`DIRECTED`|`GLOBAL_AGE`).
-- **`Receipt`**: `id`, `receiptNumber` (unique), `paymentId`, `customerId`, `printedAt`.
+- **`AccountReceivableMovement`** (ledger de solo inserción, `amount > 0`): `id`, `accountReceivableId`, `movementType` (`AccountReceivableMovementType`), `amount`, `previousBalance`, `subsequentBalance` (saldos de la cuenta, no del cliente), `fiscalDocumentId?`, `saleReturnId?`, `paymentId?` (cobro que originó un `PAGO`), `userId`, `createdAt`. Cada cuenta tiene exactamente un movimiento `FACTURA` (`previousBalance = 0`). Signo en el ledger del cliente: `FACTURA` y `REVERSION_CHEQUE` suman; `PAGO` y `NOTA_CREDITO` restan. El saldo corrido del cliente se calcula al consultar, sobre todo su historial.
+- **`Payment`**: `id`, `customerId`, `totalAmount`, `paymentMethod` (`EFECTIVO`|`TRANSFERENCIA`; `CHEQUE` llega con US-31), `notes?`, `userId`, `createdAt`. Un cobro usa un solo medio y emite un solo recibo.
+- **`PaymentAllocation`** (`amountAllocated > 0`, único por cobro y cuenta): `id`, `paymentId`, `accountReceivableId`, `amountAllocated`, `allocationType` (`DIRECTED`|`GLOBAL_AGE`). `GLOBAL_AGE` cancela desde la factura más vieja (`createdAt`, luego `id`); un monto mayor a la deuda se rechaza (no hay saldo a favor).
+- **`Receipt`**: `id`, `receiptNumber` (unique, `0001-NNNNNNNN`), `paymentId` (unique), `customerId`, `totalAmount`, `userId`, `createdAt`.
+- **`ReceiptCounter`** (tabla `receipt_counters`): `pointOfSale` (hoy 1), `lastNumber`. El número se toma con `UPDATE ... RETURNING` dentro de la transacción del cobro: correlativo y sin huecos ante rollback.
 - **`Check`**: `id`, `bankName`, `checkNumber`, `drawerName`, `amount`, `issueDate`, `dueDate`, `receivedDate`, `customerId`, `status` (`CheckStatus`), `endorsedToSupplierId`, `reversalPaymentId`, `updatedAt`.
 
 ### 3.8 Tesorería y Caja

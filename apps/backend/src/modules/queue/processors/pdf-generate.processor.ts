@@ -15,6 +15,7 @@ import {
   ArcaStatus,
   FiscalAmounts,
   FiscalDocumentType,
+  PaymentMethod,
   PdfArtifactStatus,
   TaxCondition,
 } from '@erp/shared-types';
@@ -37,6 +38,7 @@ import {
   FiscalPdfTemplateService,
   PDF_TEMPLATE_VERSION,
 } from '../../sales/services/fiscal-pdf-template.service';
+import { CBTE_TIPO_BY_DOCUMENT_TYPE } from '../../arca/services/wsfe-soap-client.service';
 import { redactSecrets } from '../../../common/utils/sanitizer.utils';
 
 export interface PdfGenerateJobResult {
@@ -55,10 +57,20 @@ const DOCUMENT_TYPE_LABELS: Record<FiscalDocumentType, string> = {
 };
 
 const TAX_CONDITION_LABELS: Record<TaxCondition, string> = {
-  [TaxCondition.RESPONSABLE_INSCRIPTO]: 'Responsable Inscripto',
-  [TaxCondition.MONOTRIBUTO]: 'Monotributo',
-  [TaxCondition.EXENTO]: 'Exento',
+  [TaxCondition.RESPONSABLE_INSCRIPTO]: 'IVA Responsable Inscripto',
+  [TaxCondition.MONOTRIBUTO]: 'Responsable Monotributo',
+  [TaxCondition.EXENTO]: 'IVA Sujeto Exento',
   [TaxCondition.CONSUMIDOR_FINAL]: 'Consumidor Final',
+};
+
+const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  [PaymentMethod.EFECTIVO]: 'Contado',
+  [PaymentMethod.TRANSFERENCIA]: 'Transferencia Bancaria',
+  [PaymentMethod.DEBITO]: 'Tarjeta de Débito',
+  [PaymentMethod.CREDITO]: 'Tarjeta de Crédito',
+  [PaymentMethod.QR]: 'Código QR',
+  [PaymentMethod.CHEQUE]: 'Cheque',
+  [PaymentMethod.CTA_CTE]: 'Cuenta Corriente',
 };
 
 /**
@@ -188,6 +200,11 @@ export class PdfGenerateProcessor implements OnModuleInit, OnModuleDestroy {
         receptor: this.resolveReceptor(customer, receiver),
         documentTypeLabel:
           DOCUMENT_TYPE_LABELS[document.documentType as FiscalDocumentType],
+        documentCode:
+          CBTE_TIPO_BY_DOCUMENT_TYPE[
+            document.documentType as FiscalDocumentType
+          ],
+        saleCondition: PAYMENT_METHOD_LABELS[sale.paymentMethod] ?? '',
         pointOfSale: document.pointOfSale!,
         documentNumber: document.documentNumber!,
         issuedAt: document.issuedAt!,
@@ -279,10 +296,16 @@ export class PdfGenerateProcessor implements OnModuleInit, OnModuleDestroy {
     ) as TaxCondition | undefined;
     return {
       razonSocial,
+      tradeName: this.configService.get<string>('ARCA_EMISOR_NOMBRE_COMERCIAL'),
+      address: this.configService.get<string>('ARCA_EMISOR_DOMICILIO'),
+      grossIncome: this.configService.get<string>('ARCA_EMISOR_IIBB'),
+      activityStartDate: this.configService.get<string>(
+        'ARCA_EMISOR_INICIO_ACTIVIDADES',
+      ),
       documentLabel: `CUIT ${cuit}`,
       taxConditionLabel: taxCondition
         ? TAX_CONDITION_LABELS[taxCondition]
-        : 'Responsable Inscripto',
+        : TAX_CONDITION_LABELS[TaxCondition.RESPONSABLE_INSCRIPTO],
     };
   }
 

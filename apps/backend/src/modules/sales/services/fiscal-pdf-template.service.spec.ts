@@ -19,7 +19,11 @@ describe('FiscalPdfTemplateService', () => {
       emisor: {
         razonSocial: 'ERP Distribuidora Médica SRL',
         documentLabel: 'CUIT 20345678901',
-        taxConditionLabel: 'Responsable Inscripto',
+        taxConditionLabel: 'IVA Responsable Inscripto',
+        tradeName: 'Distribuidora Médica',
+        address: 'Calle Falsa 123 - San Miguel de Tucumán, Tucumán',
+        grossIncome: '20345678901',
+        activityStartDate: '01/12/1991',
       },
       receptor: {
         razonSocial: 'Juan Pérez',
@@ -27,6 +31,8 @@ describe('FiscalPdfTemplateService', () => {
         taxConditionLabel: 'Consumidor Final',
       },
       documentTypeLabel: 'Factura B',
+      documentCode: 6,
+      saleCondition: 'Transferencia Bancaria',
       pointOfSale: 3,
       documentNumber: 102,
       issuedAt: new Date('2026-08-24T15:00:00.000Z'),
@@ -71,6 +77,19 @@ describe('FiscalPdfTemplateService', () => {
     expect(Buffer.from(bytes.slice(0, 5)).toString('ascii')).toBe('%PDF-');
   });
 
+  it('emits ORIGINAL, DUPLICADO and TRIPLICADO copies', async () => {
+    const { PDFDocument } = await import('pdf-lib');
+    const doc = await PDFDocument.load(await service.render(baseInput()));
+    expect(doc.getPageCount()).toBe(3);
+  });
+
+  it('renders Factura A with the net breakdown', async () => {
+    const bytes = await service.render(
+      baseInput({ documentTypeLabel: 'Factura A', documentCode: 1 }),
+    );
+    expect(Buffer.from(bytes.slice(0, 5)).toString('ascii')).toBe('%PDF-');
+  });
+
   it('renders multiple pages when there are many line items', async () => {
     const manyItems = Array.from({ length: 80 }, (_, i) => ({
       productCode: `SKU-${i}`,
@@ -90,7 +109,7 @@ describe('FiscalPdfTemplateService', () => {
     );
     const { PDFDocument } = await import('pdf-lib');
     const doc = await PDFDocument.load(bytes);
-    expect(doc.getPageCount()).toBeGreaterThan(1);
+    expect(doc.getPageCount()).toBeGreaterThan(3);
   });
 
   it('renders without optional fields (no items, zero amounts)', async () => {
