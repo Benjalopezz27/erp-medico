@@ -20,10 +20,10 @@
 
 ## 4. Restore aislado y validación
 
-- [ ] 4.1 Test que falla primero (`restore.test.sh`): checksum alterado aborta, descifrado con clave incorrecta aborta, destino igual al origen aborta, restore sano crea base temporal sin puertos publicados y la destruye. Verificar que falla antes.
-- [ ] 4.2 Implementar `restore.sh` (descarga por nombre o `--latest`, verifica sha256, descifra, levanta `postgres:16` efímero sin `-p`, `pg_restore`, limpieza con trap, reporte JSON de tiempos y edad del backup). Verificar que pasa 4.1 y que restaura una copia anterior.
-- [ ] 4.3 Leer las migraciones `receivables`, `payments` y `checks` y escribir `verify-restore.sql` (migraciones aplicadas = archivos, tablas críticas legibles, stock ≥ 0, invariantes del ledger en `numeric`). Test que falla primero: una base con un saldo corrompido a mano hace fallar el chequeo; una base sana pasa. Verificar ambos casos.
-- [ ] 4.4 Integrar `verify-restore.sql` en `restore.sh` y agregar `pnpm test:ops` (script raíz que corre los tests de `ops/backup/test` en Docker). Verificar `pnpm test:ops` verde y que `pnpm test` existente no cambia.
+- [x] 4.1 Test que falla primero (`restore.test.sh`): checksum alterado aborta, descifrado con clave incorrecta aborta, destino igual al origen aborta, restore sano crea base temporal sin puertos publicados y la destruye. Verificar que falla antes.
+- [x] 4.2 Implementar `restore.sh` (descarga por nombre o `--latest`, verifica sha256, descifra, levanta `postgres:16` efímero sin `-p`, `pg_restore`, limpieza con trap, reporte JSON de tiempos y edad del backup). Verificar que pasa 4.1 y que restaura una copia anterior.
+- [x] 4.3 Leer las migraciones `receivables`, `payments` y `checks` y escribir `verify-restore.sql` (migraciones aplicadas = archivos, tablas críticas legibles, stock ≥ 0, invariantes del ledger en `numeric`). Test que falla primero: una base con un saldo corrompido a mano hace fallar el chequeo; una base sana pasa. Verificar ambos casos.
+- [x] 4.4 Integrar `verify-restore.sql` en `restore.sh` y agregar `pnpm test:ops` (script raíz que corre los tests de `ops/backup/test` en Docker). Verificar `pnpm test:ops` verde y que `pnpm test` existente no cambia.
 
 ## 5. Ensayo de release local
 
