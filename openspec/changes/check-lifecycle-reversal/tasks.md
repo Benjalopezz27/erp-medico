@@ -11,8 +11,8 @@
 
 ## 3. Cobro con cheque (US-31)
 
-- [ ] 3.1 Tests que fallan primero en `payments.service.spec.ts`: CHEQUE crea `Check` RECIBIDO con monto del total, falta `check` da 400, `check` con EFECTIVO da 400, duplicado da 409 sin efectos, error en aplicación no deja cheque. Verificar que fallan antes del cambio.
-- [ ] 3.2 Extender `RegisterPaymentDto` (`check` validado, Swagger) y `PaymentsService.register`; mapear el error de unicidad a `CHECK_DUPLICATE`. Verificar que pasan los specs del 3.1 y los existentes.
+- [x] 3.1 Tests que fallan primero en `payments.service.spec.ts`: CHEQUE crea `Check` RECIBIDO con monto del total, falta `check` da 400, `check` con EFECTIVO da 400, duplicado da 409 sin efectos, error en aplicación no deja cheque. Verificar que fallan antes del cambio.
+- [x] 3.2 Extender `RegisterPaymentDto` (`check` validado, Swagger) y `PaymentsService.register`; mapear el error de unicidad a `CHECK_DUPLICATE`. Verificar que pasan los specs del 3.1 y los existentes.
 
 ## 4. Transiciones (US-31)
 
