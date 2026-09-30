@@ -33,9 +33,9 @@
 
 ## 6. Documentación y runbooks
 
-- [ ] 6.1 Escribir `docs/deployment/backup-restore-runbook.md`: arquitectura, variables, activación humana paso a paso, restore paso a paso, backup previo a migración riesgosa, rotación de clave, RPO/RTO medido, pruebas de falla. Verificar revisión cruzada contra los escenarios de los tres specs.
-- [ ] 6.2 Agregar checklist de capacidad, seguridad y contingencia (en el mismo runbook o `docs/deployment/go-live-readiness.md`) y el procedimiento de ensayo en staging ejecutado por una persona (deploy, smoke con `verify-staging.yml`, rollback Railway). Verificar que cada ítem tiene dueño y criterio observable.
-- [ ] 6.3 Actualizar `docs/RUNBOOK.md` (sección backups/restore, enlaces) y `railway-operations-runbook.md` §5–6 (backup previo a migración riesgosa, recordatorio de que el rollback no deshace migraciones). Verificar enlaces relativos con `grep` y `pnpm run format:check`.
+- [x] 6.1 Escribir `docs/deployment/backup-restore-runbook.md`: arquitectura, variables, activación humana paso a paso, restore paso a paso, backup previo a migración riesgosa, rotación de clave, RPO/RTO medido, pruebas de falla. Verificar revisión cruzada contra los escenarios de los tres specs.
+- [x] 6.2 Agregar checklist de capacidad, seguridad y contingencia (en el mismo runbook o `docs/deployment/go-live-readiness.md`) y el procedimiento de ensayo en staging ejecutado por una persona (deploy, smoke con `verify-staging.yml`, rollback Railway). Verificar que cada ítem tiene dueño y criterio observable.
+- [x] 6.3 Actualizar `docs/RUNBOOK.md` (sección backups/restore, enlaces) y `railway-operations-runbook.md` §5–6 (backup previo a migración riesgosa, recordatorio de que el rollback no deshace migraciones). Verificar enlaces relativos con `grep` y `pnpm run format:check`.
 
 ## 7. Verificación final
 
