@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Shared helpers for the backup job. Source, do not execute.
 
+export LC_ALL=C
 PG_IMAGE="${PG_IMAGE:-postgres:16.15-alpine3.24}"
 
 # Replace known secret values in stdin so they can never reach logs or alerts.
