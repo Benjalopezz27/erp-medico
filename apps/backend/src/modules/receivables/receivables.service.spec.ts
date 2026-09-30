@@ -1,6 +1,7 @@
 import {
   AccountReceivableMovementType,
   AccountReceivableStatus,
+  CheckErrorCode,
   PaymentAllocationType,
 } from '@erp/shared-types';
 import { BadRequestException, ConflictException } from '@nestjs/common';
@@ -434,6 +435,157 @@ describe('ReceivablesService', () => {
         ).rejects.toBeInstanceOf(ConflictException);
         expect(armRepo.save).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('reversePayment', () => {
+    const account = (
+      id: string,
+      original: string,
+      balance: string,
+      status = AccountReceivableStatus.CANCELADO,
+    ) => ({
+      id,
+      customerId: 'customer-1',
+      documentReference: `V-${id}`,
+      originalAmount: original,
+      currentBalance: balance,
+      status,
+    });
+
+    function setup(accounts: ReturnType<typeof account>[], active = true) {
+      const qb = {
+        setLock: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn(async () => accounts),
+      };
+      const arRepo = {
+        createQueryBuilder: jest.fn(() => qb),
+        save: jest.fn(async (val) => val),
+      };
+      const armRepo = {
+        create: jest.fn((val) => ({ id: 'arm', ...val })),
+        save: jest.fn(async (val) => val),
+      };
+      const txManager = {
+        queryRunner: { isTransactionActive: active },
+        getRepository: jest.fn((entity) =>
+          entity === AccountReceivable ? arRepo : armRepo,
+        ),
+      };
+      return { txManager, arRepo, armRepo };
+    }
+
+    const input = (
+      allocations: { accountReceivableId: string; amount: string }[],
+    ) => ({
+      paymentId: 'pay-1',
+      userId: 'user-1',
+      allocations,
+    });
+
+    it('reopens a fully paid invoice as PENDIENTE with REVERSION_CHEQUE movement', async () => {
+      const ar = account('ar-1', '600.00', '0.00');
+      const { txManager, armRepo } = setup([ar]);
+
+      const res = await service.reversePayment(
+        txManager as any,
+        input([{ accountReceivableId: 'ar-1', amount: '600.00' }]),
+      );
+
+      expect(ar.currentBalance).toBe('600.00');
+      expect(ar.status).toBe(AccountReceivableStatus.PENDIENTE);
+      expect(res.totalIncrease).toBe('600.00');
+      expect(armRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          accountReceivableId: 'ar-1',
+          movementType: AccountReceivableMovementType.REVERSION_CHEQUE,
+          amount: '600.00',
+          previousBalance: '0.00',
+          subsequentBalance: '600.00',
+          paymentId: 'pay-1',
+          userId: 'user-1',
+        }),
+      );
+    });
+
+    it('restores only the applied amount: earlier payments keep the invoice PARCIAL', async () => {
+      // original 300, pagó 50 antes (250), este cobro aplicó 100 (150 restante)
+      const ar = account(
+        'ar-1',
+        '300.00',
+        '150.00',
+        AccountReceivableStatus.PARCIAL,
+      );
+      const { txManager } = setup([ar]);
+
+      await service.reversePayment(
+        txManager as any,
+        input([{ accountReceivableId: 'ar-1', amount: '100.00' }]),
+      );
+
+      expect(ar.currentBalance).toBe('250.00');
+      expect(ar.status).toBe(AccountReceivableStatus.PARCIAL);
+    });
+
+    it('writes one movement per allocation', async () => {
+      const { txManager, armRepo } = setup([
+        account('ar-1', '600.00', '0.00'),
+        account('ar-2', '400.00', '0.00'),
+      ]);
+      await service.reversePayment(
+        txManager as any,
+        input([
+          { accountReceivableId: 'ar-1', amount: '600.00' },
+          { accountReceivableId: 'ar-2', amount: '400.00' },
+        ]),
+      );
+      expect(armRepo.save).toHaveBeenCalledTimes(2);
+    });
+
+    it('fails with CHECK_REVERSAL_INCONSISTENCY when the balance would exceed the original', async () => {
+      const ar = account(
+        'ar-1',
+        '300.00',
+        '250.00',
+        AccountReceivableStatus.PARCIAL,
+      );
+      const { txManager, arRepo, armRepo } = setup([ar]);
+
+      const err = await service
+        .reversePayment(
+          txManager as any,
+          input([{ accountReceivableId: 'ar-1', amount: '100.00' }]),
+        )
+        .catch((e: unknown) => e);
+
+      expect(err).toBeInstanceOf(ConflictException);
+      expect((err as ConflictException).getResponse()).toMatchObject({
+        code: CheckErrorCode.CHECK_REVERSAL_INCONSISTENCY,
+      });
+      expect(arRepo.save).not.toHaveBeenCalled();
+      expect(armRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('fails when an allocated account no longer exists', async () => {
+      const { txManager } = setup([]);
+      await expect(
+        service.reversePayment(
+          txManager as any,
+          input([{ accountReceivableId: 'ar-1', amount: '10.00' }]),
+        ),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('requires an active transaction', async () => {
+      const { txManager } = setup([account('ar-1', '10.00', '0.00')], false);
+      await expect(
+        service.reversePayment(
+          txManager as any,
+          input([{ accountReceivableId: 'ar-1', amount: '10.00' }]),
+        ),
+      ).rejects.toThrow('active transaction');
     });
   });
 });

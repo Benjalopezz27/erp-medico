@@ -365,4 +365,216 @@ describe('Check lifecycle and rejection (E2E)', () => {
       expect(codes).toEqual([200, 409]);
     });
   });
+
+  const invariantViolations = () =>
+    ds.query(`
+      SELECT ar.id FROM account_receivables ar
+      WHERE ar.current_balance <> ar.original_amount
+        - COALESCE((SELECT SUM(amount) FROM account_receivable_movements m WHERE m.account_receivable_id = ar.id AND m.movement_type = 'NOTA_CREDITO'), 0)
+        - COALESCE((SELECT SUM(amount) FROM account_receivable_movements m WHERE m.account_receivable_id = ar.id AND m.movement_type = 'PAGO'), 0)
+        + COALESCE((SELECT SUM(amount) FROM account_receivable_movements m WHERE m.account_receivable_id = ar.id AND m.movement_type = 'REVERSION_CHEQUE'), 0)
+    `);
+
+  describe('rechazo con reversión', () => {
+    it('reopens two paid invoices, writes reversal movements and keeps the ledger consistent', async () => {
+      const customer = await createCustomer('Cliente Rechazo', '30710000201');
+      const s1 = await creditSale(customer.id, 1); // 121
+      const s2 = await creditSale(customer.id, 2); // 242
+      const { payment, receipt, check } = await chequePayment(
+        customer.id,
+        '363.00',
+        '6001',
+      );
+      expect((await account(customer.id)).summary.totalBalance).toBe('0.00');
+      expect((await balanceOf(s1.id)).status).toBe(
+        AccountReceivableStatus.CANCELADO,
+      );
+
+      await patch(`${check.id}/to-cartera`).expect(200);
+      const detail = (await adminGet(`/api/v1/checks/${check.id}`).expect(200))
+        .body;
+      expect(detail.rejectionImpact.totalIncrease).toBe('363.00');
+      expect(detail.rejectionImpact.lines).toHaveLength(2);
+
+      await patch(`${check.id}/reject`, { reason: 'Sin fondos' }).expect(200);
+
+      expect(await balanceOf(s1.id)).toEqual({
+        balance: '121.00',
+        status: AccountReceivableStatus.PENDIENTE,
+      });
+      expect(await balanceOf(s2.id)).toEqual({
+        balance: '242.00',
+        status: AccountReceivableStatus.PENDIENTE,
+      });
+      const reversals = await ds.query(
+        `SELECT amount::text, previous_balance::text AS prev, subsequent_balance::text AS next, payment_id
+         FROM account_receivable_movements WHERE movement_type = 'REVERSION_CHEQUE' ORDER BY amount`,
+      );
+      expect(reversals).toEqual([
+        {
+          amount: '121.00',
+          prev: '0.00',
+          next: '121.00',
+          payment_id: payment.id,
+        },
+        {
+          amount: '242.00',
+          prev: '0.00',
+          next: '242.00',
+          payment_id: payment.id,
+        },
+      ]);
+      const [row] = await ds.query(
+        'SELECT c.status, c.rejection_reason, p.status AS payment_status FROM checks c JOIN payments p ON p.id = c.payment_id WHERE c.id = $1',
+        [check.id],
+      );
+      expect(row).toEqual({
+        status: CheckStatus.RECHAZADO,
+        rejection_reason: 'Sin fondos',
+        payment_status: 'REVERTIDO',
+      });
+      expect(
+        await ds.query(
+          "SELECT 1 FROM audit_logs WHERE entity_name IN ('Check','Payment') AND new_values->>'status' IN ('RECHAZADO','REVERTIDO')",
+        ),
+      ).toHaveLength(2);
+
+      const body = await account(customer.id);
+      expect(body.summary.totalBalance).toBe('363.00');
+      expect(body.ledger.data.at(-1).movementType).toBe('REVERSION_CHEQUE');
+      expect(body.ledger.data.at(-1).runningBalance).toBe('363.00');
+      expect(await invariantViolations()).toHaveLength(0);
+
+      const receiptDetail = (
+        await get(`/api/v1/receipts/${receipt.id}`).expect(200)
+      ).body;
+      expect(receiptDetail).toMatchObject({
+        paymentStatus: 'REVERTIDO',
+        check: { bankName: 'Galicia', checkNumber: '6001' },
+      });
+      await get(`/api/v1/receipts/${receipt.id}/pdf`).expect(200);
+    });
+
+    it('restores only the applied amount when the invoice had earlier payments', async () => {
+      const customer = await createCustomer('Cliente Parcial', '30710000202');
+      const s1 = await creditSale(customer.id, 2); // 242
+      await post({
+        customerId: customer.id,
+        paymentMethod: PaymentMethod.EFECTIVO,
+        mode: PaymentAllocationType.GLOBAL_AGE,
+        totalAmount: '42.00',
+      }).expect(201); // saldo 200
+      const { check } = await chequePayment(customer.id, '100.00', '6002');
+      await patch(`${check.id}/to-cartera`).expect(200);
+      await patch(`${check.id}/deposit`).expect(200);
+
+      await patch(`${check.id}/reject`).expect(200); // desde DEPOSITADO
+
+      expect(await balanceOf(s1.id)).toEqual({
+        balance: '200.00',
+        status: AccountReceivableStatus.PARCIAL,
+      });
+      expect(await invariantViolations()).toHaveLength(0);
+    });
+
+    it('answers 409 for states that cannot be rejected and never duplicates movements', async () => {
+      const customer = await createCustomer('Cliente Estados R', '30710000203');
+      await creditSale(customer.id, 3);
+      const supplier = await ds.getRepository(Supplier).save({
+        businessName: 'Proveedor Rechazo',
+        cuit: '30700000003',
+        taxCondition: TaxCondition.RESPONSABLE_INSCRIPTO,
+      });
+      const recibido = await chequePayment(customer.id, '50.00', '6003');
+      await patch(`${recibido.check.id}/reject`).expect(409);
+
+      const endosado = await chequePayment(customer.id, '50.00', '6004');
+      await patch(`${endosado.check.id}/to-cartera`).expect(200);
+      await patch(`${endosado.check.id}/endorse`, {
+        supplierId: supplier.id,
+      }).expect(200);
+      await patch(`${endosado.check.id}/reject`).expect(409);
+
+      const rechazado = await chequePayment(customer.id, '50.00', '6005');
+      await patch(`${rechazado.check.id}/to-cartera`).expect(200);
+      await patch(`${rechazado.check.id}/reject`).expect(200);
+      await patch(`${rechazado.check.id}/reject`).expect(409);
+
+      await patch(`${rechazado.check.id}/reject`, {}, sellerToken).expect(403);
+      expect(
+        await ds.query(
+          "SELECT 1 FROM account_receivable_movements WHERE movement_type = 'REVERSION_CHEQUE'",
+        ),
+      ).toHaveLength(1);
+      expect(await invariantViolations()).toHaveLength(0);
+    });
+
+    it('applies only one of two concurrent rejections', async () => {
+      const customer = await createCustomer('Cliente Doble', '30710000204');
+      await creditSale(customer.id, 3);
+      const { check } = await chequePayment(customer.id, '100.00', '6006');
+      await patch(`${check.id}/to-cartera`).expect(200);
+      const codes = (
+        await Promise.all([
+          patch(`${check.id}/reject`),
+          patch(`${check.id}/reject`),
+        ])
+      )
+        .map((r) => r.status)
+        .sort();
+      expect(codes).toEqual([200, 409]);
+      expect(
+        await ds.query(
+          "SELECT 1 FROM account_receivable_movements WHERE movement_type = 'REVERSION_CHEQUE'",
+        ),
+      ).toHaveLength(1);
+      expect(await invariantViolations()).toHaveLength(0);
+    });
+
+    it('rolls everything back when the reversal fails midway', async () => {
+      const customer = await createCustomer('Cliente Rollback', '30710000205');
+      const s1 = await creditSale(customer.id, 1); // 121
+      const s2 = await creditSale(customer.id, 2); // 242
+      const { payment, check } = await chequePayment(
+        customer.id,
+        '363.00',
+        '6007',
+      );
+      await patch(`${check.id}/to-cartera`).expect(200);
+      // Falla inyectada: la segunda factura ya no puede reponer su monto sin
+      // superar el original (p.ej. saldo corrompido a mano).
+      await ds.query(
+        'UPDATE account_receivables SET current_balance = original_amount WHERE sale_id = $1',
+        [s2.id],
+      );
+
+      await patch(`${check.id}/reject`).expect(409);
+
+      expect(
+        (
+          await ds.query('SELECT status FROM checks WHERE id = $1', [check.id])
+        )[0].status,
+      ).toBe(CheckStatus.EN_CARTERA);
+      expect(
+        (
+          await ds.query('SELECT status FROM payments WHERE id = $1', [
+            payment.id,
+          ])
+        )[0].status,
+      ).toBe('REGISTRADO');
+      expect(await balanceOf(s1.id)).toEqual({
+        balance: '0.00',
+        status: AccountReceivableStatus.CANCELADO,
+      });
+      expect(
+        await ds.query(
+          "SELECT 1 FROM account_receivable_movements WHERE movement_type = 'REVERSION_CHEQUE'",
+        ),
+      ).toHaveLength(0);
+      const detail = (await adminGet(`/api/v1/checks/${check.id}`).expect(200))
+        .body;
+      expect(detail.rejectionImpact).toBeNull();
+      expect(detail.rejectionBlockedReason).toContain('más saldo');
+    });
+  });
 });

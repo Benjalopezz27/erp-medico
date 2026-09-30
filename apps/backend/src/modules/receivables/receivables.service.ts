@@ -6,6 +6,8 @@ import {
 import {
   AccountReceivableMovementType,
   AccountReceivableStatus,
+  CheckErrorCode,
+  ICheckRejectionImpactLine,
   PaymentAllocationType,
   PaymentErrorCode,
   SaleReturnErrorCode,
@@ -30,6 +32,68 @@ export type ApplyPaymentInput = {
 export interface ApplyPaymentResult {
   total: string;
   applied: { accountReceivableId: string; amount: string }[];
+}
+
+export interface ReversePaymentInput {
+  paymentId: string;
+  userId: string;
+  /** Montos realmente aplicados por el cobro (PaymentAllocation). */
+  allocations: { accountReceivableId: string; amount: string }[];
+}
+
+export interface ReversePaymentResult {
+  lines: ICheckRejectionImpactLine[];
+  totalIncrease: string;
+}
+
+type ReversibleAccount = Pick<
+  AccountReceivable,
+  'id' | 'documentReference' | 'originalAmount' | 'currentBalance'
+>;
+
+const inconsistency = (message: string) =>
+  new ConflictException({
+    code: CheckErrorCode.CHECK_REVERSAL_INCONSISTENCY,
+    message,
+  });
+
+/**
+ * Calcula cómo queda cada cuenta al revertir un cobro: repone el monto
+ * aplicado (no `originalAmount`, para no borrar pagos o notas de crédito
+ * previos). Única fuente de verdad de la reversión y del impacto previsto.
+ */
+export function planReversal(
+  accounts: ReversibleAccount[],
+  allocations: { accountReceivableId: string; amount: string }[],
+): ReversePaymentResult {
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+  let totalIncrease = new Decimal(0);
+  const lines = allocations.map(({ accountReceivableId, amount }) => {
+    const account = byId.get(accountReceivableId);
+    if (!account) {
+      throw inconsistency(
+        'Una factura del cobro ya no existe: no se puede revertir.',
+      );
+    }
+    const restore = new Decimal(amount);
+    const next = new Decimal(account.currentBalance).plus(restore);
+    if (next.greaterThan(account.originalAmount)) {
+      throw inconsistency(
+        `Revertir el cobro deja la factura ${account.documentReference ?? account.id} con más saldo que su importe original.`,
+      );
+    }
+    totalIncrease = totalIncrease.plus(restore);
+    return {
+      accountReceivableId,
+      documentReference: account.documentReference ?? '',
+      amountToRestore: restore.toFixed(2),
+      resultingBalance: next.toFixed(2),
+      resultingStatus: next.equals(account.originalAmount)
+        ? AccountReceivableStatus.PENDIENTE
+        : AccountReceivableStatus.PARCIAL,
+    };
+  });
+  return { lines, totalIncrease: totalIncrease.toFixed(2) };
 }
 
 function positiveMoney(value: string, field: string): Decimal {
@@ -306,5 +370,53 @@ export class ReceivablesService {
       total = total.plus(amount);
     }
     return { total: total.toFixed(2), applied };
+  }
+
+  /**
+   * Revierte la aplicación de un cobro (cheque rechazado): repone los saldos
+   * y escribe un movimiento REVERSION_CHEQUE por factura. Bloquea las cuentas
+   * en el mismo orden que `applyPayment`; el llamador decide el commit.
+   */
+  async reversePayment(
+    manager: EntityManager,
+    input: ReversePaymentInput,
+  ): Promise<ReversePaymentResult> {
+    if (!manager.queryRunner?.isTransactionActive) {
+      throw new Error(
+        'ReceivablesService.reversePayment requires an active transaction.',
+      );
+    }
+    const receivableRepo = manager.getRepository(AccountReceivable);
+    const movementRepo = manager.getRepository(AccountReceivableMovement);
+
+    const ids = input.allocations.map((a) => a.accountReceivableId);
+    const accounts = await receivableRepo
+      .createQueryBuilder('ar')
+      .setLock('pessimistic_write')
+      .where('ar.id IN (:...ids)', { ids })
+      .orderBy('ar.id', 'ASC')
+      .getMany();
+    const result = planReversal(accounts, input.allocations);
+
+    const byId = new Map(accounts.map((a) => [a.id, a]));
+    for (const line of result.lines) {
+      const account = byId.get(line.accountReceivableId) as AccountReceivable;
+      const previous = account.currentBalance;
+      account.currentBalance = line.resultingBalance;
+      account.status = line.resultingStatus;
+      await receivableRepo.save(account);
+      await movementRepo.save(
+        movementRepo.create({
+          accountReceivableId: account.id,
+          movementType: AccountReceivableMovementType.REVERSION_CHEQUE,
+          amount: line.amountToRestore,
+          previousBalance: previous,
+          subsequentBalance: line.resultingBalance,
+          paymentId: input.paymentId,
+          userId: input.userId,
+        }),
+      );
+    }
+    return result;
   }
 }

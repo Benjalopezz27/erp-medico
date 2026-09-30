@@ -20,6 +20,7 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { ChecksService } from './checks.service';
 import { QueryChecksDto } from './dto/query-checks.dto';
+import { RejectCheckDto } from './dto/reject-check.dto';
 import { EndorseCheckDto } from './dto/endorse-check.dto';
 import { Check } from './entities/check.entity';
 
@@ -95,5 +96,26 @@ export class ChecksController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<Check> {
     return this.checksService.endorse(id, dto.supplierId, user.id);
+  }
+
+  @Patch(':id/reject')
+  @ApiBearerAuth('JWT-auth')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMINISTRADOR)
+  @ApiOperation({
+    summary:
+      'Rechazar cheque EN_CARTERA o DEPOSITADO y revertir el cobro (atómico)',
+  })
+  @ApiResponse({ status: 404, description: 'Cheque inexistente' })
+  @ApiResponse({
+    status: 409,
+    description: 'Transición inválida o ledger inconsistente',
+  })
+  reject(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RejectCheckDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<Check> {
+    return this.checksService.reject(id, dto.reason, user.id);
   }
 }

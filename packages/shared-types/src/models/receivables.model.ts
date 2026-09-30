@@ -169,6 +169,8 @@ export interface ICheckRejectionImpact {
 export interface ICheckDetail extends ICheckListItem {
   /** Solo para cheques EN_CARTERA o DEPOSITADO. */
   rejectionImpact: ICheckRejectionImpact | null;
+  /** Si el rechazo hoy fallaría (ledger inconsistente), el motivo. */
+  rejectionBlockedReason: string | null;
 }
 
 export interface IPayment {

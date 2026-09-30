@@ -22,9 +22,9 @@
 
 ## 5. Reversión por rechazo (US-32)
 
-- [ ] 5.1 Tests que fallan primero en `receivables.service.spec.ts` para `reversePayment`: factura cancelada vuelve a PENDIENTE, factura con pago previo vuelve a PARCIAL, una fila `REVERSION_CHEQUE` por aplicación con previous/subsequent correctos, exceso sobre `originalAmount` da error de inconsistencia, sin transacción activa da error. Verificar que fallan antes.
-- [ ] 5.2 Implementar `ReceivablesService.reversePayment` (locks ordenados por id, función pura de cálculo compartida con el impacto previsto). Verificar que pasa el spec del 5.1.
-- [ ] 5.3 Tests que fallan primero y luego implementación de `ChecksService.reject` + `PATCH /checks/:id/reject` (cheque, cobro REVERTIDO, reversión y auditoría en una transacción; estados RECIBIDO/ENDOSADO/RECHAZADO dan 409; falla a mitad no deja nada). Agregar `rejectionImpact` a `GET /checks/:id`. Verificar con spec de servicio y de controller.
+- [x] 5.1 Tests que fallan primero en `receivables.service.spec.ts` para `reversePayment`: factura cancelada vuelve a PENDIENTE, factura con pago previo vuelve a PARCIAL, una fila `REVERSION_CHEQUE` por aplicación con previous/subsequent correctos, exceso sobre `originalAmount` da error de inconsistencia, sin transacción activa da error. Verificar que fallan antes.
+- [x] 5.2 Implementar `ReceivablesService.reversePayment` (locks ordenados por id, función pura de cálculo compartida con el impacto previsto). Verificar que pasa el spec del 5.1.
+- [x] 5.3 Tests que fallan primero y luego implementación de `ChecksService.reject` + `PATCH /checks/:id/reject` (cheque, cobro REVERTIDO, reversión y auditoría en una transacción; estados RECIBIDO/ENDOSADO/RECHAZADO dan 409; falla a mitad no deja nada). Agregar `rejectionImpact` a `GET /checks/:id`. Verificar con spec de servicio y de controller.
 
 ## 6. Recibo
 

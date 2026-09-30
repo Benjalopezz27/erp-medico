@@ -10,10 +10,17 @@ import {
   ICheckDetail,
   ICheckListItem,
   ICheckListResponse,
+  PaymentStatus,
 } from '@erp/shared-types';
 import { DataSource, EntityManager } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
-import { ReceivablesService } from '../receivables/receivables.service';
+import { AccountReceivable } from '../receivables/entities/account-receivable.entity';
+import { PaymentAllocation } from '../payments/entities/payment-allocation.entity';
+import { Payment } from '../payments/entities/payment.entity';
+import {
+  planReversal,
+  ReceivablesService,
+} from '../receivables/receivables.service';
 import { Supplier } from '../suppliers/entities/supplier.entity';
 import { QueryChecksDto } from './dto/query-checks.dto';
 import { Check } from './entities/check.entity';
@@ -85,7 +92,30 @@ export class ChecksService {
       .getRepository(Check)
       .findOne({ where: { id }, relations: { customer: true } });
     if (!check) throw new NotFoundException('Cheque no encontrado.');
-    return { ...toListItem(check), rejectionImpact: null };
+    const base = { ...toListItem(check), rejectionImpact: null };
+    const rejectable = TRANSITIONS.reject.from.includes(check.status);
+    if (!rejectable) return { ...base, rejectionBlockedReason: null };
+
+    const allocations = await this.dataSource
+      .getRepository(PaymentAllocation)
+      .find({
+        where: { paymentId: check.paymentId },
+        relations: { accountReceivable: true },
+      });
+    try {
+      const impact = planReversal(
+        allocations.map((a) => a.accountReceivable as AccountReceivable),
+        allocations.map((a) => ({
+          accountReceivableId: a.accountReceivableId,
+          amount: a.amountAllocated,
+        })),
+      );
+      return { ...base, rejectionImpact: impact, rejectionBlockedReason: null };
+    } catch (err) {
+      if (!(err instanceof ConflictException)) throw err;
+      const body = err.getResponse() as { message?: string };
+      return { ...base, rejectionBlockedReason: body.message ?? err.message };
+    }
   }
 
   toCartera(id: string, userId: string): Promise<Check> {
@@ -103,6 +133,43 @@ export class ChecksService {
         .findOne({ where: { id: supplierId } });
       if (!supplier) throw new NotFoundException('Proveedor no encontrado.');
       check.endorsedToSupplierId = supplierId;
+    });
+  }
+
+  /**
+   * Rechazo: en la misma transacción revierte la aplicación del cobro en el
+   * ledger, marca el cobro REVERTIDO y audita cheque y cobro.
+   */
+  reject(
+    id: string,
+    reason: string | undefined,
+    userId: string,
+  ): Promise<Check> {
+    return this.transition(id, 'reject', userId, async (manager, check) => {
+      const allocations = await manager
+        .getRepository(PaymentAllocation)
+        .find({ where: { paymentId: check.paymentId } });
+      await this.receivables.reversePayment(manager, {
+        paymentId: check.paymentId,
+        userId,
+        allocations: allocations.map((a) => ({
+          accountReceivableId: a.accountReceivableId,
+          amount: a.amountAllocated,
+        })),
+      });
+      await manager
+        .getRepository(Payment)
+        .update({ id: check.paymentId }, { status: PaymentStatus.REVERTIDO });
+      await this.audit.record(manager, {
+        actorId: userId,
+        action: AuditAction.UPDATE,
+        entityName: 'Payment',
+        entityId: check.paymentId,
+        previousValues: { status: PaymentStatus.REGISTRADO },
+        newValues: { status: PaymentStatus.REVERTIDO },
+      });
+      check.rejectedAt = new Date();
+      check.rejectionReason = reason ?? null;
     });
   }
 
