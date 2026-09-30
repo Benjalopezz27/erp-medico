@@ -34,6 +34,15 @@ No usar el MCP `railway` para ejecutar un deploy o revertirlo — ver tabla de s
 `AGENTS.md` §7: ese servidor está limitado a solo lectura en este repo, cualquier acción de
 escritura la ejecuta una persona desde la consola o CLI de Railway directamente.
 
+## Backups y restore
+
+Backup cifrado de PostgreSQL con retención diaria/semanal/mensual, restore aislado y ensayo de
+release: [`docs/deployment/backup-restore-runbook.md`](deployment/backup-restore-runbook.md).
+Los gates (proveedor, cifrado, retención, RPO/RTO, responsables) están en
+[`docs/deployment/backup-gates.md`](deployment/backup-gates.md): mientras no estén `APROBADO`, ningún
+backup con datos reales sale del entorno. Antes de una migración riesgosa:
+`backup.sh --label pre-migration`.
+
 ## Incidentes conocidos / puntos frágiles
 
 - Integración ARCA/AFIP (WSAA/WSFE) es el punto de falla con mayor impacto: un fallo pre-CAE deja

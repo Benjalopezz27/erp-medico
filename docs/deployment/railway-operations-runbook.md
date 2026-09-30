@@ -89,6 +89,8 @@ The API enforces in-memory rate limiting via `@nestjs/throttler`:
 
 ## 5. Failed deployment
 
+- Before a risky migration (drops, renames, type changes, backfills) take a
+  `backup.sh --label pre-migration` backup — see [backup-restore-runbook.md](backup-restore-runbook.md) §5.
 - A failed migration must leave the new backend deployment inactive. Inspect the pre-deploy logs and fix the migration; never bypass it by starting the API manually.
 - A failed health check must leave the prior healthy deployment serving traffic. Review `PORT`, database references, application logs, and the health response.
 - A frontend `502` for `/api/v1` usually means `BACKEND_HOST` is incorrect or the backend is unhealthy inside the same Railway environment.
@@ -102,7 +104,7 @@ The API enforces in-memory rate limiting via `@nestjs/throttler`:
 3. Run the external smoke workflow against the rolled-back commit SHA.
 4. Record the result in the operations issue.
 
-An application rollback does not undo a database migration. Migrations must remain backward compatible with the prior application until a release is proven stable. For destructive schema work, use an expand-and-contract migration sequence.
+An application rollback does not undo a database migration; the local rehearsal (`ops/rehearsal/local.sh`) proves the previous image keeps serving on an expand-only migrated schema. To go back to pre-migration data, restore the pre-migration backup into a temporary database first ([backup-restore-runbook.md](backup-restore-runbook.md) §4), never over production. Migrations must remain backward compatible with the prior application until a release is proven stable. For destructive schema work, use an expand-and-contract migration sequence.
 
 ---
 
