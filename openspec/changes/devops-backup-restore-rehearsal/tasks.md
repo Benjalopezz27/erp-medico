@@ -39,6 +39,6 @@
 
 ## 7. Verificación final
 
-- [ ] 7.1 Correr `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build && pnpm test:ops`; todos verdes.
+- [x] 7.1 Correr `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build && pnpm test:ops`; todos verdes.
 - [x] 7.2 Smoke con claude-in-chrome: restaurar un backup sintético en Postgres temporal, levantar backend/frontend locales apuntando a esa base y verificar en el navegador login, productos, ventas y `/treasury/checks` con los datos restaurados; capturar resultado en la evidencia. Verificar sin errores de consola ni 5xx.
-- [ ] 7.3 Actualizar el estado de DoD de la issue en la evidencia: marcar pendiente lo bloqueado por gates (backup externo real, RPO/RTO aceptados, rehearsal en staging) sin cerrarlo. Commits atómicos por tarea, sin push.
+- [x] 7.3 Actualizar el estado de DoD de la issue en la evidencia: marcar pendiente lo bloqueado por gates (backup externo real, RPO/RTO aceptados, rehearsal en staging) sin cerrarlo. Commits atómicos por tarea, sin push.
