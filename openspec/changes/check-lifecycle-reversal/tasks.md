@@ -2,7 +2,7 @@
 
 ## 1. Shared types
 
-- [ ] 1.1 En `packages/shared-types` agregar `PaymentStatus`, códigos `CHECK_*`, realinear `ICheck` (montos `string`, `drawerName`, `dueDate`, `paymentId`, `endorsedToSupplierId`), agregar `check?` a `IRegisterPaymentRequest`, `paymentStatus` y `check` a `IReceiptDetail`, y tipos de listado/detalle/impacto de cheque. Verificar con `pnpm build` de shared-types y typecheck de backend y frontend sin errores.
+- [x] 1.1 En `packages/shared-types` agregar `PaymentStatus`, códigos `CHECK_*`, realinear `ICheck` (montos `string`, `drawerName`, `dueDate`, `paymentId`, `endorsedToSupplierId`), agregar `check?` a `IRegisterPaymentRequest`, `paymentStatus` y `check` a `IReceiptDetail`, y tipos de listado/detalle/impacto de cheque. Verificar con `pnpm build` de shared-types y typecheck de backend y frontend sin errores.
 
 ## 2. Migración y entidades
 
