@@ -16,9 +16,9 @@
 
 ## 4. Transiciones (US-31)
 
-- [ ] 4.1 Tests que fallan primero en `checks.service.spec.ts`: tres transiciones válidas, cada transición inválida da 409, endoso a proveedor inexistente da 404, dos transiciones concurrentes (una gana, otra 409), auditoría registrada. Verificar que fallan antes.
-- [ ] 4.2 Implementar `ChecksService` (método `transition` con lock, máquina de estados, auditoría), DTOs, y `ChecksController` con `PATCH to-cartera|deposit|endorse` (`JwtAuthGuard`, `RolesGuard`, `@Roles(ADMINISTRADOR)`), conservando `GET /checks/status`. Verificar que pasa el spec del 4.1.
-- [ ] 4.3 Implementar `GET /checks` (filtros, paginación, `dueSoonCount`) y `GET /checks/:id` (con cliente y cobro). Verificar con spec: filtro por estado, cheque que vence en 3 días cuenta en `dueSoonCount`, VENDEDOR recibe 403.
+- [x] 4.1 Tests que fallan primero en `checks.service.spec.ts`: tres transiciones válidas, cada transición inválida da 409, endoso a proveedor inexistente da 404, dos transiciones concurrentes (una gana, otra 409), auditoría registrada. Verificar que fallan antes.
+- [x] 4.2 Implementar `ChecksService` (método `transition` con lock, máquina de estados, auditoría), DTOs, y `ChecksController` con `PATCH to-cartera|deposit|endorse` (`JwtAuthGuard`, `RolesGuard`, `@Roles(ADMINISTRADOR)`), conservando `GET /checks/status`. Verificar que pasa el spec del 4.1.
+- [x] 4.3 Implementar `GET /checks` (filtros, paginación, `dueSoonCount`) y `GET /checks/:id` (con cliente y cobro). Verificar con spec: filtro por estado, cheque que vence en 3 días cuenta en `dueSoonCount`, VENDEDOR recibe 403.
 
 ## 5. Reversión por rechazo (US-32)
 
@@ -28,7 +28,7 @@
 
 ## 6. Recibo
 
-- [ ] 6.1 Mostrar cheque (banco y número) y marca REVERTIDO en `ReceiptsService` (detalle) y `ReceiptPdfService`. Verificar con specs: recibo con cheque incluye "Cheque (Banco …, N° …)", revertido incluye `paymentStatus = REVERTIDO` y el PDF sigue empezando con `%PDF`.
+- [x] 6.1 Mostrar cheque (banco y número) y marca REVERTIDO en `ReceiptsService` (detalle) y `ReceiptPdfService`. Verificar con specs: recibo con cheque incluye "Cheque (Banco …, N° …)", revertido incluye `paymentStatus = REVERTIDO` y el PDF sigue empezando con `%PDF`.
 
 ## 7. Frontend
 
