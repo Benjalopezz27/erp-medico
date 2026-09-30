@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import {
   ArcaAuthTicket,
   FiscalDocumentData,
+  FiscalDocumentType,
   ArcaCaeResponse,
   ArcaFiscalDocument,
 } from '@erp/shared-types';
@@ -17,6 +18,7 @@ export interface ArcaMockOptions {
 export class ArcaMockService implements IArcaService {
   private readonly latencyMs: number;
   private readonly now: () => Date;
+  private readonly lastAuthorizedByKey = new Map<string, number>();
 
   constructor(options?: ArcaMockOptions) {
     const nodeEnv = process.env.NODE_ENV?.trim().toLowerCase();
@@ -83,10 +85,33 @@ export class ArcaMockService implements IArcaService {
     const mm = String(expDate.getMonth() + 1).padStart(2, '0');
     const dd = String(expDate.getDate()).padStart(2, '0');
 
+    this.lastAuthorizedByKey.set(
+      this.numberingKey(data.documentType, data.pointOfSale),
+      data.documentNumber,
+    );
+
     return {
       cae: '99999999999999',
       caeExpiration: `${yyyy}${mm}${dd}`,
     };
+  }
+
+  async getLastAuthorizedNumber(
+    documentType: FiscalDocumentType,
+    pointOfSale: number,
+  ): Promise<number> {
+    return (
+      this.lastAuthorizedByKey.get(
+        this.numberingKey(documentType, pointOfSale),
+      ) ?? 0
+    );
+  }
+
+  private numberingKey(
+    documentType: FiscalDocumentType,
+    pointOfSale: number,
+  ): string {
+    return `${documentType}:${pointOfSale}`;
   }
 
   async queryDocument(

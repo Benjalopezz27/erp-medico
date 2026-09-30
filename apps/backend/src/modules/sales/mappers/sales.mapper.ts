@@ -1,9 +1,72 @@
 import Decimal from 'decimal.js';
 import { AccountReceivable } from '../../receivables/entities/account-receivable.entity';
+import { FiscalDocument } from '../entities/fiscal-document.entity';
 import { Sale } from '../entities/sale.entity';
-import { SaleResponseDto } from '../dto';
+import { SaleItem } from '../entities/sale-item.entity';
+import {
+  FiscalDocumentResponseDto,
+  SaleItemResponseDto,
+  SaleResponseDto,
+} from '../dto';
 
 export class SalesMapper {
+  static toItemsResponse(items: SaleItem[]): SaleItemResponseDto[] {
+    return items
+      .slice()
+      .sort((left, right) => left.itemIndex - right.itemIndex)
+      .map((item) => ({
+        id: item.id,
+        saleId: item.saleId,
+        productId: item.productId,
+        itemIndex: item.itemIndex,
+        quantityBase: new Decimal(item.quantityBase).toNumber(),
+        catalogPriceNet: new Decimal(item.catalogPriceNet).toFixed(2),
+        pricingRuleApplied: item.pricingRuleApplied,
+        pricingRuleId: item.pricingRuleId,
+        discountPercentage:
+          item.discountPercentage === null
+            ? null
+            : new Decimal(item.discountPercentage).toFixed(4),
+        discountAmountNet: new Decimal(item.discountAmountNet).toFixed(2),
+        unitPriceNet: new Decimal(item.unitPriceNet).toFixed(2),
+        subtotalNet: new Decimal(item.subtotalNet).toFixed(2),
+        taxTreatment: item.taxTreatment,
+        ivaPercentage:
+          item.ivaPercentage === null
+            ? null
+            : new Decimal(item.ivaPercentage).toFixed(2),
+        ivaAmount: new Decimal(item.ivaAmount).toFixed(2),
+        subtotalGross: new Decimal(item.subtotalGross).toFixed(2),
+        product: {
+          id: item.product?.id ?? item.productId,
+          internalCode: item.product?.internalCode ?? '',
+          name: item.product?.name ?? '',
+        },
+      }));
+  }
+
+  static toFiscalDocumentResponse(
+    doc: FiscalDocument,
+  ): FiscalDocumentResponseDto {
+    return {
+      id: doc.id,
+      saleId: doc.saleId,
+      documentType: doc.documentType,
+      pointOfSale: doc.pointOfSale,
+      documentNumber: doc.documentNumber,
+      arcaStatus: doc.arcaStatus,
+      arcaErrorCode: doc.arcaErrorCode,
+      arcaErrorMessage: doc.arcaErrorMessage,
+      cae: doc.cae,
+      caeExpirationDate: doc.caeExpirationDate,
+      issuedAt: doc.issuedAt,
+      pdfStatus: doc.pdfStatus,
+      qrAvailable: Boolean(doc.qrCodeData),
+      pdfGeneratedAt: doc.pdfGeneratedAt,
+      pdfSizeBytes: doc.pdfSizeBytes,
+    };
+  }
+
   static toResponse(
     sale: Sale,
     accountReceivable: AccountReceivable | null,
@@ -27,52 +90,14 @@ export class SalesMapper {
         ? { id: sale.customer.id, businessName: sale.customer.businessName }
         : null,
       user: { id: sale.user?.id ?? sale.userId, name: sale.user?.name ?? '' },
-      items: (sale.items ?? [])
-        .sort((left, right) => left.itemIndex - right.itemIndex)
-        .map((item) => ({
-          id: item.id,
-          saleId: item.saleId,
-          productId: item.productId,
-          itemIndex: item.itemIndex,
-          quantityBase: new Decimal(item.quantityBase).toNumber(),
-          catalogPriceNet: new Decimal(item.catalogPriceNet).toFixed(2),
-          pricingRuleApplied: item.pricingRuleApplied,
-          pricingRuleId: item.pricingRuleId,
-          discountPercentage:
-            item.discountPercentage === null
-              ? null
-              : new Decimal(item.discountPercentage).toFixed(4),
-          discountAmountNet: new Decimal(item.discountAmountNet).toFixed(2),
-          unitPriceNet: new Decimal(item.unitPriceNet).toFixed(2),
-          subtotalNet: new Decimal(item.subtotalNet).toFixed(2),
-          taxTreatment: item.taxTreatment,
-          ivaPercentage:
-            item.ivaPercentage === null
-              ? null
-              : new Decimal(item.ivaPercentage).toFixed(2),
-          ivaAmount: new Decimal(item.ivaAmount).toFixed(2),
-          subtotalGross: new Decimal(item.subtotalGross).toFixed(2),
-          product: {
-            id: item.product?.id ?? item.productId,
-            internalCode: item.product?.internalCode ?? '',
-            name: item.product?.name ?? '',
-          },
-        })),
+      items: SalesMapper.toItemsResponse(sale.items ?? []),
       fiscalDocument: (() => {
         const doc =
           (sale.fiscalDocuments ?? []).find((d) => !d.saleReturnId) ??
           (sale as any).fiscalDocument ??
           null;
         if (!doc) return null;
-        return {
-          id: doc.id,
-          saleId: doc.saleId,
-          documentType: doc.documentType,
-          pointOfSale: doc.pointOfSale,
-          documentNumber: doc.documentNumber,
-          arcaStatus: doc.arcaStatus,
-          cae: doc.cae,
-        };
+        return SalesMapper.toFiscalDocumentResponse(doc);
       })(),
       accountReceivable: accountReceivable
         ? {

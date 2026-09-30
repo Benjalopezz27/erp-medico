@@ -28,6 +28,11 @@ export enum AccountReceivableMovementType {
   REVERSION_CHEQUE = 'REVERSION_CHEQUE',
 }
 
+export enum DebtorStatus {
+  MOROSO = 'MOROSO',
+  AL_DIA = 'AL_DIA',
+}
+
 export enum CheckStatus {
   RECIBIDO = 'RECIBIDO',
   EN_CARTERA = 'EN_CARTERA',
@@ -45,4 +50,27 @@ export enum TreasuryAccountType {
 export enum CashRegisterStatus {
   ABIERTA = 'ABIERTA',
   CERRADA = 'CERRADA',
+}
+
+export enum PaymentAllocationType {
+  DIRECTED = 'DIRECTED',
+  GLOBAL_AGE = 'GLOBAL_AGE',
+}
+
+export enum PaymentErrorCode {
+  PAYMENT_METHOD_NOT_SUPPORTED = 'PAYMENT_METHOD_NOT_SUPPORTED',
+  PAYMENT_INVALID_ALLOCATION = 'PAYMENT_INVALID_ALLOCATION',
+  PAYMENT_AMOUNT_EXCEEDS_BALANCE = 'PAYMENT_AMOUNT_EXCEEDS_BALANCE',
+}
+
+export enum PaymentStatus {
+  REGISTRADO = 'REGISTRADO',
+  REVERTIDO = 'REVERTIDO',
+}
+
+export enum CheckErrorCode {
+  CHECK_DATA_INVALID = 'CHECK_DATA_INVALID',
+  CHECK_DUPLICATE = 'CHECK_DUPLICATE',
+  CHECK_INVALID_TRANSITION = 'CHECK_INVALID_TRANSITION',
+  CHECK_REVERSAL_INCONSISTENCY = 'CHECK_REVERSAL_INCONSISTENCY',
 }

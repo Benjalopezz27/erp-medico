@@ -3,6 +3,8 @@ import { Edit, Trash2, RotateCcw, Package, Loader2 } from 'lucide-react';
 import { ProductStatus, ProductTaxTreatment } from '@erp/shared-types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/ui/empty-state';
 import { formatCurrency, formatDecimal } from '../utils/products.math';
 import { isProductAdminView, type ProductListItem } from '../types/products.types';
 
@@ -29,25 +31,22 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="bg-white rounded-t-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-8 flex flex-col items-center justify-center text-slate-400 gap-2">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-          <span className="text-xs">Cargando catálogo de productos...</span>
-        </div>
+      <div className="bg-white rounded-t-xl border border-slate-200 shadow-sm overflow-hidden p-4 space-y-3">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <Skeleton key={index} className="h-8 w-full" />
+        ))}
       </div>
     );
   }
 
   if (products.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center flex flex-col items-center justify-center">
-        <div className="p-3 bg-slate-100 rounded-full text-slate-400 mb-3">
-          <Package className="w-8 h-8" />
-        </div>
-        <h3 className="text-sm font-semibold text-slate-900">No se encontraron productos</h3>
-        <p className="text-xs text-slate-500 mt-1 max-w-sm">
-          No hay productos que coincidan con los filtros seleccionados o el catálogo está vacío.
-        </p>
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
+        <EmptyState
+          icon={Package}
+          title="No se encontraron productos"
+          description="No hay productos que coincidan con los filtros seleccionados o el catálogo está vacío."
+        />
       </div>
     );
   }

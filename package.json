@@ -31,10 +31,14 @@
     "docker:prod:migrate": "docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm migration",
     "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,md}\"",
-    "clean": "pnpm -r exec rimraf dist node_modules"
+    "clean": "pnpm -r exec rimraf dist node_modules",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "prettier": "^3.3.3"
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.5",
+    "husky": "^9.1.7",
+    "prettier": "^3.3.3",
+    "secretlint": "^13.0.5"
   },
   "pnpm": {
     "overrides": {
@@ -59,6 +63,14 @@
       "tmp@0.0.33": "0.2.7",
       "undici@6.26.0": "6.27.0",
       "webpack@5.97.1": "5.111.1"
-    }
+    },
+    "onlyBuiltDependencies": [
+      "@nestjs/core",
+      "@scarf/scarf",
+      "bcrypt",
+      "esbuild",
+      "msgpackr-extract",
+      "msw"
+    ]
   }
 }

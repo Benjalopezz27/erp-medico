@@ -1,0 +1,47 @@
+# Configuración de gitleaks — §8.2 del ASOME Engineering Manual.
+# Extiende el ruleset por defecto; acá solo van excepciones justificadas.
+#
+# Regla de oro: un hallazgo se allowlistea con motivo escrito o se rota. Nunca se
+# silencia la regla entera. Un check que falla por un falso positivo conocido entrena
+# al equipo a ignorar el rojo, y eso destruye el sistema de calidad.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = """
+apps/backend/src/common/utils/sanitizer.utils.spec.ts (commit 413f95e2, 2026-08-26): JWT
+fabricado a mano como fixture de test para `redactSecrets`, con el payload literal
+"do_not_leak". No es un token real ni de ningún ambiente — es el input que el test usa para
+comprobar que la función de redacción lo enmascara correctamente.
+
+Evaluado el 2026-09-23. No es un secreto, no se rota.
+"""
+targetRules = ["jwt"]
+commits = ["413f95e25ef12419faf17648ada92dd5de37b032"]
+
+[[allowlists]]
+description = """
+docs/deployment/staging-environment.md (commit 6e37b808, 2026-08-25): `JWT_SECRET=<unique
+random secret>` es texto placeholder en la documentación de variables de entorno de Railway,
+no un valor real.
+
+Evaluado el 2026-09-23. No es un secreto, no se rota.
+"""
+targetRules = ["generic-api-key"]
+commits = ["6e37b808f4d41b0de977582109d0d21613e39537"]
+
+[[allowlists]]
+description = """
+.env.railway.backend.example (commit 6e37b808, 2026-08-25) y .env.prod.example
+(commit ab133e7b, 2026-08-22): `JWT_SECRET=` con valor vacío en archivos `.example` de
+plantilla de variables de entorno — nunca se versiona un valor real ahí (ver §5.9 y
+`docs/DEBT.md`). El detector dispara por el nombre de la clave, no por contenido.
+
+Evaluado el 2026-09-23. No es un secreto, no se rota.
+"""
+targetRules = ["generic-api-key"]
+commits = [
+  "6e37b808f4d41b0de977582109d0d21613e39537",
+  "ab133e7b14af41d0faaaaad167e5d478b330d68f",
+]

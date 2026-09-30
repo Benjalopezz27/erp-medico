@@ -126,7 +126,7 @@ describe('ProductsTable', () => {
   });
 
   it('renders loading state when isLoading is true', () => {
-    render(
+    const { container } = render(
       <ProductsTable
         products={[]}
         isLoading={true}
@@ -137,6 +137,6 @@ describe('ProductsTable', () => {
       />,
     );
 
-    expect(screen.getByText('Cargando catálogo de productos...')).toBeInTheDocument();
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
   });
 });

@@ -1,0 +1,7 @@
+STAGED=$(git diff --cached --name-only --diff-filter=ACM)
+if [ -n "$STAGED" ]; then
+  echo "$STAGED" | tr '\n' '\0' | xargs -0 pnpm exec secretlint --maskSecrets || {
+    echo "✖ posible secreto en los archivos staged. Un secreto que entró se considera comprometido (§8.2)."
+    exit 1
+  }
+fi

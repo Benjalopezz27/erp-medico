@@ -68,6 +68,9 @@ export class AccountReceivableMovement {
   @JoinColumn({ name: 'sale_return_id' })
   saleReturn?: SaleReturn | null;
 
+  @Column({ name: 'payment_id', type: 'uuid', nullable: true })
+  paymentId: string | null;
+
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 

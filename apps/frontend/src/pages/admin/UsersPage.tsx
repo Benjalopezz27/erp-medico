@@ -7,9 +7,9 @@ import { UserFilters } from '@/features/users/components/UserFilters';
 import { UserTable } from '@/features/users/components/UserTable';
 import { UserPagination } from '@/features/users/components/UserPagination';
 import { UserFormModal } from '@/features/users/components/UserFormModal';
+import { UserApproveModal } from '@/features/users/components/UserApproveModal';
 import { UserDeactivateModal } from '@/features/users/components/UserDeactivateModal';
 import { useUsersQuery } from '@/features/users/hooks/use-users-query';
-import { useReactivateUserMutation } from '@/features/users/hooks/use-user-mutations';
 import { parseUserApiError } from '@/features/users/utils/users.errors';
 import type { IUser, UserSearchParams } from '@/features/users/types/users.types';
 
@@ -40,7 +40,11 @@ export const UsersPage: React.FC = () => {
     user: null,
   });
 
-  const [mutatingUserId, setMutatingUserId] = useState<string | null>(null);
+  const [approveModal, setApproveModal] = useState<{ isOpen: boolean; user: IUser | null }>({
+    isOpen: false,
+    user: null,
+  });
+
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
     null,
   );
@@ -48,8 +52,6 @@ export const UsersPage: React.FC = () => {
   // Queries & Mutations
   const { data, isPending, isFetching, isError, error, isPlaceholderData, refetch } =
     useUsersQuery(searchParams);
-
-  const reactivateMutation = useReactivateUserMutation();
 
   // Out-of-bounds page correction after fresh data arrival
   useEffect(() => {
@@ -124,23 +126,9 @@ export const UsersPage: React.FC = () => {
     setDeactivateModal({ isOpen: true, user });
   };
 
-  const handleReactivate = async (user: IUser) => {
+  const handleReactivate = (user: IUser) => {
     setFeedback(null);
-    setMutatingUserId(user.id);
-    try {
-      await reactivateMutation.mutateAsync(user.id);
-      setFeedback({
-        type: 'success',
-        message: `El usuario "${user.name}" fue reactivado exitosamente.`,
-      });
-    } catch (err) {
-      setFeedback({
-        type: 'error',
-        message: parseUserApiError(err),
-      });
-    } finally {
-      setMutatingUserId(null);
-    }
+    setApproveModal({ isOpen: true, user });
   };
 
   return (
@@ -245,7 +233,6 @@ export const UsersPage: React.FC = () => {
           onEditUser={handleOpenEditModal}
           onDeactivateUser={handleOpenDeactivateModal}
           onReactivateUser={handleReactivate}
-          mutatingUserId={mutatingUserId}
         />
 
         {data && data.meta && data.data.length > 0 && (
@@ -276,6 +263,18 @@ export const UsersPage: React.FC = () => {
       />
 
       {/* Deactivate Confirmation Modal */}
+      <UserApproveModal
+        isOpen={approveModal.isOpen}
+        onClose={() => setApproveModal({ isOpen: false, user: null })}
+        user={approveModal.user}
+        onSuccess={(u) =>
+          setFeedback({
+            type: 'success',
+            message: `El usuario "${u.name}" fue aprobado exitosamente.`,
+          })
+        }
+      />
+
       <UserDeactivateModal
         isOpen={deactivateModal.isOpen}
         onClose={() => setDeactivateModal({ isOpen: false, user: null })}

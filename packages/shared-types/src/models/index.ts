@@ -11,3 +11,4 @@ export * from './receivables.model';
 export * from './treasury.model';
 export * from './arca.model';
 export * from './importer.model';
+export * from './api-error.model';

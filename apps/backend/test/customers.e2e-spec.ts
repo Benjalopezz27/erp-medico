@@ -15,6 +15,12 @@ import { CreateCustomerSpecialPricesAndDiscounts1700000000022 } from '../src/dat
 import { CreateSalesFiscalAndReceivablesTables1700000000023 } from '../src/database/migrations/1700000000023-CreateSalesFiscalAndReceivablesTables';
 import { AddProductTaxTreatment1700000000024 } from '../src/database/migrations/1700000000024-AddProductTaxTreatment';
 import { CreateCustomerReturnsAndAdaptQuarantine1700000000025 } from '../src/database/migrations/1700000000025-CreateCustomerReturnsAndAdaptQuarantine';
+import { AddFiscalDocumentNumberUniqueIndex1700000000026 } from '../src/database/migrations/1700000000026-AddFiscalDocumentNumberUniqueIndex';
+import { AddPdfArtifactToFiscalDocuments1700000000027 } from '../src/database/migrations/1700000000027-AddPdfArtifactToFiscalDocuments';
+import { AddFiscalContingencyMetadata1700000000028 } from '../src/database/migrations/1700000000028-AddFiscalContingencyMetadata';
+import { BackfillReceivableInvoiceMovements1700000000029 } from '../src/database/migrations/1700000000029-BackfillReceivableInvoiceMovements';
+import { CreateChecks1700000000031 } from '../src/database/migrations/1700000000031-CreateChecks';
+import { CreatePaymentsAndReceipts1700000000030 } from '../src/database/migrations/1700000000030-CreatePaymentsAndReceipts';
 
 describe('Customers domain and API (E2E)', () => {
   let app: INestApplication;
@@ -39,6 +45,34 @@ describe('Customers domain and API (E2E)', () => {
     const taxTreatmentMigration = new AddProductTaxTreatment1700000000024();
     const customerReturnsMigration =
       new CreateCustomerReturnsAndAdaptQuarantine1700000000025();
+    const fiscalNumberIndexMigration =
+      new AddFiscalDocumentNumberUniqueIndex1700000000026();
+    const pdfArtifactMigration =
+      new AddPdfArtifactToFiscalDocuments1700000000027();
+    const contingencyMetadataMigration =
+      new AddFiscalContingencyMetadata1700000000028();
+    // Migration 029 indexes `account_receivable_movements`, which 025's down()
+    // drops: same rule as 028, unwind it first and replay it last.
+    const receivableInvoiceMigration =
+      new BackfillReceivableInvoiceMovements1700000000029();
+    // Migration 030 references `account_receivables` and adds a column to
+    // `account_receivable_movements`: unwind it before 029 and replay it last.
+    const paymentsMigration = new CreatePaymentsAndReceipts1700000000030();
+    // Migration 031 adds `payments.status` and references `payments`: unwind it
+    // before 030 and replay it last.
+    const checksMigration = new CreateChecks1700000000031();
+    // Migration 028 adds columns/constraint on top of the table 023 creates
+    // and 023's down() drops (`DROP TABLE "fiscal_documents"`) — 028 must be
+    // unwound first and replayed last, or this dance silently strips its
+    // columns from the table for the rest of the process (`migrations`
+    // bookkeeping is untouched by this direct replay, so nothing else
+    // detects the drift).
+    await checksMigration.down(migrationRunner);
+    await paymentsMigration.down(migrationRunner);
+    await receivableInvoiceMigration.down(migrationRunner);
+    await contingencyMetadataMigration.down(migrationRunner);
+    await pdfArtifactMigration.down(migrationRunner);
+    await fiscalNumberIndexMigration.down(migrationRunner);
     await customerReturnsMigration.down(migrationRunner);
     await taxTreatmentMigration.down(migrationRunner);
     await salesMigration.down(migrationRunner);
@@ -49,6 +83,12 @@ describe('Customers domain and API (E2E)', () => {
     await salesMigration.up(migrationRunner);
     await taxTreatmentMigration.up(migrationRunner);
     await customerReturnsMigration.up(migrationRunner);
+    await fiscalNumberIndexMigration.up(migrationRunner);
+    await pdfArtifactMigration.up(migrationRunner);
+    await contingencyMetadataMigration.up(migrationRunner);
+    await receivableInvoiceMigration.up(migrationRunner);
+    await paymentsMigration.up(migrationRunner);
+    await checksMigration.up(migrationRunner);
     await migrationRunner.release();
     await runInitialSeed(ds, {
       adminEmail,

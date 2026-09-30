@@ -1,6 +1,7 @@
 import Decimal from 'decimal.js';
 import { SaleReturn } from '../entities/sale-return.entity';
 import { SaleReturnResponseDto, SaleReturnItemResponseDto } from '../dto';
+import { SalesMapper } from '../../mappers/sales.mapper';
 
 export class SaleReturnsMapper {
   static toResponse(saleReturn: SaleReturn): SaleReturnResponseDto {
@@ -17,15 +18,7 @@ export class SaleReturnsMapper {
       totalGross: new Decimal(saleReturn.totalGross || '0').toFixed(2),
       idempotencyKey: saleReturn.idempotencyKey,
       fiscalDocument: saleReturn.fiscalDocument
-        ? {
-            id: saleReturn.fiscalDocument.id,
-            saleId: saleReturn.fiscalDocument.saleId,
-            documentType: saleReturn.fiscalDocument.documentType,
-            pointOfSale: saleReturn.fiscalDocument.pointOfSale,
-            documentNumber: saleReturn.fiscalDocument.documentNumber,
-            arcaStatus: saleReturn.fiscalDocument.arcaStatus,
-            cae: saleReturn.fiscalDocument.cae,
-          }
+        ? SalesMapper.toFiscalDocumentResponse(saleReturn.fiscalDocument)
         : null,
       user: saleReturn.user
         ? {

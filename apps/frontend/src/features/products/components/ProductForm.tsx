@@ -251,8 +251,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 </Select>
               )}
             />
-            {errors.categoryId && (
+            {errors.categoryId ? (
               <p className="text-[11px] text-red-600 mt-1">{errors.categoryId.message}</p>
+            ) : (
+              categories.length === 0 && (
+                <p className="text-[11px] text-amber-700 mt-1">
+                  No hay categorías cargadas. Configurá al menos una en Administración antes de
+                  crear un producto.
+                </p>
+              )
             )}
           </div>
 
@@ -291,7 +298,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               </p>
             ) : errors.baseUnitId ? (
               <p className="text-[11px] text-red-600 mt-1">{errors.baseUnitId.message}</p>
-            ) : null}
+            ) : (
+              units.length === 0 && (
+                <p className="text-[11px] text-amber-700 mt-1">
+                  No hay unidades cargadas. Configurá al menos una en Administración antes de crear
+                  un producto.
+                </p>
+              )
+            )}
           </div>
         </div>
 

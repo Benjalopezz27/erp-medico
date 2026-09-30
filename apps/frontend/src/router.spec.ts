@@ -19,6 +19,7 @@ import {
   validateSettingsSearchParams,
   validatePriceReviewSearchParams,
   validateSaleSearchParams,
+  validateFiscalAlertsSearchParams,
   router,
 } from './router';
 import { PurchaseOrderStatus } from '@/features/purchase-orders/types/purchase-orders.types';
@@ -116,6 +117,18 @@ describe('authentication route guards', () => {
     expect(router.routesByPath['/purchases/supplier-invoices']).toBeDefined();
     expect(router.routesByPath['/purchases/supplier-invoices/new']).toBeDefined();
     expect(router.routesByPath['/purchases/supplier-invoices/$id']).toBeDefined();
+  });
+
+  it('registers the administrator-only fiscal alerts route', () => {
+    expect(router.routesByPath['/admin/fiscal-alerts']).toBeDefined();
+
+    useAuthStore.getState().setSession(session(UserRole.VENDEDOR));
+    expect(redirectDestination(() => requireRoutePermission('/admin/fiscal-alerts'))).toBe('/');
+
+    useAuthStore.getState().setSession(session(UserRole.ADMINISTRADOR));
+    expect(
+      redirectDestination(() => requireRoutePermission('/admin/fiscal-alerts')),
+    ).toBeUndefined();
   });
 });
 
@@ -553,5 +566,59 @@ describe('validatePriceReviewSearchParams', () => {
       dateFrom: '2026-08-01',
       dateTo: '2026-08-31',
     });
+  });
+});
+
+describe('validateFiscalAlertsSearchParams', () => {
+  it('defaults to the pending tab, page 1 and limit 20', () => {
+    expect(
+      validateFiscalAlertsSearchParams({
+        page: -1,
+        limit: 999,
+        tab: 'INVALID',
+        documentType: 'INVALID',
+        dateFrom: 'bad-date',
+        search: '   ',
+      }),
+    ).toEqual({
+      tab: 'PENDIENTE_FACTURACION',
+      page: 1,
+      limit: 20,
+      dateFrom: undefined,
+      dateTo: undefined,
+      documentType: undefined,
+      search: undefined,
+    });
+  });
+
+  it('keeps the rejected tab, valid filters and pagination', () => {
+    expect(
+      validateFiscalAlertsSearchParams({
+        tab: 'RECHAZADO',
+        page: '2',
+        limit: '10',
+        documentType: 'FACTURA_A',
+        dateFrom: '2026-08-01',
+        dateTo: '2026-08-31',
+        search: '  V-00101  ',
+      }),
+    ).toEqual({
+      tab: 'RECHAZADO',
+      page: 2,
+      limit: 10,
+      documentType: 'FACTURA_A',
+      dateFrom: '2026-08-01',
+      dateTo: '2026-08-31',
+      search: 'V-00101',
+    });
+  });
+
+  it('clears dates when dateFrom is after dateTo', () => {
+    const result = validateFiscalAlertsSearchParams({
+      dateFrom: '2026-08-31',
+      dateTo: '2026-08-01',
+    });
+    expect(result.dateFrom).toBeUndefined();
+    expect(result.dateTo).toBeUndefined();
   });
 });

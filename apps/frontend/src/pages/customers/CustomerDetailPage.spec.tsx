@@ -4,6 +4,7 @@ import { CustomerDocumentType, TaxCondition, UserRole } from '@erp/shared-types'
 import { server } from '@/test/mocks/server';
 import { createTestRouter, renderWithRouter } from '@/test/test-utils';
 import { useAuthStore } from '@/stores/authStore';
+import { buildAccountResponse } from '@/features/receivables/testing/receivables-fixtures';
 import { CustomerDetailPage } from './CustomerDetailPage';
 
 const customer = {
@@ -23,6 +24,40 @@ const customer = {
 };
 
 describe('CustomerDetailPage', () => {
+  it('shows the current account in its own tab, loaded on demand', async () => {
+    useAuthStore.setState({
+      isAuthenticated: true,
+      token: 'test-token',
+      user: {
+        id: '20000000-0000-4000-8000-000000000001',
+        name: 'Seller',
+        email: 'seller@example.com',
+        role: UserRole.VENDEDOR,
+        isActive: true,
+      },
+    });
+    server.use(
+      http.get('*/api/v1/customers/:id', () => HttpResponse.json(customer)),
+      http.get('*/api/v1/customers/:id/account-receivable', () =>
+        HttpResponse.json(buildAccountResponse()),
+      ),
+    );
+    const router = createTestRouter(
+      [
+        { path: '/customers', component: () => <div>Lista</div> },
+        { path: '/customers/$id', component: CustomerDetailPage },
+      ],
+      `/customers/${customer.id}`,
+    );
+    const { user } = renderWithRouter({ router });
+    await screen.findByRole('heading', { name: customer.businessName });
+    expect(screen.queryByText(/sprint 9/i)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: /cuenta corriente/i }));
+    expect(await screen.findByText('Saldo total')).toBeInTheDocument();
+    expect(screen.getByText('Nota de crédito')).toBeInTheDocument();
+  });
+
   it('shows real customer information without fabricating account balances', async () => {
     useAuthStore.setState({
       isAuthenticated: true,

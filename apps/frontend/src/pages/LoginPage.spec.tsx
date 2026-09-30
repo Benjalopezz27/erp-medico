@@ -65,7 +65,7 @@ describe('LoginPage', () => {
     const { user, router } = renderLogin();
 
     await user.type(await screen.findByLabelText(/correo electrónico/i), '  ADMIN@ERP.COM  ');
-    await user.type(screen.getByLabelText(/contraseña/i), 'Secret123!');
+    await user.type(screen.getByLabelText('Contraseña'), 'Secret123!');
     await user.click(screen.getByRole('button', { name: /iniciar sesión/i }));
 
     expect(screen.getByRole('button', { name: /ingresando/i })).toBeDisabled();
@@ -85,11 +85,45 @@ describe('LoginPage', () => {
     const { user } = renderLogin();
 
     await user.type(await screen.findByLabelText(/correo electrónico/i), 'admin@erp.com');
-    await user.type(screen.getByLabelText(/contraseña/i), 'wrong-password');
+    await user.type(screen.getByLabelText('Contraseña'), 'wrong-password');
     await user.click(screen.getByRole('button', { name: /iniciar sesión/i }));
 
     expect(await screen.findByText('Credenciales inválidas')).toBeInTheDocument();
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  });
+
+  it('shows a pending-approval message on 403', async () => {
+    server.use(
+      http.post(DEFAULT_API_URL + '/auth/login', () => new HttpResponse(null, { status: 403 })),
+    );
+    const { user } = renderLogin();
+
+    await user.type(await screen.findByLabelText(/correo electrónico/i), 'nuevo@erp.com');
+    await user.type(screen.getByLabelText('Contraseña'), 'Secret123!');
+    await user.click(screen.getByRole('button', { name: /iniciar sesión/i }));
+
+    expect(await screen.findByText(/aún no fue aprobada/i)).toBeInTheDocument();
+  });
+
+  it('shows a rate-limit message on 429', async () => {
+    server.use(
+      http.post(DEFAULT_API_URL + '/auth/login', () => new HttpResponse(null, { status: 429 })),
+    );
+    const { user } = renderLogin();
+
+    await user.type(await screen.findByLabelText(/correo electrónico/i), 'admin@erp.com');
+    await user.type(screen.getByLabelText('Contraseña'), 'Secret123!');
+    await user.click(screen.getByRole('button', { name: /iniciar sesión/i }));
+
+    expect(await screen.findByText(/demasiados intentos/i)).toBeInTheDocument();
+  });
+
+  it('toggles password visibility', async () => {
+    const { user } = renderLogin();
+    const input = await screen.findByLabelText('Contraseña');
+    expect(input).toHaveAttribute('type', 'password');
+    await user.click(screen.getByRole('button', { name: 'Mostrar clave' }));
+    expect(input).toHaveAttribute('type', 'text');
   });
 
   it('shows a connection message when the backend is unavailable', async () => {
@@ -97,7 +131,7 @@ describe('LoginPage', () => {
     const { user } = renderLogin();
 
     await user.type(await screen.findByLabelText(/correo electrónico/i), 'admin@erp.com');
-    await user.type(screen.getByLabelText(/contraseña/i), 'Secret123!');
+    await user.type(screen.getByLabelText('Contraseña'), 'Secret123!');
     await user.click(screen.getByRole('button', { name: /iniciar sesión/i }));
 
     expect(

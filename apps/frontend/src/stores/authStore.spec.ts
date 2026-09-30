@@ -41,7 +41,7 @@ describe('auth store', () => {
     );
   });
 
-  it('clears all private session state without writing web storage', () => {
+  it('clears all private session state', () => {
     useAuthStore.getState().setSession(session);
     useAuthStore.getState().clearSession();
 
@@ -50,7 +50,33 @@ describe('auth store', () => {
       token: null,
       isAuthenticated: false,
     });
-    expect(localStorage.setItem).not.toHaveBeenCalled();
-    expect(sessionStorage.setItem).not.toHaveBeenCalled();
+  });
+
+  it('persists the session to localStorage so a reload survives (bug #237)', () => {
+    useAuthStore.getState().setSession(session);
+
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'auth-storage',
+      expect.stringContaining(session.accessToken),
+    );
+
+    const persisted = JSON.parse(localStorage.getItem('auth-storage')!);
+    expect(persisted.state).toMatchObject({
+      user: session.user,
+      token: session.accessToken,
+      isAuthenticated: true,
+    });
+  });
+
+  it('clears the persisted session from localStorage on logout', () => {
+    useAuthStore.getState().setSession(session);
+    useAuthStore.getState().clearSession();
+
+    const persisted = JSON.parse(localStorage.getItem('auth-storage')!);
+    expect(persisted.state).toMatchObject({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+    });
   });
 });

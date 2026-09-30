@@ -8,6 +8,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { LoginPage } from '@/pages/LoginPage';
+import { SignupPage } from '@/pages/SignupPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
@@ -172,6 +173,14 @@ import { SalesNewPage } from '@/pages/sales/SalesNewPage';
 import { SaleDetailPage } from '@/pages/sales/SaleDetailPage';
 import { validateSaleSearchParams } from '@/features/sales/schemas/sales.schema';
 export { validateSaleSearchParams };
+import { FiscalAlertsPage } from '@/pages/admin/FiscalAlertsPage';
+import { ReceivablesPage } from '@/pages/receivables/ReceivablesPage';
+import { PaymentFormPage } from '@/pages/payments/PaymentFormPage';
+import { ReceiptPage } from '@/pages/payments/ReceiptPage';
+import { ChecksPage } from '@/pages/treasury/ChecksPage';
+import { validateReceivablesSearchParams } from '@/features/receivables/schemas/receivables.schema';
+import { validateFiscalAlertsSearchParams } from '@/features/fiscal-alerts/schemas/fiscal-alerts.schema';
+export { validateFiscalAlertsSearchParams };
 
 export function validateCustomerSearchParams(
   search: Record<string, unknown>,
@@ -547,6 +556,12 @@ const loginRoute = createRoute({
   component: () => <LoginPage />,
 });
 
+const signupRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: '/signup',
+  component: () => <SignupPage />,
+});
+
 // 3. App Routes (Protected / Shell)
 const appShellRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -741,13 +756,25 @@ const receivablesRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/receivables',
   beforeLoad: () => requireRoutePermission('/receivables'),
-  component: () => (
-    <PlaceholderPage
-      title="Cuentas Corrientes y Cobranzas"
-      description="Ledger de cuentas corrientes, aplicación de recibos y cheques"
-      sprint="Sprint 9 — US-29"
-    />
-  ),
+  validateSearch: validateReceivablesSearchParams,
+  component: () => <ReceivablesPage />,
+});
+
+const paymentsNewRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/payments/new',
+  beforeLoad: () => requireRoutePermission('/payments/new'),
+  validateSearch: (search: Record<string, unknown>): { customerId?: string } => ({
+    customerId: typeof search.customerId === 'string' ? search.customerId : undefined,
+  }),
+  component: () => <PaymentFormPage />,
+});
+
+const receiptRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/receipts/$id',
+  beforeLoad: () => requireRoutePermission('/receipts'),
+  component: () => <ReceiptPage />,
 });
 
 const treasuryRoute = createRoute({
@@ -761,6 +788,13 @@ const treasuryRoute = createRoute({
       sprint="Sprint 10 — US-33"
     />
   ),
+});
+
+const treasuryChecksRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/treasury/checks',
+  beforeLoad: () => requireRoutePermission('/treasury/checks'),
+  component: () => <ChecksPage />,
 });
 
 const reportsRoute = createRoute({
@@ -798,6 +832,14 @@ const adminMarkupsRoute = createRoute({
   component: () => <MarkupsPage />,
 });
 
+const fiscalAlertsRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/admin/fiscal-alerts',
+  validateSearch: validateFiscalAlertsSearchParams,
+  beforeLoad: () => requireRoutePermission('/admin/fiscal-alerts'),
+  component: () => <FiscalAlertsPage />,
+});
+
 const priceReviewsRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/prices/review',
@@ -808,7 +850,7 @@ const priceReviewsRoute = createRoute({
 
 // 4. Build Route Tree
 const routeTree = rootRoute.addChildren([
-  authLayoutRoute.addChildren([loginRoute]),
+  authLayoutRoute.addChildren([loginRoute, signupRoute]),
   appShellRoute.addChildren([
     indexRoute,
     productsRoute,
@@ -837,11 +879,15 @@ const routeTree = rootRoute.addChildren([
     supplierCatalogRoute,
     importerRoute,
     receivablesRoute,
+    paymentsNewRoute,
+    receiptRoute,
     treasuryRoute,
+    treasuryChecksRoute,
     reportsRoute,
     settingsRoute,
     adminUsersRoute,
     adminMarkupsRoute,
+    fiscalAlertsRoute,
     priceReviewsRoute,
   ]),
 ]);

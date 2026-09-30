@@ -12,6 +12,7 @@ describe('AuthController', () => {
         .fn()
         .mockReturnValue({ module: 'auth', status: 'initialized' }),
       login: jest.fn(),
+      register: jest.fn(),
     };
 
     controller = new AuthController(authService as unknown as AuthService);
@@ -22,6 +23,14 @@ describe('AuthController', () => {
       module: 'auth',
       status: 'initialized',
     });
+  });
+
+  it('should call authService.register and return result', async () => {
+    const dto = { name: 'Nuevo', email: 'n@erp.com', password: 'Valid123!' };
+    authService.register = jest.fn().mockResolvedValue({ message: 'ok' });
+
+    await expect(controller.register(dto)).resolves.toEqual({ message: 'ok' });
+    expect(authService.register).toHaveBeenCalledWith(dto);
   });
 
   it('should call authService.login and return result', async () => {
