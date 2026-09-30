@@ -51,6 +51,20 @@ s3 cp "$WORK/$NAME" "s3://${BACKUP_BUCKET}/${PREFIX}/$NAME" --only-show-errors
 s3 cp "$WORK/$NAME.sha256" "s3://${BACKUP_BUCKET}/${PREFIX}/$NAME.sha256" --only-show-errors
 log "uploaded ${PREFIX}/${NAME} ($(stat -c %s "$WORK/$NAME") bytes)"
 
+# Retention runs only after this run's upload succeeded (set -e stops us above otherwise).
+RET_ARGS=()
+[ "$LABEL" = pre-migration ] && RET_ARGS+=(--pre-migration)
+mapfile -t TO_DELETE < <(s3 ls "s3://${BACKUP_BUCKET}/${PREFIX}/" | awk '{print $4}' | ./retention.sh "${RET_ARGS[@]}")
+for old in "${TO_DELETE[@]}"; do
+  if [ "${BACKUP_RETENTION_APPLY:-}" = "true" ]; then
+    s3 rm "s3://${BACKUP_BUCKET}/${PREFIX}/$old" --only-show-errors
+    s3 rm "s3://${BACKUP_BUCKET}/${PREFIX}/$old.sha256" --only-show-errors || true
+    log "retention: deleted $old"
+  else
+    log "retention (dry-run, set BACKUP_RETENTION_APPLY=true to delete): would delete $old"
+  fi
+done
+
 OK=true
 heartbeat
 log "backup OK"

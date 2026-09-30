@@ -13,9 +13,9 @@
 
 ## 3. Retención y alertas
 
-- [ ] 3.1 Test que falla primero de `retention.sh` como función pura (40 diarios consecutivos → 7 d + 4 s + 6 m sin duplicar; `pre-migration/` conserva 5; lista vacía o un solo objeto no borra nada). Verificar que falla antes.
-- [ ] 3.2 Implementar `retention.sh` (stdin → nombres a borrar, `--dry-run` por defecto, aplicación real con `aws s3 rm`) y llamarla desde `backup.sh` solo tras subida exitosa. Verificar que pasa 3.1 y que con subida fallida no se ejecuta.
-- [ ] 3.3 Test y implementación de heartbeat (`/start`, éxito, `/fail`) y `check-age.sh` (`BACKUP_MAX_AGE_HOURS`). Verificar con un receptor HTTP local que recibe las tres señales y que un backup viejo da ≠ 0.
+- [x] 3.1 Test que falla primero de `retention.sh` como función pura (40 diarios consecutivos → 7 d + 4 s + 6 m sin duplicar; `pre-migration/` conserva 5; lista vacía o un solo objeto no borra nada). Verificar que falla antes.
+- [x] 3.2 Implementar `retention.sh` (stdin → nombres a borrar, `--dry-run` por defecto, aplicación real con `aws s3 rm`) y llamarla desde `backup.sh` solo tras subida exitosa. Verificar que pasa 3.1 y que con subida fallida no se ejecuta.
+- [x] 3.3 Test y implementación de heartbeat (`/start`, éxito, `/fail`) y `check-age.sh` (`BACKUP_MAX_AGE_HOURS`). Verificar con un receptor HTTP local que recibe las tres señales y que un backup viejo da ≠ 0.
 - [ ] 3.4 Crear `ops/backup/Dockerfile` (Alpine + postgresql16-client + gnupg + aws-cli, usuario no-root, digest fijado como en `docker-compose.prod.yml`). Verificar `docker build` local y que el contenedor ejecuta el test 2.1.
 
 ## 4. Restore aislado y validación
