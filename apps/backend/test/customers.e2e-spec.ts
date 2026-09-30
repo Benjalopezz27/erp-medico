@@ -19,6 +19,7 @@ import { AddFiscalDocumentNumberUniqueIndex1700000000026 } from '../src/database
 import { AddPdfArtifactToFiscalDocuments1700000000027 } from '../src/database/migrations/1700000000027-AddPdfArtifactToFiscalDocuments';
 import { AddFiscalContingencyMetadata1700000000028 } from '../src/database/migrations/1700000000028-AddFiscalContingencyMetadata';
 import { BackfillReceivableInvoiceMovements1700000000029 } from '../src/database/migrations/1700000000029-BackfillReceivableInvoiceMovements';
+import { CreatePaymentsAndReceipts1700000000030 } from '../src/database/migrations/1700000000030-CreatePaymentsAndReceipts';
 
 describe('Customers domain and API (E2E)', () => {
   let app: INestApplication;
@@ -53,12 +54,16 @@ describe('Customers domain and API (E2E)', () => {
     // drops: same rule as 028, unwind it first and replay it last.
     const receivableInvoiceMigration =
       new BackfillReceivableInvoiceMovements1700000000029();
+    // Migration 030 references `account_receivables` and adds a column to
+    // `account_receivable_movements`: unwind it before 029 and replay it last.
+    const paymentsMigration = new CreatePaymentsAndReceipts1700000000030();
     // Migration 028 adds columns/constraint on top of the table 023 creates
     // and 023's down() drops (`DROP TABLE "fiscal_documents"`) — 028 must be
     // unwound first and replayed last, or this dance silently strips its
     // columns from the table for the rest of the process (`migrations`
     // bookkeeping is untouched by this direct replay, so nothing else
     // detects the drift).
+    await paymentsMigration.down(migrationRunner);
     await receivableInvoiceMigration.down(migrationRunner);
     await contingencyMetadataMigration.down(migrationRunner);
     await pdfArtifactMigration.down(migrationRunner);
@@ -77,6 +82,7 @@ describe('Customers domain and API (E2E)', () => {
     await pdfArtifactMigration.up(migrationRunner);
     await contingencyMetadataMigration.up(migrationRunner);
     await receivableInvoiceMigration.up(migrationRunner);
+    await paymentsMigration.up(migrationRunner);
     await migrationRunner.release();
     await runInitialSeed(ds, {
       adminEmail,
