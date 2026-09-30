@@ -2,14 +2,14 @@
 
 ## 1. Rama, gates y andamiaje
 
-- [ ] 1.1 Crear `docs/deployment/backup-gates.md` con los 8 gates de la issue (proveedor/costo, región, cifrado/custodia, retención, RPO/RTO, responsables, clasificación legal, ventana) cada uno con estado `PENDIENTE`, dueño y fecha; verificar que el archivo lista los 8 y que el runbook lo enlaza.
-- [ ] 1.2 Crear `ops/backup/` con `.env.example` (solo nombres de variables, sin valores), `README` mínimo y script `lib.sh` (logging sin secretos, `require_env`, redacción). Verificar con `shellcheck` (vía contenedor) y prueba que imprime `[REDACTED]` ante una variable de passphrase.
+- [x] 1.1 Crear `docs/deployment/backup-gates.md` con los 8 gates de la issue (proveedor/costo, región, cifrado/custodia, retención, RPO/RTO, responsables, clasificación legal, ventana) cada uno con estado `PENDIENTE`, dueño y fecha; verificar que el archivo lista los 8 y que el runbook lo enlaza.
+- [x] 1.2 Crear `ops/backup/` con `.env.example` (solo nombres de variables, sin valores), `README` mínimo y script `lib.sh` (logging sin secretos, `require_env`, redacción). Verificar con `shellcheck` (vía contenedor) y prueba que imprime `[REDACTED]` ante una variable de passphrase.
 
 ## 2. Backup y cifrado
 
-- [ ] 2.1 Test que falla primero (`ops/backup/test/backup.test.sh`, usa contenedores `postgres:16` y MinIO efímeros con datos sintéticos): backup exitoso sube `.dump.gpg` + `.sha256`, el objeto no contiene texto plano, `pg_dump` fallido/archivo vacío no sube y sale ≠ 0, `BACKUP_DESTINATION_APPROVED` ausente aborta sin llamadas de red. Verificar que falla antes de implementar.
-- [ ] 2.2 Implementar `backup.sh` (pg_dump -Fc, verificación de tamaño > 0, sha256, gpg AES256, subida con `aws s3 cp --endpoint-url`, etiqueta `--label pre-migration`). Verificar que pasa 2.1.
-- [ ] 2.3 Extender test e implementar fallos de red y credenciales inválidas: salida ≠ 0, señal de fallo emitida, ningún secreto en stdout/stderr. Verificar con el test.
+- [x] 2.1 Test que falla primero (`ops/backup/test/backup.test.sh`, usa contenedores `postgres:16` y MinIO efímeros con datos sintéticos): backup exitoso sube `.dump.gpg` + `.sha256`, el objeto no contiene texto plano, `pg_dump` fallido/archivo vacío no sube y sale ≠ 0, `BACKUP_DESTINATION_APPROVED` ausente aborta sin llamadas de red. Verificar que falla antes de implementar.
+- [x] 2.2 Implementar `backup.sh` (pg_dump -Fc, verificación de tamaño > 0, sha256, gpg AES256, subida con `aws s3 cp --endpoint-url`, etiqueta `--label pre-migration`). Verificar que pasa 2.1.
+- [x] 2.3 Extender test e implementar fallos de red y credenciales inválidas: salida ≠ 0, señal de fallo emitida, ningún secreto en stdout/stderr. Verificar con el test.
 
 ## 3. Retención y alertas
 
