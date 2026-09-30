@@ -167,12 +167,12 @@ describe('PaymentsService.register', () => {
     it('returns 409 CHECK_DUPLICATE on the bank + number unique violation', async () => {
       repos.set(Check, {
         ...repo(Check),
-        save: jest.fn(async (_v: unknown) => {
-          throw Object.assign(new Error('dup'), {
+        save: jest.fn().mockRejectedValue(
+          Object.assign(new Error('dup'), {
             code: '23505',
             constraint: 'UQ_checks_bank_number',
-          });
-        }),
+          }),
+        ),
       });
       const err = await service
         .register(chequeDto, 'user-1')

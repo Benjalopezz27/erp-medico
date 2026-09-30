@@ -3,7 +3,6 @@ import { Test } from '@nestjs/testing';
 import * as request from 'supertest';
 import { DataSource } from 'typeorm';
 import {
-  AccountReceivableMovementType,
   AccountReceivableStatus,
   CheckStatus,
   CustomerDocumentType,
@@ -165,13 +164,6 @@ describe('Check lifecycle and rejection (E2E)', () => {
       await creditSale(customerId, 3),
     ];
   }
-
-  const arIdOf = async (saleId: string): Promise<string> =>
-    (
-      await ds.query('SELECT id FROM account_receivables WHERE sale_id = $1', [
-        saleId,
-      ])
-    )[0].id;
 
   const addDays = (days: number) =>
     new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);

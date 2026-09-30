@@ -16,7 +16,7 @@ describe('ChecksService transitions', () => {
   let supplierExists: boolean;
   const saved: Partial<Check>[] = [];
   const findOne = jest.fn();
-  const paymentUpdate = jest.fn(async (..._args: unknown[]) => ({}));
+  const paymentUpdate: jest.Mock = jest.fn(async () => ({}));
   const allocations = [
     { accountReceivableId: 'ar-1', amountAllocated: '600.00' },
     { accountReceivableId: 'ar-2', amountAllocated: '400.00' },
@@ -45,10 +45,10 @@ describe('ChecksService transitions', () => {
   const dataSource = { transaction: jest.fn((cb) => cb(manager)) };
   const audit = { record: jest.fn(async () => ({})) };
   const receivables = {
-    reversePayment: jest.fn(async (..._args: unknown[]) => ({
+    reversePayment: jest.fn(async () => ({
       lines: [],
       totalIncrease: '1000.00',
-    })),
+    })) as jest.Mock,
   };
   const service = new ChecksService(
     dataSource as any,
