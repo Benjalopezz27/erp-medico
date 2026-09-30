@@ -104,3 +104,14 @@ Branch not protected` — a diferencia de un plan que lo bloquea (403 Upgrade), 
 - **Trigger para resolver:** antes de la prueba de aceptación de roles/permisos que pida el
   cliente o el manual; se registra acá para no perderlo, no se corrige en este PR (Step 15 de
   `asome-setup` es de auditoría, no de fix).
+
+## D-09 · Cheque endosado no se puede rechazar
+
+- **Qué hay:** `PATCH /checks/:id/reject` acepta solo cheques `EN_CARTERA` o `DEPOSITADO`
+  (decisión del cambio `check-lifecycle-reversal`, las 5 transiciones del DoD del Sprint 9). Un
+  cheque `ENDOSADO` a proveedor que el banco rechaza no se puede revertir en el sistema.
+- **Por qué importa:** la deuda del cliente queda cancelada aunque el cheque rebotó; hoy se
+  corrige a mano. El endoso tampoco genera cuenta a pagar del proveedor.
+- **Trigger para resolver:** cuando el cliente use endosos en producción o al implementar
+  tesorería/cuentas a pagar (Sprint 10); agregar la transición `ENDOSADO → RECHAZADO` con nota de
+  alerta para el proveedor.

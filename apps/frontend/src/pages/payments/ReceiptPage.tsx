@@ -1,6 +1,6 @@
 import { Link, useParams } from '@tanstack/react-router';
 import { AlertCircle, ArrowLeft, Download, Printer } from 'lucide-react';
-import { PaymentMethod } from '@erp/shared-types';
+import { PaymentMethod, PaymentStatus } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/features/products/utils/products.math';
 import { useDownloadReceiptPdf, useReceiptQuery } from '@/features/payments/hooks/use-payments';
@@ -68,6 +68,14 @@ export function ReceiptPage() {
       </div>
 
       <article className="mx-auto max-w-2xl space-y-4 rounded-xl border border-slate-300 bg-white p-6 text-sm">
+        {receipt.paymentStatus === PaymentStatus.REVERTIDO && (
+          <p
+            role="status"
+            className="rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700"
+          >
+            REVERTIDO — el cheque fue rechazado y la deuda se reabrió en la cuenta corriente.
+          </p>
+        )}
         <header className="flex items-start justify-between">
           <h1 className="text-lg font-bold">Recibo X</h1>
           <div className="text-right text-xs">
@@ -105,7 +113,10 @@ export function ReceiptPage() {
           </table>
         </section>
         <section className="border-t pt-3 text-xs">
-          <p>Medio de pago: {METHOD_LABELS[receipt.paymentMethod] ?? receipt.paymentMethod}</p>
+          <p>
+            Medio de pago: {METHOD_LABELS[receipt.paymentMethod] ?? receipt.paymentMethod}
+            {receipt.check && ` (Banco ${receipt.check.bankName}, N° ${receipt.check.checkNumber})`}
+          </p>
           {receipt.notes && <p>Observaciones: {receipt.notes}</p>}
           <p className="mt-2 text-base font-bold">
             Total cobrado: {formatCurrency(receipt.totalAmount)}

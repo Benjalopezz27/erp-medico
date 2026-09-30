@@ -1,6 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { PDFDocument, PDFFont, PDFPage, StandardFonts, rgb } from 'pdf-lib';
-import { IReceiptDetail, PaymentMethod } from '@erp/shared-types';
+import {
+  PDFDocument,
+  PDFFont,
+  PDFPage,
+  StandardFonts,
+  degrees,
+  rgb,
+} from 'pdf-lib';
+import {
+  IReceiptDetail,
+  PaymentMethod,
+  PaymentStatus,
+} from '@erp/shared-types';
 import { formatArs } from '../receivables/account-statement-pdf.service';
 import { amountToWords } from './amount-words';
 
@@ -18,6 +29,16 @@ const METHOD_LABELS: Partial<Record<PaymentMethod, string>> = {
   [PaymentMethod.EFECTIVO]: 'Efectivo',
   [PaymentMethod.TRANSFERENCIA]: 'Transferencia',
   [PaymentMethod.CHEQUE]: 'Cheque',
+};
+
+/** Texto del medio de pago: "Cheque (Banco Galicia, N° 123)" si hay cheque. */
+export const paymentMethodLabel = (
+  receipt: Pick<IReceiptDetail, 'paymentMethod' | 'check'>,
+): string => {
+  const base = METHOD_LABELS[receipt.paymentMethod] ?? receipt.paymentMethod;
+  return receipt.check
+    ? `${base} (Banco ${receipt.check.bankName}, N° ${receipt.check.checkNumber})`
+    : base;
 };
 
 const formatDate = (value: Date | string): string =>
@@ -77,6 +98,17 @@ export class ReceiptPdfService {
 
     text(emisor.razonSocial, MARGIN, { font: bold, size: 13 });
     text('RECIBO X', right, { font: bold, size: 13, align: 'right' });
+    if (receipt.paymentStatus === PaymentStatus.REVERTIDO) {
+      page.drawText('REVERTIDO', {
+        x: MARGIN + 140,
+        y: PAGE_SIZE[1] / 2,
+        size: 72,
+        font: bold,
+        color: rgb(0.85, 0.2, 0.2),
+        rotate: degrees(30),
+        opacity: 0.35,
+      });
+    }
     y -= ROW_HEIGHT;
     text(`CUIT: ${emisor.cuit}`, MARGIN);
     text(`N° ${receipt.receiptNumber}`, right, { font: bold, align: 'right' });
@@ -108,7 +140,7 @@ export class ReceiptPdfService {
     rule();
 
     text('MEDIO DE PAGO:', MARGIN, { font: bold });
-    text(METHOD_LABELS[receipt.paymentMethod] ?? receipt.paymentMethod, 150);
+    text(paymentMethodLabel(receipt), 150);
     y -= ROW_HEIGHT;
     if (receipt.notes) {
       text(`Observaciones: ${receipt.notes}`, MARGIN);

@@ -1,5 +1,15 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { PaymentAllocationType, PaymentMethod } from '@erp/shared-types';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  CheckErrorCode,
+  CheckStatus,
+  PaymentAllocationType,
+  PaymentMethod,
+} from '@erp/shared-types';
+import { Check } from '../checks/entities/check.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { Payment } from './entities/payment.entity';
 import { PaymentAllocation } from './entities/payment-allocation.entity';
@@ -101,13 +111,86 @@ describe('PaymentsService.register', () => {
     expect(saved.some((s) => s.entity === Receipt)).toBe(false);
   });
 
-  it('rejects CHEQUE (and any non cash/transfer method) with 400', async () => {
-    for (const paymentMethod of [PaymentMethod.CHEQUE, PaymentMethod.CTA_CTE]) {
-      await expect(
-        service.register({ ...dto, paymentMethod }, 'user-1'),
-      ).rejects.toBeInstanceOf(BadRequestException);
-    }
+  it('rejects methods other than cash/transfer/check with 400', async () => {
+    await expect(
+      service.register(
+        { ...dto, paymentMethod: PaymentMethod.CTA_CTE },
+        'user-1',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
     expect(dataSource.transaction).not.toHaveBeenCalled();
+  });
+
+  describe('CHEQUE', () => {
+    const check = {
+      bankName: 'Galicia',
+      checkNumber: '12345678',
+      drawerName: 'Juan Paz',
+      dueDate: '2026-12-15',
+    };
+    const chequeDto = {
+      ...dto,
+      paymentMethod: PaymentMethod.CHEQUE,
+      check,
+    } as any;
+
+    it('creates a RECIBIDO check for the applied total in the same transaction', async () => {
+      await service.register(chequeDto, 'user-1');
+      expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+      expect(saved.find((s) => s.entity === Check)?.value).toMatchObject({
+        ...check,
+        paymentId: 'Payment-1',
+        customerId: 'c-1',
+        amount: '250.00',
+        status: CheckStatus.RECIBIDO,
+      });
+    });
+
+    it('returns 400 CHECK_DATA_INVALID when the check is missing', async () => {
+      await expect(
+        service.register({ ...chequeDto, check: undefined }, 'user-1'),
+      ).rejects.toMatchObject({
+        response: { code: CheckErrorCode.CHECK_DATA_INVALID },
+      });
+      expect(dataSource.transaction).not.toHaveBeenCalled();
+    });
+
+    it('returns 400 CHECK_DATA_INVALID when a check comes with cash', async () => {
+      await expect(
+        service.register({ ...dto, check }, 'user-1'),
+      ).rejects.toMatchObject({
+        response: { code: CheckErrorCode.CHECK_DATA_INVALID },
+      });
+      expect(dataSource.transaction).not.toHaveBeenCalled();
+    });
+
+    it('returns 409 CHECK_DUPLICATE on the bank + number unique violation', async () => {
+      repos.set(Check, {
+        ...repo(Check),
+        save: jest.fn().mockRejectedValue(
+          Object.assign(new Error('dup'), {
+            code: '23505',
+            constraint: 'UQ_checks_bank_number',
+          }),
+        ),
+      });
+      const err = await service
+        .register(chequeDto, 'user-1')
+        .catch((e: unknown) => e);
+      expect(err).toBeInstanceOf(ConflictException);
+      expect((err as ConflictException).getResponse()).toMatchObject({
+        code: CheckErrorCode.CHECK_DUPLICATE,
+      });
+      expect(saved.some((s) => s.entity === Receipt)).toBe(false);
+    });
+
+    it('does not create the check when applying the payment fails', async () => {
+      receivables.applyPayment.mockRejectedValueOnce(new BadRequestException());
+      await expect(
+        service.register(chequeDto, 'user-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(saved.some((s) => s.entity === Check)).toBe(false);
+    });
   });
 
   it('rejects amounts with more than 2 decimals with 400', async () => {

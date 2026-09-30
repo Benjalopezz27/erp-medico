@@ -4,7 +4,9 @@ import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsDateString,
   IsEnum,
+  IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
@@ -27,12 +29,47 @@ export class PaymentAllocationInputDto {
   amount: string;
 }
 
+export class CheckInputDto {
+  @ApiProperty({ maxLength: 100, example: 'Galicia' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  bankName: string;
+
+  @ApiProperty({ maxLength: 30, example: '12345678' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(30)
+  checkNumber: string;
+
+  @ApiProperty({ maxLength: 150 })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(150)
+  drawerName: string;
+
+  @ApiProperty({ example: '2026-12-15' })
+  @IsDateString({ strict: true })
+  dueDate: string;
+
+  @ApiPropertyOptional({ example: '2026-10-01' })
+  @IsOptional()
+  @IsDateString({ strict: true })
+  issueDate?: string;
+}
+
 export class RegisterPaymentDto {
   @ApiProperty()
   @IsUUID()
   customerId: string;
 
-  @ApiProperty({ enum: [PaymentMethod.EFECTIVO, PaymentMethod.TRANSFERENCIA] })
+  @ApiProperty({
+    enum: [
+      PaymentMethod.EFECTIVO,
+      PaymentMethod.TRANSFERENCIA,
+      PaymentMethod.CHEQUE,
+    ],
+  })
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;
 
@@ -41,6 +78,15 @@ export class RegisterPaymentDto {
   @IsString()
   @MaxLength(500)
   notes?: string;
+
+  @ApiPropertyOptional({
+    type: CheckInputDto,
+    description: 'Obligatorio si y solo si paymentMethod es CHEQUE',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => CheckInputDto)
+  check?: CheckInputDto;
 
   @ApiProperty({ enum: PaymentAllocationType })
   @IsEnum(PaymentAllocationType)

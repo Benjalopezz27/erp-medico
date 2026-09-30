@@ -1,9 +1,12 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import {
+  CheckErrorCode,
+  CheckStatus,
   IRegisterPaymentResponse,
   PaymentAllocationType,
   PaymentErrorCode,
@@ -11,6 +14,7 @@ import {
 } from '@erp/shared-types';
 import Decimal from 'decimal.js';
 import { DataSource } from 'typeorm';
+import { Check } from '../checks/entities/check.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { ReceivablesService } from '../receivables/receivables.service';
 import { RegisterPaymentDto } from './dto/register-payment.dto';
@@ -19,7 +23,18 @@ import { PaymentAllocation } from './entities/payment-allocation.entity';
 import { Receipt } from './entities/receipt.entity';
 import { ReceiptNumberService } from './receipt-number.service';
 
-const SUPPORTED_METHODS = [PaymentMethod.EFECTIVO, PaymentMethod.TRANSFERENCIA];
+const SUPPORTED_METHODS = [
+  PaymentMethod.EFECTIVO,
+  PaymentMethod.TRANSFERENCIA,
+  PaymentMethod.CHEQUE,
+];
+
+const CHECK_UNIQUE_CONSTRAINT = 'UQ_checks_bank_number';
+
+function isCheckDuplicate(err: unknown): boolean {
+  const e = err as { code?: string; constraint?: string } | null;
+  return e?.code === '23505' && e.constraint === CHECK_UNIQUE_CONSTRAINT;
+}
 
 @Injectable()
 export class PaymentsService {
@@ -40,7 +55,14 @@ export class PaymentsService {
     if (!SUPPORTED_METHODS.includes(dto.paymentMethod)) {
       throw new BadRequestException({
         code: PaymentErrorCode.PAYMENT_METHOD_NOT_SUPPORTED,
-        message: 'Solo se admite cobro en efectivo o transferencia.',
+        message: 'Solo se admite cobro en efectivo, transferencia o cheque.',
+      });
+    }
+    if ((dto.paymentMethod === PaymentMethod.CHEQUE) !== !!dto.check) {
+      throw new BadRequestException({
+        code: CheckErrorCode.CHECK_DATA_INVALID,
+        message:
+          'Los datos del cheque son obligatorios con medio CHEQUE y no se admiten con otro medio.',
       });
     }
     if (
@@ -110,6 +132,30 @@ export class PaymentsService {
             allocationType: dto.mode,
           }),
         );
+      }
+
+      if (dto.check) {
+        const checkRepo = manager.getRepository(Check);
+        try {
+          await checkRepo.save(
+            checkRepo.create({
+              ...dto.check,
+              issueDate: dto.check.issueDate ?? null,
+              paymentId: payment.id,
+              customerId: dto.customerId,
+              amount: applied.total,
+              status: CheckStatus.RECIBIDO,
+            }),
+          );
+        } catch (err) {
+          if (isCheckDuplicate(err)) {
+            throw new ConflictException({
+              code: CheckErrorCode.CHECK_DUPLICATE,
+              message: 'Ya existe un cheque con ese banco y número.',
+            });
+          }
+          throw err;
+        }
       }
 
       const receiptRepo = manager.getRepository(Receipt);

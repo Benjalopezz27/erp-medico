@@ -1,6 +1,6 @@
 import { PDFDocument } from 'pdf-lib';
-import { PaymentMethod } from '@erp/shared-types';
-import { ReceiptPdfService } from './receipt-pdf.service';
+import { PaymentMethod, PaymentStatus } from '@erp/shared-types';
+import { ReceiptPdfService, paymentMethodLabel } from './receipt-pdf.service';
 
 describe('ReceiptPdfService', () => {
   const service = new ReceiptPdfService();
@@ -17,6 +17,8 @@ describe('ReceiptPdfService', () => {
     customerName: 'Farmacia del Sud – ñandú',
     customerDocument: '20987654321',
     paymentMethod: PaymentMethod.EFECTIVO,
+    paymentStatus: PaymentStatus.REGISTRADO,
+    check: null,
     notes: null,
     totalAmount: '1250.50',
     applied: Array.from({ length: n }, (_, i) => ({
@@ -41,5 +43,28 @@ describe('ReceiptPdfService', () => {
   it('paginates a receipt with many invoices', async () => {
     const bytes = await service.render({ receipt: receipt(80), emisor });
     expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThan(1);
+  });
+
+  it('labels a check payment with bank and number', () => {
+    expect(
+      paymentMethodLabel({
+        paymentMethod: PaymentMethod.CHEQUE,
+        check: { bankName: 'Galicia', checkNumber: '12345678' },
+      }),
+    ).toBe('Cheque (Banco Galicia, N° 12345678)');
+    expect(paymentMethodLabel(receipt(1))).toBe('Efectivo');
+  });
+
+  it('renders a reverted receipt as a valid PDF', async () => {
+    const bytes = await service.render({
+      receipt: {
+        ...receipt(1),
+        paymentMethod: PaymentMethod.CHEQUE,
+        paymentStatus: PaymentStatus.REVERTIDO,
+        check: { bankName: 'Galicia', checkNumber: '12345678' },
+      },
+      emisor,
+    });
+    expect(Buffer.from(bytes).subarray(0, 4).toString()).toBe('%PDF');
   });
 });

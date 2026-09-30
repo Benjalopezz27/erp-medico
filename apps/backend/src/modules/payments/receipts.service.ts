@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { IReceiptDetail } from '@erp/shared-types';
 import { DataSource } from 'typeorm';
+import { Check } from '../checks/entities/check.entity';
 import { Receipt } from './entities/receipt.entity';
 
 @Injectable()
@@ -19,6 +20,9 @@ export class ReceiptsService {
       throw new NotFoundException('Recibo no encontrado.');
     }
     const { payment, customer } = receipt;
+    const check = await this.dataSource
+      .getRepository(Check)
+      .findOne({ where: { paymentId: payment.id } });
     return {
       id: receipt.id,
       receiptNumber: receipt.receiptNumber,
@@ -28,6 +32,10 @@ export class ReceiptsService {
       customerName: customer.businessName,
       customerDocument: customer.cuitOrDni,
       paymentMethod: payment.paymentMethod,
+      paymentStatus: payment.status,
+      check: check
+        ? { bankName: check.bankName, checkNumber: check.checkNumber }
+        : null,
       notes: payment.notes,
       applied: (payment.allocations ?? [])
         .map((a) => ({

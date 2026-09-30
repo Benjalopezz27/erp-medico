@@ -5,6 +5,7 @@ import {
   PaymentMethod,
   PaymentAllocationType,
   CheckStatus,
+  PaymentStatus,
 } from '../enums/financial.enum';
 
 export interface IAccountReceivable {
@@ -116,21 +117,60 @@ export interface IReceipt {
 
 export interface ICheck {
   id: string;
+  paymentId: string;
+  customerId: string;
   bankName: string;
   checkNumber: string;
-  amount: number;
-  issueDate: Date | string;
-  paymentDate: Date | string; // Fecha de cobro / vencimiento
-  issuerCuit: string;
-  issuerName: string;
-  customerId: string;
+  drawerName: string;
+  amount: string;
+  issueDate?: string | null;
+  dueDate: string;
+  receivedDate: string;
   status: CheckStatus;
-  receivedPaymentId?: string | null;
-  rejectionReason?: string | null;
+  endorsedToSupplierId?: string | null;
   rejectedAt?: Date | string | null;
-  depositedAt?: Date | string | null;
-  createdAt: Date | string;
+  rejectionReason?: string | null;
   updatedAt: Date | string;
+}
+
+/** Datos del cheque recibido en un cobro. El monto es el total del cobro. */
+export interface ICheckInput {
+  bankName: string;
+  checkNumber: string;
+  drawerName: string;
+  dueDate: string;
+  issueDate?: string;
+}
+
+export interface ICheckListItem extends ICheck {
+  customerName: string;
+}
+
+export interface ICheckListResponse {
+  data: ICheckListItem[];
+  meta: IReceivablesPaginationMeta;
+  /** Cheques RECIBIDO/EN_CARTERA que vencen en los próximos 7 días. */
+  dueSoonCount: number;
+}
+
+export interface ICheckRejectionImpactLine {
+  accountReceivableId: string;
+  documentReference: string;
+  amountToRestore: string;
+  resultingBalance: string;
+  resultingStatus: AccountReceivableStatus;
+}
+
+export interface ICheckRejectionImpact {
+  lines: ICheckRejectionImpactLine[];
+  totalIncrease: string;
+}
+
+export interface ICheckDetail extends ICheckListItem {
+  /** Solo para cheques EN_CARTERA o DEPOSITADO. */
+  rejectionImpact: ICheckRejectionImpact | null;
+  /** Si el rechazo hoy fallaría (ledger inconsistente), el motivo. */
+  rejectionBlockedReason: string | null;
 }
 
 export interface IPayment {
@@ -138,6 +178,7 @@ export interface IPayment {
   customerId: string;
   totalAmount: string;
   paymentMethod: PaymentMethod;
+  status: PaymentStatus;
   notes?: string | null;
   allocations?: IPaymentAllocation[];
   receipt?: IReceipt | null;
@@ -148,7 +189,9 @@ export interface IPayment {
 /** Cobro con aplicación dirigida: el cliente indica el monto por factura. */
 export interface IRegisterPaymentDirectedRequest {
   customerId: string;
-  paymentMethod: PaymentMethod.EFECTIVO | PaymentMethod.TRANSFERENCIA;
+  paymentMethod: PaymentMethod.EFECTIVO | PaymentMethod.TRANSFERENCIA | PaymentMethod.CHEQUE;
+  /** Obligatorio si y solo si el medio es CHEQUE. */
+  check?: ICheckInput;
   notes?: string;
   mode: PaymentAllocationType.DIRECTED;
   allocations: { accountReceivableId: string; amount: string }[];
@@ -157,7 +200,9 @@ export interface IRegisterPaymentDirectedRequest {
 /** Cobro por antigüedad: el servidor cancela desde la factura más vieja. */
 export interface IRegisterPaymentByAgeRequest {
   customerId: string;
-  paymentMethod: PaymentMethod.EFECTIVO | PaymentMethod.TRANSFERENCIA;
+  paymentMethod: PaymentMethod.EFECTIVO | PaymentMethod.TRANSFERENCIA | PaymentMethod.CHEQUE;
+  /** Obligatorio si y solo si el medio es CHEQUE. */
+  check?: ICheckInput;
   notes?: string;
   mode: PaymentAllocationType.GLOBAL_AGE;
   totalAmount: string;
@@ -183,6 +228,8 @@ export interface IReceiptDetail {
   customerName: string;
   customerDocument: string;
   paymentMethod: PaymentMethod;
+  paymentStatus: PaymentStatus;
+  check: { bankName: string; checkNumber: string } | null;
   notes: string | null;
   applied: IReceiptAppliedInvoice[];
   totalAmount: string;

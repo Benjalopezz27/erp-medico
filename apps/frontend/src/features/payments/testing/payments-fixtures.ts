@@ -1,5 +1,6 @@
 import {
   PaymentMethod,
+  PaymentStatus,
   type IReceiptDetail,
   type IRegisterPaymentResponse,
 } from '@erp/shared-types';
@@ -16,6 +17,8 @@ export function buildReceipt(overrides: Partial<IReceiptDetail> = {}): IReceiptD
     customerName: 'Farmacia Central',
     customerDocument: '30500010912',
     paymentMethod: PaymentMethod.EFECTIVO,
+    paymentStatus: PaymentStatus.REGISTRADO,
+    check: null,
     notes: null,
     totalAmount: '250.00',
     applied: [
@@ -45,6 +48,7 @@ export function buildRegisterResponse(): IRegisterPaymentResponse {
       customerId: '10000000-0000-4000-8000-000000000001',
       totalAmount: '250.00',
       paymentMethod: PaymentMethod.EFECTIVO,
+      status: PaymentStatus.REGISTRADO,
       userId: 'u-1',
       createdAt: '2026-08-14T15:00:00.000Z',
     },

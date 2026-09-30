@@ -8,7 +8,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { PaymentMethod } from '@erp/shared-types';
+import { PaymentMethod, PaymentStatus } from '@erp/shared-types';
 import { Customer } from '../../customers/entities/customer.entity';
 import { User } from '../../users/entities/user.entity';
 import { PaymentAllocation } from './payment-allocation.entity';
@@ -31,6 +31,9 @@ export class Payment {
 
   @Column({ name: 'payment_method', type: 'varchar', length: 30 })
   paymentMethod: PaymentMethod;
+
+  @Column({ type: 'varchar', length: 20, default: PaymentStatus.REGISTRADO })
+  status: PaymentStatus;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
   notes: string | null;
