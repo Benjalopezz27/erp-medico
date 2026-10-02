@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Plus, Package, AlertCircle, CheckCircle2, RotateCcw, Tags, X } from 'lucide-react';
+import {
+  Plus,
+  Package,
+  AlertCircle,
+  CheckCircle2,
+  RotateCcw,
+  Tags,
+  X,
+  FileSpreadsheet,
+} from 'lucide-react';
 import { UserRole } from '@erp/shared-types';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
@@ -230,6 +239,16 @@ export const ProductsListPage: React.FC = () => {
               }
             >
               <Tags className="mr-1.5 h-4 w-4" /> Revisión de precios
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => (navigate as any)({ to: '/products/bulk-load' })}
+              className="text-xs gap-1.5"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span>Carga Masiva</span>
             </Button>
             <Button
               type="button"
