@@ -174,4 +174,28 @@ describe('SecureSpreadsheetParser', () => {
       SecureSpreadsheetParser.parse(Buffer.from('a,b\n1,2\n'), 'lista.xlsx'),
     ).rejects.toBeInstanceOf(UnsupportedMediaTypeException);
   });
+
+  it('parses targetSheetName when workbook contains multiple sheets with content', async () => {
+    const workbook = new ExcelJS.Workbook();
+    const productsSheet = workbook.addWorksheet('Productos');
+    productsSheet.addRow(['name', 'costNet']);
+    productsSheet.addRow(['Ibuprofeno', 100]);
+
+    const refSheet = workbook.addWorksheet('Referencia');
+    refSheet.addRow(['category', 'unit']);
+    refSheet.addRow(['Medicamentos', 'Unidad']);
+
+    const buffer = Buffer.from(await workbook.xlsx.writeBuffer());
+
+    const result = await SecureSpreadsheetParser.parse(
+      buffer,
+      'productos.xlsx',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      { targetSheetName: 'Productos' },
+    );
+
+    expect(result.headers).toEqual(['name', 'costNet']);
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0].cells).toEqual(['Ibuprofeno', 100]);
+  });
 });
