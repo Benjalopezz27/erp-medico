@@ -57,10 +57,11 @@
 
 ### 📦 Catálogo
 
-| Archivo                                      | Pantalla               | Sprint     |
-| -------------------------------------------- | ---------------------- | ---------- |
-| [03_products_list.md](./03_products_list.md) | Lista de Productos     | S1 — US-05 |
-| [04_product_form.md](./04_product_form.md)   | Formulario de Producto | S1 — US-04 |
+| Archivo                                      | Pantalla                  | Sprint     |
+| -------------------------------------------- | ------------------------- | ---------- |
+| [03_products_list.md](./03_products_list.md) | Lista de Productos        | S1 — US-05 |
+| [04_product_form.md](./04_product_form.md)   | Formulario de Producto    | S1 — US-04 |
+| [08_bulk_load.md](./08_bulk_load.md)         | Carga Masiva de Productos | S8 — #257  |
 
 ### 📊 Stock
 
@@ -69,7 +70,6 @@
 | [05_stock_overview.md](./05_stock_overview.md) | Vista General de Stock    | S2 — US-06 |
 | [06_stock_detail.md](./06_stock_detail.md)     | Detalle de Stock / Ledger | S2 — US-06 |
 | [07_quarantine.md](./07_quarantine.md)         | Gestión de Cuarentena     | S2 — US-10 |
-| [08_bulk_load.md](./08_bulk_load.md)           | Carga Masiva Inicial      | S2 — US-09 |
 
 ### 🚚 Proveedores & Importador
 
