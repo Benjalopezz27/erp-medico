@@ -5,7 +5,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, EntityManager } from 'typeorm';
 import {
   PRODUCT_IVA_RATES,
   AuditAction,
@@ -41,6 +41,23 @@ import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interfa
 import { PricesService } from '../prices/prices.service';
 import { AuditService } from '../audit/audit.service';
 
+export interface CreateProductCoreInput {
+  name: string;
+  description?: string | null;
+  categoryId: string;
+  baseUnitId: string;
+  minStock?: number;
+  initialStock?: number;
+  costNet: number;
+  markupPercentage?: number | null;
+  activePriceNet: number;
+  taxTreatment?: ProductTaxTreatment;
+  ivaPercentage?: number | null;
+  conversions?: { presentationUnitId: string; conversionFactor: number }[];
+  documentReference?: string | null;
+  adjustmentReason?: string;
+}
+
 @Injectable()
 export class ProductsService {
   constructor(
@@ -69,7 +86,10 @@ export class ProductsService {
     return (PRODUCT_IVA_RATES as readonly number[]).includes(value);
   }
 
-  private normalizeCreateTax(dto: CreateProductDto): {
+  private normalizeCreateTax(dto: {
+    taxTreatment?: ProductTaxTreatment;
+    ivaPercentage?: number | null;
+  }): {
     taxTreatment: ProductTaxTreatment;
     ivaPercentage: number | null;
   } {
@@ -240,6 +260,100 @@ export class ProductsService {
     return ProductMapper.toResponse(product, userRole);
   }
 
+  async createProductCore(
+    input: CreateProductCoreInput,
+    actor: AuthenticatedUser,
+    manager: EntityManager,
+  ): Promise<Product> {
+    const taxConfiguration = this.normalizeCreateTax(input);
+
+    const productEntity = manager.create(Product, {
+      name: input.name.trim(),
+      description: input.description || null,
+      categoryId: input.categoryId,
+      baseUnitId: input.baseUnitId,
+      minStock: input.minStock !== undefined ? input.minStock : 0,
+      costNet: input.costNet,
+      suggestedPriceNet: 0,
+      activePriceNet: input.activePriceNet,
+      taxTreatment: taxConfiguration.taxTreatment,
+      ivaPercentage: taxConfiguration.ivaPercentage,
+      status: ProductStatus.ACTIVE,
+    });
+
+    const createdProduct = await manager.save(Product, productEntity);
+
+    if (
+      input.markupPercentage !== undefined &&
+      input.markupPercentage !== null
+    ) {
+      await this.pricesService.applyLegacyProductMarkup(
+        manager,
+        createdProduct,
+        input.markupPercentage,
+        actor.id,
+      );
+    }
+    const effectiveMarkup = await this.pricesService.hydrateLegacyMarkup(
+      createdProduct,
+      manager,
+    );
+    createdProduct.suggestedPriceNet =
+      this.pricesService.calculateSuggestedPrice(
+        input.costNet,
+        effectiveMarkup.markupPercentage,
+      );
+    await manager.save(Product, createdProduct);
+
+    const stockEntity = manager.create(Stock, {
+      productId: createdProduct.id,
+      currentBaseStock: '0.00',
+    });
+    await manager.save(Stock, stockEntity);
+
+    if (input.initialStock !== undefined && input.initialStock > 0) {
+      await this.stockAdjustmentsService.createAdjustment(
+        {
+          productId: createdProduct.id,
+          movementType: StockMovementType.AJUSTE_ENTRADA,
+          quantityBase: input.initialStock,
+          reason:
+            input.adjustmentReason || 'Stock inicial al crear el producto',
+          documentReference: input.documentReference || null,
+        },
+        actor,
+        manager,
+      );
+    }
+
+    if (input.conversions && input.conversions.length > 0) {
+      const conversionEntities = input.conversions.map((c) =>
+        manager.create(ProductUnitConversion, {
+          productId: createdProduct.id,
+          presentationUnitId: c.presentationUnitId,
+          conversionFactor: c.conversionFactor,
+        }),
+      );
+      await manager.save(ProductUnitConversion, conversionEntities);
+    }
+
+    await this.auditService.record(manager, {
+      actorId: actor.id,
+      action: AuditAction.CREATE,
+      entityName: 'Product',
+      entityId: createdProduct.id,
+      previousValues: null,
+      newValues: {
+        internalCode: createdProduct.internalCode,
+        name: createdProduct.name,
+        taxTreatment: createdProduct.taxTreatment,
+        ivaPercentage: createdProduct.ivaPercentage,
+      },
+    });
+
+    return createdProduct;
+  }
+
   async create(
     dto: CreateProductDto,
     actor: AuthenticatedUser,
@@ -288,8 +402,6 @@ export class ProductsService {
       }
     }
 
-    const taxConfiguration = this.normalizeCreateTax(dto);
-
     // 4. Execute Transaction. PostgreSQL assigns internalCode from its sequence.
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -297,88 +409,11 @@ export class ProductsService {
 
     let createdProduct: Product;
     try {
-      const productEntity = queryRunner.manager.create(Product, {
-        name: dto.name.trim(),
-        description: dto.description || null,
-        categoryId: dto.categoryId,
-        baseUnitId: dto.baseUnitId,
-        minStock: dto.minStock !== undefined ? dto.minStock : 0,
-        costNet: dto.costNet,
-        suggestedPriceNet: 0,
-        activePriceNet: dto.activePriceNet,
-        taxTreatment: taxConfiguration.taxTreatment,
-        ivaPercentage: taxConfiguration.ivaPercentage,
-        status: ProductStatus.ACTIVE,
-      });
-
-      createdProduct = await queryRunner.manager.save(Product, productEntity);
-
-      if (dto.markupPercentage !== undefined) {
-        await this.pricesService.applyLegacyProductMarkup(
-          queryRunner.manager,
-          createdProduct,
-          dto.markupPercentage,
-          actor.id,
-        );
-      }
-      const effectiveMarkup = await this.pricesService.hydrateLegacyMarkup(
-        createdProduct,
+      createdProduct = await this.createProductCore(
+        dto,
+        actor,
         queryRunner.manager,
       );
-      createdProduct.suggestedPriceNet =
-        this.pricesService.calculateSuggestedPrice(
-          dto.costNet,
-          effectiveMarkup.markupPercentage,
-        );
-      await queryRunner.manager.save(Product, createdProduct);
-
-      const stockEntity = queryRunner.manager.create(Stock, {
-        productId: createdProduct.id,
-        currentBaseStock: '0.00',
-      });
-      await queryRunner.manager.save(Stock, stockEntity);
-
-      if (dto.initialStock !== undefined && dto.initialStock > 0) {
-        await this.stockAdjustmentsService.createAdjustment(
-          {
-            productId: createdProduct.id,
-            movementType: StockMovementType.AJUSTE_ENTRADA,
-            quantityBase: dto.initialStock,
-            reason: 'Stock inicial al crear el producto',
-            documentReference: null,
-          },
-          actor,
-          queryRunner.manager,
-        );
-      }
-
-      if (dto.conversions && dto.conversions.length > 0) {
-        const conversionEntities = dto.conversions.map((c) =>
-          queryRunner.manager.create(ProductUnitConversion, {
-            productId: createdProduct.id,
-            presentationUnitId: c.presentationUnitId,
-            conversionFactor: c.conversionFactor,
-          }),
-        );
-        await queryRunner.manager.save(
-          ProductUnitConversion,
-          conversionEntities,
-        );
-      }
-
-      await this.auditService.record(queryRunner.manager, {
-        actorId: actor.id,
-        action: AuditAction.CREATE,
-        entityName: 'Product',
-        entityId: createdProduct.id,
-        previousValues: null,
-        newValues: {
-          internalCode: createdProduct.internalCode,
-          name: createdProduct.name,
-          taxTreatment: createdProduct.taxTreatment,
-          ivaPercentage: createdProduct.ivaPercentage,
-        },
-      });
 
       await queryRunner.commitTransaction();
     } catch (error: any) {

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UserRole, ProductStatus } from '@erp/shared-types';
 import { ProductsController } from './products.controller';
 import { ProductsService } from './products.service';
+import { ProductBulkLoadService } from './bulk-load/product-bulk-load.service';
 import { User } from '../users/entities/user.entity';
 
 describe('ProductsController', () => {
@@ -75,12 +76,40 @@ describe('ProductsController', () => {
       deleteConversion: jest.fn().mockResolvedValue(undefined),
     };
 
+    const mockProductBulkLoadService = {
+      generateTemplate: jest.fn().mockResolvedValue({
+        buffer: Buffer.from('test'),
+        contentType: 'text/csv',
+        filename: 'plantilla.csv',
+      }),
+      previewBulkLoad: jest.fn().mockResolvedValue({
+        valid: true,
+        summary: {
+          totalRows: 1,
+          validRows: 1,
+          invalidRows: 0,
+          totalInitialStock: 10,
+        },
+        rows: [],
+      }),
+      confirmBulkLoad: jest.fn().mockResolvedValue({
+        batchId: 'b-1',
+        rowCount: 1,
+        movementCount: 1,
+        totalQuantityBase: 10,
+      }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ProductsController],
       providers: [
         {
           provide: ProductsService,
           useValue: mockProductsService,
+        },
+        {
+          provide: ProductBulkLoadService,
+          useValue: mockProductBulkLoadService,
         },
       ],
     }).compile();
@@ -178,6 +207,43 @@ describe('ProductsController', () => {
     it('deleteConversion calls service.deleteConversion', async () => {
       await controller.deleteConversion('p-1', 'conv-1');
       expect(service.deleteConversion).toHaveBeenCalledWith('p-1', 'conv-1');
+    });
+  });
+
+  describe('bulk-load endpoints', () => {
+    it('downloadBulkLoadTemplate sets headers and returns streamable file', async () => {
+      const mockRes = { set: jest.fn() } as any;
+      const result = await controller.downloadBulkLoadTemplate(
+        { format: 'csv' },
+        mockRes,
+      );
+      expect(mockRes.set).toHaveBeenCalledWith({
+        'Content-Type': 'text/csv',
+        'Content-Disposition': 'attachment; filename="plantilla.csv"',
+      });
+      expect(result).toBeDefined();
+    });
+
+    it('previewBulkLoad delegates to productBulkLoadService', async () => {
+      const mockFile = { buffer: Buffer.from('data') } as Express.Multer.File;
+      const result = await controller.previewBulkLoad(mockFile);
+      expect(result.valid).toBe(true);
+      expect(result.summary.totalRows).toBe(1);
+    });
+
+    it('confirmBulkLoad delegates to productBulkLoadService', async () => {
+      const mockFile = { buffer: Buffer.from('data') } as Express.Multer.File;
+      const dto = {
+        previewFileChecksum:
+          'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      };
+      const result = await controller.confirmBulkLoad(
+        mockFile,
+        dto,
+        mockAdminUser as any,
+      );
+      expect(result.batchId).toBe('b-1');
+      expect(result.rowCount).toBe(1);
     });
   });
 });

@@ -11,6 +11,10 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  UseInterceptors,
+  UploadedFile,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,7 +24,11 @@ import {
   ApiParam,
   ApiExtraModels,
   getSchemaPath,
+  ApiConsumes,
+  ApiBody,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { Response } from 'express';
 import { UserRole } from '@erp/shared-types';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -43,6 +51,13 @@ import {
   PaginatedProductsAdminResponseDto,
   PaginatedProductsSellerResponseDto,
 } from './dto/paginated-products-response.dto';
+import {
+  QueryProductBulkLoadTemplateDto,
+  ConfirmProductBulkLoadDto,
+  ProductBulkLoadPreviewResponseDto,
+  ProductBulkLoadConfirmResponseDto,
+} from './dto/bulk-load';
+import { ProductBulkLoadService } from './bulk-load/product-bulk-load.service';
 
 @ApiTags('products')
 @ApiBearerAuth('JWT-auth')
@@ -52,11 +67,16 @@ import {
   ProductSummaryResponseDto,
   PaginatedProductsAdminResponseDto,
   PaginatedProductsSellerResponseDto,
+  ProductBulkLoadPreviewResponseDto,
+  ProductBulkLoadConfirmResponseDto,
 )
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('products')
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(
+    private readonly productsService: ProductsService,
+    private readonly productBulkLoadService: ProductBulkLoadService,
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -98,6 +118,120 @@ export class ProductsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async search(@Query() query: SearchProductsDto) {
     return this.productsService.searchTypeahead(query);
+  }
+
+  @Get('bulk-load/template')
+  @Roles(UserRole.ADMINISTRADOR)
+  @ApiOperation({
+    summary:
+      'Download product bulk load template with reference sheet (CSV or XLSX)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Template file stream with headers and reference sheet',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Only ADMINISTRADOR can download templates',
+  })
+  async downloadBulkLoadTemplate(
+    @Query() query: QueryProductBulkLoadTemplateDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const template = await this.productBulkLoadService.generateTemplate(
+      query.format || 'xlsx',
+    );
+    res.set({
+      'Content-Type': template.contentType,
+      'Content-Disposition': `attachment; filename="${template.filename}"`,
+    });
+    return new StreamableFile(template.buffer);
+  }
+
+  @Post('bulk-load/preview')
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserRole.ADMINISTRADOR)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 2 * 1024 * 1024 },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary:
+      'Upload and preview CSV/XLSX product catalog bulk load without committing',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Preview summary, row validations, and checksums',
+    type: ProductBulkLoadPreviewResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid file or header structure' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 413, description: 'File too large (> 2 MiB)' })
+  @ApiResponse({ status: 415, description: 'Unsupported media type' })
+  async previewBulkLoad(
+    @UploadedFile() file: Express.Multer.File,
+  ): Promise<ProductBulkLoadPreviewResponseDto> {
+    return this.productBulkLoadService.previewBulkLoad(file);
+  }
+
+  @Post('bulk-load/confirm')
+  @Roles(UserRole.ADMINISTRADOR)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 2 * 1024 * 1024 },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary:
+      'Confirm and atomically apply product catalog bulk load with anti-tamper checksum verification',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: { type: 'string', format: 'binary' },
+        previewFileChecksum: { type: 'string' },
+      },
+      required: ['file', 'previewFileChecksum'],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Product bulk load atomically confirmed and created',
+    type: ProductBulkLoadConfirmResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Validation failed on rows' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - File checksum mismatch or batch already confirmed',
+  })
+  @ApiResponse({ status: 413, description: 'File too large (> 2 MiB)' })
+  @ApiResponse({ status: 415, description: 'Unsupported media type' })
+  async confirmBulkLoad(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() dto: ConfirmProductBulkLoadDto,
+    @CurrentUser() actor: AuthenticatedUser,
+  ): Promise<ProductBulkLoadConfirmResponseDto> {
+    return this.productBulkLoadService.confirmBulkLoad(
+      file,
+      dto.previewFileChecksum,
+      actor,
+    );
   }
 
   @Get(':id')
