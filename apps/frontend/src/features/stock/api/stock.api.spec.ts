@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { downloadStockTemplateApi } from './stock.api';
+import { getStockOverviewApi, postStockAdjustmentApi } from './stock.api';
 import { apiClient } from '@/services/api.client';
+import { StockMovementType } from '@erp/shared-types';
 
 vi.mock('@/services/api.client', () => ({
   apiClient: {
@@ -9,46 +10,38 @@ vi.mock('@/services/api.client', () => ({
   },
 }));
 
-describe('stock.api downloadStockTemplateApi', () => {
+describe('stock.api', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('downloads blob template successfully', async () => {
-    const mockBlob = new Blob(['sample data'], { type: 'text/csv' });
-    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockBlob });
+  it('fetches stock overview with query parameters', async () => {
+    const mockData = { items: [], meta: { total: 0 } };
+    vi.mocked(apiClient.get).mockResolvedValueOnce({ data: mockData });
 
-    const result = await downloadStockTemplateApi('csv');
-    expect(result).toBe(mockBlob);
-    expect(apiClient.get).toHaveBeenCalledWith('/stock/bulk-load/template', {
-      params: { format: 'csv' },
-      responseType: 'blob',
+    const result = await getStockOverviewApi({ page: 1, limit: 10, search: 'Paracetamol' });
+
+    expect(result).toBe(mockData);
+    expect(apiClient.get).toHaveBeenCalledWith('/stock', {
+      params: { page: 1, limit: 10, search: 'Paracetamol' },
     });
   });
 
-  it('decodes Blob error JSON when download fails with Blob response', async () => {
-    const errorJson = {
-      code: 'BULK_LOAD_TEMPLATE_ROW_LIMIT_EXCEEDED',
-      message: 'Catalog limit exceeded',
-    };
-    const errorBlob = new Blob([JSON.stringify(errorJson)], {
-      type: 'application/json',
-    });
+  it('submits manual stock adjustment', async () => {
+    const mockMovement = { id: 'mov-1' };
+    vi.mocked(apiClient.post).mockResolvedValueOnce({ data: mockMovement });
 
-    const axiosError = {
-      response: {
-        status: 422,
-        data: errorBlob,
-      },
+    const dto = {
+      productId: 'prod-1',
+      movementType: StockMovementType.AJUSTE_ENTRADA as const,
+      quantityBase: 10,
+      reason: 'Ajuste inicial',
+      documentReference: 'DOC-001',
     };
 
-    vi.mocked(apiClient.get).mockRejectedValueOnce(axiosError);
+    const result = await postStockAdjustmentApi(dto);
 
-    try {
-      await downloadStockTemplateApi('xlsx');
-      expect.unreachable('Should have thrown');
-    } catch (err: any) {
-      expect(err.response.data).toEqual(errorJson);
-    }
+    expect(result).toBe(mockMovement);
+    expect(apiClient.post).toHaveBeenCalledWith('/stock/adjustments', dto);
   });
 });

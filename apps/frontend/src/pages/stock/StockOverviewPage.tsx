@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Package, FileSpreadsheet, ShieldAlert } from 'lucide-react';
+import { Package, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { UserRole } from '@/features/users/types/users.types';
@@ -120,17 +120,6 @@ export const StockOverviewPage: React.FC = () => {
             >
               <ShieldAlert className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
               Cuarentena
-            </Button>
-
-            <Button
-              type="button"
-              variant="default"
-              size="sm"
-              onClick={() => navigate({ to: '/stock/bulk-load' as any })}
-              className="text-xs gap-1.5"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5" />
-              Carga Inicial Masiva
             </Button>
           </div>
         )}

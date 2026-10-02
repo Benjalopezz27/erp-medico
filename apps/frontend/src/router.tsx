@@ -19,6 +19,7 @@ import { SettingsPage, type SettingsTab } from '@/pages/SettingsPage';
 import { ProductsListPage } from '@/pages/products/ProductsListPage';
 import { ProductCreatePage } from '@/pages/products/ProductCreatePage';
 import { ProductEditPage } from '@/pages/products/ProductEditPage';
+import { ProductBulkLoadPage } from '@/pages/products/ProductBulkLoadPage';
 import { useAuthStore } from '@/stores/authStore';
 import { isRouteAllowed } from '@/config/permissions.config';
 import { UserRole, type UserSearchParams } from '@/features/users/types/users.types';
@@ -124,7 +125,6 @@ export function requireRole(allowedRole: UserRole): void {
 
 import { StockOverviewPage } from '@/pages/stock/StockOverviewPage';
 import { StockDetailPage } from '@/pages/stock/StockDetailPage';
-import { StockBulkLoadPage } from '@/pages/stock/StockBulkLoadPage';
 import { StockQuarantinePage } from '@/pages/stock/StockQuarantinePage';
 import {
   StockStatus,
@@ -597,12 +597,11 @@ const productEditRoute = createRoute({
   component: () => <ProductEditPage />,
 });
 
-// Static reserved stock subroutes
-const stockBulkLoadRoute = createRoute({
+const productBulkLoadRoute = createRoute({
   getParentRoute: () => appShellRoute,
-  path: '/stock/bulk-load',
+  path: '/products/bulk-load',
   beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
-  component: () => <StockBulkLoadPage />,
+  component: () => <ProductBulkLoadPage />,
 });
 
 const stockQuarantineRoute = createRoute({
@@ -856,7 +855,7 @@ const routeTree = rootRoute.addChildren([
     productsRoute,
     productCreateRoute,
     productEditRoute,
-    stockBulkLoadRoute,
+    productBulkLoadRoute,
     stockQuarantineRoute,
     stockOverviewRoute,
     stockDetailRoute,
