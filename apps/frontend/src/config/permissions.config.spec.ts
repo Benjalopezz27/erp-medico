@@ -36,4 +36,11 @@ describe('route permissions', () => {
     expect(isRouteAllowed('/prices/review', UserRole.ADMINISTRADOR)).toBe(true);
     expect(isRouteAllowed('/prices/review', UserRole.VENDEDOR)).toBe(false);
   });
+
+  it('opens help and account to every role', () => {
+    for (const path of ['/help', '/account']) {
+      expect(isRouteAllowed(path, UserRole.VENDEDOR)).toBe(true);
+      expect(isRouteAllowed(path, UserRole.ADMINISTRADOR)).toBe(true);
+    }
+  });
 });
