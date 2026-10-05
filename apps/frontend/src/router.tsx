@@ -178,6 +178,7 @@ import { ReceivablesPage } from '@/pages/receivables/ReceivablesPage';
 import { PaymentFormPage } from '@/pages/payments/PaymentFormPage';
 import { ReceiptPage } from '@/pages/payments/ReceiptPage';
 import { ChecksPage } from '@/pages/treasury/ChecksPage';
+import { TreasuryPage } from '@/pages/treasury/TreasuryPage';
 import { validateReceivablesSearchParams } from '@/features/receivables/schemas/receivables.schema';
 import { validateFiscalAlertsSearchParams } from '@/features/fiscal-alerts/schemas/fiscal-alerts.schema';
 export { validateFiscalAlertsSearchParams };
@@ -780,13 +781,7 @@ const treasuryRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/treasury',
   beforeLoad: () => requireRoutePermission('/treasury'),
-  component: () => (
-    <PlaceholderPage
-      title="Tesorería y Caja"
-      description="Control de caja chica, transferencias bancarias y cheques en cartera"
-      sprint="Sprint 10 — US-33"
-    />
-  ),
+  component: () => <TreasuryPage />,
 });
 
 const treasuryChecksRoute = createRoute({

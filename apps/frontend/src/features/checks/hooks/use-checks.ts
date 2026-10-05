@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { paymentsKeys } from '@/features/payments/hooks/payments-keys';
+import { treasuryKeys } from '@/features/treasury/hooks/use-treasury';
 import { receivablesKeys } from '@/features/receivables/hooks/receivables-keys';
 import {
   getCheckApi,
@@ -42,6 +43,8 @@ export function useCheckActionMutation() {
     retry: false,
     onSuccess: (_data, { action }) => {
       void queryClient.invalidateQueries({ queryKey: checksKeys.all });
+      // Depósito, endoso y rechazo mueven saldos entre cuentas.
+      void queryClient.invalidateQueries({ queryKey: treasuryKeys.all });
       if (action === 'reject') {
         // El rechazo cambia saldos, ledger y estado de recibos.
         void queryClient.invalidateQueries({ queryKey: receivablesKeys.all });
