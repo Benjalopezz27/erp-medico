@@ -1,3 +1,4 @@
+import type { ISortParams } from './sorting.model';
 import {
   SaleStatus,
   FiscalDocumentType,
@@ -150,7 +151,7 @@ export interface ICreateSalePayload {
   items: ICreateSaleItemPayload[];
 }
 
-export interface ISaleSearchParams {
+export interface ISaleSearchParams extends ISortParams {
   page?: number;
   limit?: number;
   from?: string;

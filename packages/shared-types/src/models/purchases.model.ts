@@ -1,3 +1,4 @@
+import type { ISortParams } from './sorting.model';
 import {
   PurchaseOrderStatus,
   SupplierInvoiceAdjustmentMode,
@@ -83,7 +84,17 @@ export interface IPurchaseOrderDetail extends IPurchaseOrderSummary {
   items: IPurchaseOrderItemDetail[];
 }
 
-export interface IPurchaseOrderSearchParams {
+export const PURCHASE_ORDER_SORT_FIELDS = [
+  'orderNumber',
+  'supplier',
+  'createdAt',
+  'emittedAt',
+  'status',
+  'totalNet',
+] as const;
+export type PurchaseOrderSortField = (typeof PURCHASE_ORDER_SORT_FIELDS)[number];
+
+export interface IPurchaseOrderSearchParams extends ISortParams<PurchaseOrderSortField> {
   page?: number;
   limit?: number;
   supplierId?: string;
@@ -368,7 +379,18 @@ export interface IRejectSupplierInvoicePayload {
   reason: string;
 }
 
-export interface ISupplierInvoiceSearchParams {
+export const SUPPLIER_INVOICE_SORT_FIELDS = [
+  'invoiceNumber',
+  'supplier',
+  'invoiceDate',
+  'status',
+  'totalNet',
+  'ivaTotal',
+  'totalGross',
+] as const;
+export type SupplierInvoiceSortField = (typeof SUPPLIER_INVOICE_SORT_FIELDS)[number];
+
+export interface ISupplierInvoiceSearchParams extends ISortParams<SupplierInvoiceSortField> {
   page?: number;
   limit?: number;
   supplierId?: string;

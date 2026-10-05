@@ -1,3 +1,4 @@
+import type { ISortParams } from './sorting.model';
 import {
   StockMovementType,
   QuarantineStatus,
@@ -65,7 +66,10 @@ export interface IQuarantineStock {
   updatedAt: Date | string;
 }
 
-export interface IQuarantineSearchParams {
+export const QUARANTINE_SORT_FIELDS = ['product', 'quantity', 'createdAt', 'status'] as const;
+export type QuarantineSortField = (typeof QUARANTINE_SORT_FIELDS)[number];
+
+export interface IQuarantineSearchParams extends ISortParams<QuarantineSortField> {
   page?: number;
   limit?: number;
   productId?: string;
@@ -162,7 +166,7 @@ export interface IStockEvolutionResponse {
   points: IStockEvolutionPoint[];
 }
 
-export interface IStockSearchParams {
+export interface IStockSearchParams extends ISortParams {
   page?: number;
   limit?: number;
   search?: string;
@@ -171,7 +175,7 @@ export interface IStockSearchParams {
   alertsOnly?: boolean;
 }
 
-export interface IStockMovementsSearchParams {
+export interface IStockMovementsSearchParams extends ISortParams {
   page?: number;
   limit?: number;
   movementType?: StockMovementType;
