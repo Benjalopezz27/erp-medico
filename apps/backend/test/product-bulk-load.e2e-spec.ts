@@ -217,7 +217,9 @@ describe('Product Bulk Load API (E2E)', () => {
         .attach('file', buffer, 'missing_cols.csv')
         .expect(400);
 
-      expect(res.body.code).toBe(ProductBulkFileErrorCode.BULK_LOAD_MISSING_HEADERS);
+      expect(res.body.code).toBe(
+        ProductBulkFileErrorCode.BULK_LOAD_MISSING_HEADERS,
+      );
     });
 
     it('returns validation errors for row with unknown category or invalid numeric values', async () => {
