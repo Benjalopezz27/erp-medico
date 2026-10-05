@@ -171,7 +171,7 @@ describe('SalesService', () => {
       enqueue: jest.fn().mockResolvedValue({ jobId: 'pdf-generate-doc-1' }),
     };
     invoiceTypeResolverService = {
-      resolve: jest.fn().mockReturnValue(FiscalDocumentType.FACTURA_B),
+      resolve: jest.fn().mockResolvedValue(FiscalDocumentType.FACTURA_B),
     };
     pendingFiscalService = {
       retry: jest.fn().mockResolvedValue({
@@ -434,7 +434,7 @@ describe('SalesService', () => {
         documentNumber: null,
         cae: null,
       };
-      invoiceTypeResolverService.resolve.mockReturnValue(
+      invoiceTypeResolverService.resolve.mockResolvedValue(
         FiscalDocumentType.FACTURA_A,
       );
 

@@ -31,6 +31,7 @@ import { InvoiceTypeResolverService } from '../src/modules/arca/services/invoice
 import { FiscalNumberingService } from '../src/modules/sales/services/fiscal-numbering.service';
 import { FiscalInvoiceProcessor } from '../src/modules/queue/processors/fiscal-invoice.processor';
 import { FiscalContingencyOrchestrator } from '../src/modules/queue/services/fiscal-contingency-orchestrator.service';
+import { SystemSettingsService } from '../src/modules/config/system-settings.service';
 import { PdfGenerateProcessor } from '../src/modules/queue/processors/pdf-generate.processor';
 import { PdfGenerateQueueService } from '../src/modules/queue/services/pdf-generate.queue';
 import { FiscalQrPayloadService } from '../src/modules/sales/services/fiscal-qr-payload.service';
@@ -71,6 +72,7 @@ function buildPdfGenerateProcessor(app: INestApplication, ds: DataSource) {
     new FiscalQrPayloadService(configService),
     new FiscalPdfTemplateService(),
     configService,
+    app.get(SystemSettingsService),
   );
 }
 

@@ -118,14 +118,14 @@ export class FiscalContingencyOrchestrator {
 
       const documentType =
         document.documentType ??
-        this.invoiceTypeResolver.resolve(
+        (await this.invoiceTypeResolver.resolve(
           customer
             ? {
                 taxCondition: customer.taxCondition,
                 documentType: customer.documentType,
               }
             : null,
-        );
+        ));
 
       const pointOfSale =
         document.pointOfSale ?? this.resolveEmisorPointOfSale();

@@ -46,7 +46,7 @@ El sistema SHALL exponer `PATCH /config` (solo ADMINISTRADOR) que actualiza solo
 
 ### Requirement: Consumidores usan el valor efectivo
 
-El PDF fiscal, el PDF de recibo y el resolvedor de tipo de factura SHALL leer razón social, CUIT y condición fiscal del emisor desde el valor efectivo. La emisión ante ARCA SHALL seguir usando CUIT y punto de venta del entorno.
+El PDF fiscal SHALL leer razón social y condición fiscal del emisor del valor efectivo; el PDF de recibo SHALL leer razón social y CUIT; el resolvedor de tipo de factura SHALL leer la condición fiscal. La emisión ante ARCA y el CUIT del PDF fiscal (el mismo que arma el QR y firma el CAE) SHALL seguir usando el entorno.
 
 #### Scenario: Emisor configurado en la UI
 

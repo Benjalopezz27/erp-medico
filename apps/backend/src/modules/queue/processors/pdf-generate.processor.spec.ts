@@ -37,6 +37,7 @@ describe('PdfGenerateProcessor', () => {
   >;
   let dataSource: any;
   let configService: any;
+  let settings: any;
 
   const emittedDocument: FiscalDocument = {
     id: 'doc-1',
@@ -126,12 +127,21 @@ describe('PdfGenerateProcessor', () => {
       ),
     };
 
+    settings = {
+      getIssuer: jest.fn().mockResolvedValue({
+        razonSocial: 'Distribuidora Sur SA',
+        cuit: null,
+        taxCondition: 'MONOTRIBUTO',
+      }),
+    };
+
     processor = new PdfGenerateProcessor(
       {} as any,
       dataSource,
       new FiscalQrPayloadService(configService),
       new FiscalPdfTemplateService(),
       configService,
+      settings,
     );
   });
 
@@ -156,6 +166,32 @@ describe('PdfGenerateProcessor', () => {
     expect(Buffer.isBuffer(payload.pdfData)).toBe(true);
     expect(payload.pdfSizeBytes).toBe(payload.pdfData.length);
     expect(payload.pdfChecksum).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it('renders the issuer from system settings, keeping the CUIT from env', async () => {
+    const render = jest.fn().mockResolvedValue(new Uint8Array([1]));
+    processor = new PdfGenerateProcessor(
+      {} as any,
+      dataSource,
+      new FiscalQrPayloadService(configService),
+      { render } as unknown as FiscalPdfTemplateService,
+      configService,
+      settings,
+    );
+
+    await processor.process({
+      id: 'job-1',
+      data: { fiscalDocumentId: 'doc-1' },
+    } as any);
+
+    expect(render).toHaveBeenCalledWith(
+      expect.objectContaining({
+        emisor: expect.objectContaining({
+          razonSocial: 'Distribuidora Sur SA',
+          documentLabel: 'CUIT 20345678901',
+        }),
+      }),
+    );
   });
 
   it('is a no-op when the document is not EMITIDO', async () => {
@@ -215,6 +251,7 @@ describe('PdfGenerateProcessor', () => {
       new FiscalQrPayloadService(configService),
       failingPdfService,
       configService,
+      settings,
     );
 
     await expect(

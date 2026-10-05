@@ -7,7 +7,7 @@ import {
   StreamableFile,
   UseGuards,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { SystemSettingsService } from '../config/system-settings.service';
 import { Response } from 'express';
 import {
   ApiBearerAuth,
@@ -33,7 +33,7 @@ export class ReceiptsController {
   constructor(
     private readonly receiptsService: ReceiptsService,
     private readonly pdfService: ReceiptPdfService,
-    private readonly config: ConfigService,
+    private readonly settings: SystemSettingsService,
   ) {}
 
   @Get(':id')
@@ -50,13 +50,12 @@ export class ReceiptsController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const receipt = await this.receiptsService.getDetail(id);
+    const issuer = await this.settings.getIssuer();
     const bytes = await this.pdfService.render({
       receipt,
       emisor: {
-        razonSocial:
-          this.config.get<string>('ARCA_EMISOR_RAZON_SOCIAL') ??
-          'Emisor no configurado',
-        cuit: this.config.get<string>('ARCA_CUIT') ?? '',
+        razonSocial: issuer.razonSocial ?? 'Emisor no configurado',
+        cuit: issuer.cuit ?? '',
       },
     });
     res.set({

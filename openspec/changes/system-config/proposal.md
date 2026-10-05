@@ -8,7 +8,7 @@ Los datos del emisor (razón social, CUIT, condición fiscal), el punto de venta
 
 - Tabla `system_settings` (clave/valor) y `GET /config` / `PATCH /config`, solo ADMINISTRADOR. Claves: `issuer_razon_social`, `issuer_cuit`, `issuer_tax_condition`, `arca_punto_venta`, `operating_currency`.
 - Valor efectivo = valor en base de datos, si no hay, la variable de entorno actual (`ARCA_EMISOR_RAZON_SOCIAL`, `ARCA_CUIT`, `ARCA_EMISOR_TAX_CONDITION`, `ARCA_PUNTO_VENTA`), si no hay, default (`ARS`).
-- Consumidores que pasan a leer el valor efectivo: PDF fiscal (emisor), PDF de recibo (emisor) y `InvoiceTypeResolverService` (condición fiscal).
+- Consumidores que pasan a leer el valor efectivo: PDF fiscal (razón social y condición fiscal; el CUIT sigue en env por coherencia con QR y CAE), PDF de recibo (razón social y CUIT) y `InvoiceTypeResolverService` (condición fiscal).
 - La emisión WSFE (`ArcaHomologationService`, orquestador de contingencia) **sigue leyendo CUIT y punto de venta de env** hasta el Go-Live: el certificado ARCA está atado al CUIT y cambiarlo desde la UI podría emitir mal un comprobante. La UI lo avisa.
 - Cada cambio queda en `AuditLog` (valor anterior y nuevo).
 - Frontend: pestaña "General" en `/settings` (solo ADMINISTRADOR) con el formulario. La tolerancia de costos sigue en la pestaña "Compras" (`purchase_settings`, sin migrar).

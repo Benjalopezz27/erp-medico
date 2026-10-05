@@ -21,7 +21,7 @@
 
 1. **Clave/valor `system_settings(key PK, value text, updated_by_user_id, updated_at)`** sin seed. Fila ausente = "no definido". Evita migrar datos reales y deja el fallback a env sin ambigüedad. Alternativa: fila única con columnas (como `purchase_settings`); descartada porque cada parámetro nuevo exigiría migración.
 2. **`SystemConfigService.getEffective()`** devuelve el objeto completo; `getIssuer()` es un atajo para los PDFs. Los consumidores inyectan `SystemConfigService` en vez de `ConfigService` para estos tres valores.
-3. **WSFE sigue en env** (decisión del owner técnico): un CUIT editable no puede desalinearse del certificado. La UI muestra un aviso en esos campos. El Go-Live decide si migra.
+3. **WSFE sigue en env** (decisión del owner técnico): un CUIT editable no puede desalinearse del certificado. El CUIT del PDF fiscal también queda en env para no mostrar un CUIT distinto al del QR y el CAE. La UI muestra un aviso en esos campos. El Go-Live decide si migra.
 4. **Validación en DTO** (class-validator): `IsValidCuit`, `IsEnum(TaxCondition)`, `IsInt` 1–99999, `IsIn(['ARS','USD'])`, `Length` razón social. `@Type(() => Number)` para el punto de venta.
 5. **Un `AuditLog` por campo cambiado** (`entityName: 'SystemSetting'`, `entityId: key`), mismo patrón que `PurchaseSettings`.
 

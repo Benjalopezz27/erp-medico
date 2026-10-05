@@ -326,7 +326,7 @@ export class SalesService {
     const isEmitted = fiscalDocument.arcaStatus === ArcaStatus.EMITIDO;
     const invoiceType = isEmitted
       ? fiscalDocument.documentType!
-      : this.invoiceTypeResolverService.resolve(
+      : await this.invoiceTypeResolverService.resolve(
           sale.customer
             ? {
                 taxCondition: sale.customer.taxCondition,

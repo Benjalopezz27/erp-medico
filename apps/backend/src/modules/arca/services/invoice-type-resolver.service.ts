@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { SystemSettingsService } from '../../config/system-settings.service';
 import {
   CustomerDocumentType,
   FiscalDocumentType,
@@ -21,10 +21,14 @@ export interface InvoiceTypeCustomer {
  */
 @Injectable()
 export class InvoiceTypeResolverService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly settings: SystemSettingsService) {}
 
-  resolve(customer: InvoiceTypeCustomer | null): FiscalDocumentType {
-    if (this.emisorTaxCondition() !== TaxCondition.RESPONSABLE_INSCRIPTO) {
+  async resolve(
+    customer: InvoiceTypeCustomer | null,
+  ): Promise<FiscalDocumentType> {
+    if (
+      (await this.emisorTaxCondition()) !== TaxCondition.RESPONSABLE_INSCRIPTO
+    ) {
       return FiscalDocumentType.FACTURA_B;
     }
     if (!customer) {
@@ -41,11 +45,8 @@ export class InvoiceTypeResolverService {
       : FiscalDocumentType.FACTURA_B;
   }
 
-  private emisorTaxCondition(): TaxCondition {
-    const configured = this.configService
-      .get<string>('ARCA_EMISOR_TAX_CONDITION')
-      ?.trim()
-      .toUpperCase();
-    return (configured as TaxCondition) || TaxCondition.RESPONSABLE_INSCRIPTO;
+  private async emisorTaxCondition(): Promise<TaxCondition> {
+    const { taxCondition } = await this.settings.getIssuer();
+    return taxCondition || TaxCondition.RESPONSABLE_INSCRIPTO;
   }
 }

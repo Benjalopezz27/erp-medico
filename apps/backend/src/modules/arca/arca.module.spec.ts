@@ -1,3 +1,4 @@
+import { Module } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { ArcaModule } from './arca.module';
@@ -5,7 +6,15 @@ import { ArcaController } from './arca.controller';
 import { ArcaService } from './arca.service';
 import { ARCA_SERVICE } from './arca.constants';
 import { ArcaMockService } from './arca-mock.service';
+import { SystemConfigModule } from '../config/system-config.module';
+import { SystemSettingsService } from '../config/system-settings.service';
 import { IArcaService } from './interfaces/arca-service.interface';
+
+@Module({
+  providers: [{ provide: SystemSettingsService, useValue: {} }],
+  exports: [SystemSettingsService],
+})
+class SystemConfigStubModule {}
 
 describe('ArcaModule (Integration)', () => {
   const originalEnv = process.env;
@@ -32,7 +41,10 @@ describe('ArcaModule (Integration)', () => {
         }),
         ArcaModule,
       ],
-    }).compile();
+    })
+      .overrideModule(SystemConfigModule)
+      .useModule(SystemConfigStubModule)
+      .compile();
   });
 
   afterEach(async () => {

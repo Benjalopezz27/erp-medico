@@ -1,4 +1,6 @@
 import { Global, Module } from '@nestjs/common';
+import { SystemConfigModule } from '../config/system-config.module';
+import { SystemSettingsService } from '../config/system-settings.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -57,6 +59,12 @@ describe('QueueProducerModule (Backend API)', () => {
   });
 });
 
+@Module({
+  providers: [{ provide: SystemSettingsService, useValue: {} }],
+  exports: [SystemSettingsService],
+})
+class SystemConfigStubModule {}
+
 @Global()
 @Module({
   providers: [
@@ -90,6 +98,8 @@ describe('QueueConsumerModule (Worker Process)', () => {
       .useValue({})
       .overrideProvider(getRepositoryToken(Customer))
       .useValue({})
+      .overrideModule(SystemConfigModule)
+      .useModule(SystemConfigStubModule)
       .compile();
   });
 

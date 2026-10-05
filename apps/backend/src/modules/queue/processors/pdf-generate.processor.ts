@@ -6,6 +6,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SystemSettingsService } from '../../config/system-settings.service';
 import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import * as crypto from 'crypto';
@@ -93,6 +94,7 @@ export class PdfGenerateProcessor implements OnModuleInit, OnModuleDestroy {
     private readonly qrPayloadService: FiscalQrPayloadService,
     private readonly pdfTemplateService: FiscalPdfTemplateService,
     private readonly configService: ConfigService,
+    private readonly settings: SystemSettingsService,
   ) {}
 
   onModuleInit(): void {
@@ -196,7 +198,7 @@ export class PdfGenerateProcessor implements OnModuleInit, OnModuleDestroy {
       });
 
       const pdfBytes = await this.pdfTemplateService.render({
-        emisor: this.resolveEmisor(),
+        emisor: await this.resolveEmisor(),
         receptor: this.resolveReceptor(customer, receiver),
         documentTypeLabel:
           DOCUMENT_TYPE_LABELS[document.documentType as FiscalDocumentType],
@@ -286,14 +288,12 @@ export class PdfGenerateProcessor implements OnModuleInit, OnModuleDestroy {
     return { items, fiscalAmounts };
   }
 
-  private resolveEmisor(): FiscalPdfParty {
+  private async resolveEmisor(): Promise<FiscalPdfParty> {
+    // El CUIT sigue saliendo de env: es el mismo que firma el CAE y arma el QR.
     const cuit = this.configService.get<string>('ARCA_CUIT') ?? '';
-    const razonSocial =
-      this.configService.get<string>('ARCA_EMISOR_RAZON_SOCIAL') ??
-      'Emisor no configurado';
-    const taxCondition = this.configService.get<string>(
-      'ARCA_EMISOR_TAX_CONDITION',
-    ) as TaxCondition | undefined;
+    const issuer = await this.settings.getIssuer();
+    const razonSocial = issuer.razonSocial ?? 'Emisor no configurado';
+    const taxCondition = issuer.taxCondition;
     return {
       razonSocial,
       tradeName: this.configService.get<string>('ARCA_EMISOR_NOMBRE_COMERCIAL'),

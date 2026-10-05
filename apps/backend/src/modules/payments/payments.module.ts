@@ -9,6 +9,7 @@ import { PaymentsController } from './payments.controller';
 import { PaymentsService } from './payments.service';
 import { ReceiptNumberService } from './receipt-number.service';
 import { ReceiptPdfService } from './receipt-pdf.service';
+import { SystemConfigModule } from '../config/system-config.module';
 import { ReceiptsController } from './receipts.controller';
 import { ReceiptsService } from './receipts.service';
 
@@ -16,6 +17,7 @@ import { ReceiptsService } from './receipts.service';
   imports: [
     TypeOrmModule.forFeature([Payment, PaymentAllocation, Receipt, Check]),
     ReceivablesModule,
+    SystemConfigModule,
   ],
   controllers: [PaymentsController, ReceiptsController],
   providers: [
