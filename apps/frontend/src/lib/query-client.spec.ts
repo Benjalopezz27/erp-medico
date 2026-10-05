@@ -49,4 +49,15 @@ describe('queryClient global error handling', () => {
 
     expect(toast.error).not.toHaveBeenCalled();
   });
+
+  it('invalidates the dashboard feed and KPIs after any successful mutation', async () => {
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+    await queryClient
+      .getMutationCache()
+      .build(queryClient, { mutationFn: () => Promise.resolve('ok') })
+      .execute(undefined);
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['dashboard'] });
+  });
 });

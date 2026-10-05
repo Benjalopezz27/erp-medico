@@ -20,7 +20,7 @@ function KpiCard({
   link: React.ReactNode;
 }) {
   return (
-    <Card className="border-slate-200 shadow-sm transition hover:border-slate-400">
+    <Card className="relative border-slate-200 shadow-sm transition hover:border-slate-400 hover:shadow-md has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-600">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-xs font-semibold uppercase tracking-wider text-slate-500">
           {title}
@@ -36,7 +36,9 @@ function KpiCard({
   );
 }
 
-const linkClass = 'mt-2 inline-block text-xs font-semibold text-blue-600 hover:underline';
+// The ::after overlay stretches the link over the whole card, making the card the click target.
+const linkClass =
+  'mt-2 inline-block text-xs font-semibold text-blue-600 hover:underline focus-visible:outline-none after:absolute after:inset-0 after:rounded-2xl after:content-[""]';
 
 export function KpiCards() {
   const { data, isError, error } = useDashboardKpisQuery();

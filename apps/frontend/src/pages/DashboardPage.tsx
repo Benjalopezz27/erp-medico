@@ -1,11 +1,12 @@
 import React from 'react';
 import { Link } from '@tanstack/react-router';
-import { ShoppingCart, Boxes, PlusCircle, Clock } from 'lucide-react';
+import { ShoppingCart, Boxes, PlusCircle } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { UserRole } from '@erp/shared-types';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ActivityFeed } from '@/features/dashboard/components/ActivityFeed';
 import { KpiCards } from '@/features/dashboard/components/KpiCards';
 
 export const DashboardPage: React.FC = () => {
@@ -59,17 +60,11 @@ export const DashboardPage: React.FC = () => {
         <Card className="lg:col-span-2 border-slate-200 shadow-sm">
           <CardHeader>
             <CardTitle className="text-base font-semibold text-slate-900">
-              Actividad Reciente del Sistema
+              Actividad reciente
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="py-8 text-center text-slate-400 space-y-2">
-              <Clock className="w-8 h-8 mx-auto text-slate-300" />
-              <p className="text-sm">No hay transacciones registradas hoy.</p>
-              <p className="text-xs text-slate-400">
-                Los movimientos de stock y ventas aparecerán en tiempo real aquí.
-              </p>
-            </div>
+            <ActivityFeed />
           </CardContent>
         </Card>
 
