@@ -6,6 +6,8 @@ import {
   FiscalDocumentType,
   PaymentMethod,
   SaleStatus,
+  TreasuryAccountType,
+  TreasuryMovementType,
   SalesErrorCode,
   ProductTaxTreatment,
   TaxCondition,
@@ -40,6 +42,7 @@ describe('SalesService', () => {
   let debt: any;
   let customer: any;
   let manager: any;
+  let treasuryService: { recordMovement: jest.Mock };
   let dataSource: any;
   let customerPricingService: jest.Mocked<
     Pick<CustomerPricingService, 'resolveForSale'>
@@ -167,6 +170,7 @@ describe('SalesService', () => {
       }),
     };
     auditService = { record: jest.fn().mockResolvedValue({} as any) };
+    treasuryService = { recordMovement: jest.fn().mockResolvedValue({}) };
     pdfGenerateQueueService = {
       enqueue: jest.fn().mockResolvedValue({ jobId: 'pdf-generate-doc-1' }),
     };
@@ -190,6 +194,7 @@ describe('SalesService', () => {
       pdfGenerateQueueService as any,
       invoiceTypeResolverService as any,
       pendingFiscalService as any,
+      treasuryService as any,
     );
   });
 
@@ -290,6 +295,47 @@ describe('SalesService', () => {
       ProductTaxTreatment.EXENTO,
       ProductTaxTreatment.NO_GRAVADO,
     ]);
+  });
+
+  describe('treasury movement', () => {
+    it.each([
+      [PaymentMethod.EFECTIVO, TreasuryAccountType.EFECTIVO],
+      [PaymentMethod.QR, TreasuryAccountType.BANCOS],
+      [PaymentMethod.CHEQUE, TreasuryAccountType.CHEQUES_CARTERA],
+    ])(
+      'records an income for a cash sale paid with %s',
+      async (paymentMethod, accountType) => {
+        const result = await service.create(
+          { ...baseDto, paymentMethod },
+          userId,
+        );
+        expect(treasuryService.recordMovement).toHaveBeenCalledWith(
+          manager,
+          expect.objectContaining({
+            accountType,
+            movementType: TreasuryMovementType.INGRESO,
+            amount: result.totalGross,
+            referenceType: 'SALE',
+            referenceId: result.id,
+            userId,
+          }),
+        );
+      },
+    );
+
+    it('records nothing for a credit sale', async () => {
+      await service.create(
+        {
+          ...baseDto,
+          customerId: '30000000-0000-4000-8000-000000000001',
+          isCreditSale: true,
+          requiresFiscalInvoice: true,
+          paymentMethod: PaymentMethod.CTA_CTE,
+        },
+        userId,
+      );
+      expect(treasuryService.recordMovement).not.toHaveBeenCalled();
+    });
   });
 
   it('creates a pending fiscal document and debt for a credit sale', async () => {

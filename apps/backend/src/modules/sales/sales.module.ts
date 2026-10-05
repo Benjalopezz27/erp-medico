@@ -1,3 +1,4 @@
+import { TreasuryModule } from '../treasury/treasury.module';
 import { Module } from '@nestjs/common';
 import { SalesService } from './sales.service';
 import { SalesController } from './sales.controller';
@@ -32,6 +33,7 @@ import { PendingFiscalService } from './services/pending-fiscal.service';
     StockModule,
     AuditModule,
     ReceivablesModule,
+    TreasuryModule,
     QuarantineModule,
     QueueModule,
     ArcaModule,
