@@ -28,6 +28,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { ChecksModule } from './modules/checks/checks.module';
 import { TreasuryModule } from './modules/treasury/treasury.module';
 import { CashRegisterModule } from './modules/cash-register/cash-register.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { SystemConfigModule } from './modules/config/system-config.module';
 import { HealthModule } from './modules/health/health.module';
@@ -68,6 +69,7 @@ import { QueueProducerModule } from './modules/queue/queue-producer.module';
     ChecksModule,
     TreasuryModule,
     CashRegisterModule,
+    DashboardModule,
     ReportsModule,
     SystemConfigModule,
     HealthModule,

@@ -9,6 +9,7 @@ export * from './customer-pricing.model';
 export * from './sales.model';
 export * from './receivables.model';
 export * from './treasury.model';
+export * from './dashboard.model';
 export * from './arca.model';
 export * from './importer.model';
 export * from './system-config.model';
