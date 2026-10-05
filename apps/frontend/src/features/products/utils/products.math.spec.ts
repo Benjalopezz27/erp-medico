@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { calculateSuggestedPrice, formatCurrency, formatDecimal } from './products.math';
+import {
+  calculateFinalFromNet,
+  calculateNetFromFinal,
+  calculateSuggestedPrice,
+  formatCurrency,
+  formatDecimal,
+} from './products.math';
 
 describe('products.math', () => {
   describe('calculateSuggestedPrice', () => {
@@ -30,6 +36,42 @@ describe('products.math', () => {
       expect(calculateSuggestedPrice(-10, 50)).toBe(0);
       expect(calculateSuggestedPrice('invalid', 50)).toBe(0);
       expect(calculateSuggestedPrice(null, 50)).toBe(0);
+    });
+  });
+
+  describe('calculateNetFromFinal / calculateFinalFromNet', () => {
+    it('removes VAT from the final price', () => {
+      expect(calculateNetFromFinal(121, 21)).toBe(100);
+      expect(calculateNetFromFinal('110.5', 10.5)).toBe(100);
+    });
+
+    it('rounds net to 2 decimals with ROUND_HALF_UP', () => {
+      // 100 / 1.21 = 82.644628... -> 82.64
+      expect(calculateNetFromFinal(100, 21)).toBe(82.64);
+      // 1.01 / 1.21 = 0.83471... -> 0.83
+      expect(calculateNetFromFinal(1.01, 21)).toBe(0.83);
+    });
+
+    it('keeps net equal to final when VAT does not apply', () => {
+      expect(calculateNetFromFinal(150.5, null)).toBe(150.5);
+      expect(calculateNetFromFinal(150.5)).toBe(150.5);
+    });
+
+    it('returns 0 for empty, negative or invalid input', () => {
+      expect(calculateNetFromFinal('', 21)).toBe(0);
+      expect(calculateNetFromFinal(-5, 21)).toBe(0);
+      expect(calculateNetFromFinal('abc', 21)).toBe(0);
+      expect(calculateFinalFromNet(null, 21)).toBe(0);
+    });
+
+    it('adds VAT to the net price', () => {
+      expect(calculateFinalFromNet(100, 21)).toBe(121);
+      expect(calculateFinalFromNet(100, null)).toBe(100);
+    });
+
+    it('round trip final -> net (2 dec) -> final may differ by one cent', () => {
+      // 100 / 1.21 = 82.64 -> 82.64 * 1.21 = 99.99: why the form keeps the typed final.
+      expect(calculateFinalFromNet(calculateNetFromFinal(100, 21), 21)).toBe(99.99);
     });
   });
 

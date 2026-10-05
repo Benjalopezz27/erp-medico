@@ -43,6 +43,51 @@ export function calculateSuggestedPrice(
   return cost.times(multiplier).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
 }
 
+function toPositiveDecimal(value: number | string | null | undefined): Decimal | null {
+  if (value === null || value === undefined || value === '') return null;
+  try {
+    const parsed = new Decimal(value);
+    return parsed.isNaN() || parsed.isNegative() ? null : parsed;
+  } catch {
+    return null;
+  }
+}
+
+function vatDivisor(ivaPercentage: number | string | null | undefined): Decimal {
+  return new Decimal(1).plus(new Decimal(ivaPercentage ?? 0).dividedBy(100));
+}
+
+/**
+ * Derives the net price from the final (VAT-included) price.
+ * Formula: final / (1 + iva / 100); `ivaPercentage` null means no VAT (net = final).
+ * Uses Decimal with ROUND_HALF_UP to 2 decimal places.
+ */
+export function calculateNetFromFinal(
+  finalPrice: number | string | null | undefined,
+  ivaPercentage?: number | string | null,
+): number {
+  const final = toPositiveDecimal(finalPrice);
+  if (!final) return 0;
+  return final
+    .dividedBy(vatDivisor(ivaPercentage))
+    .toDecimalPlaces(2, Decimal.ROUND_HALF_UP)
+    .toNumber();
+}
+
+/**
+ * Derives the final (VAT-included) price from the net price.
+ * Formula: net * (1 + iva / 100); `ivaPercentage` null means no VAT (final = net).
+ * Uses Decimal with ROUND_HALF_UP to 2 decimal places.
+ */
+export function calculateFinalFromNet(
+  netPrice: number | string | null | undefined,
+  ivaPercentage?: number | string | null,
+): number {
+  const net = toPositiveDecimal(netPrice);
+  if (!net) return 0;
+  return net.times(vatDivisor(ivaPercentage)).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
+}
+
 /**
  * Formats a numeric value as ARS currency ($ 1.234,56).
  */
