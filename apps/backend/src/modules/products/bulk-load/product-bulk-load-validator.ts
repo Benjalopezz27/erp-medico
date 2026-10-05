@@ -641,16 +641,18 @@ export class ProductBulkLoadValidator {
       const isValid = row.errors.length === 0;
       let resolvedProduct: IProductBulkLoadRowProduct | null = null;
 
+      // Resolved data is kept for invalid rows too so the preview can show it.
       if (
-        isValid &&
         resolvedCategory &&
         resolvedBaseUnit &&
         row.costNet !== null &&
         row.activePriceNet !== null
       ) {
-        totalInitialStockDecimal = totalInitialStockDecimal.plus(
-          row.initialStock,
-        );
+        if (isValid) {
+          totalInitialStockDecimal = totalInitialStockDecimal.plus(
+            row.initialStock,
+          );
+        }
 
         const suggestedPriceNet = Number(
           this.pricesService.calculateSuggestedPrice(
