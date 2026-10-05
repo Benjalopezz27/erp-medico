@@ -98,7 +98,7 @@ export function validateSettingsSearchParams(search: Record<string, unknown>): {
   tab?: SettingsTab;
 } {
   const tab = search.tab;
-  return tab === 'units' || tab === 'purchases' ? { tab } : {};
+  return tab === 'units' || tab === 'purchases' || tab === 'general' ? { tab } : {};
 }
 
 export function requireAuthentication(): void {

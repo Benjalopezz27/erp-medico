@@ -19,9 +19,12 @@ import { UnitsTable } from '@/features/units/components/UnitsTable';
 import { UnitFormModal } from '@/features/units/components/UnitFormModal';
 import { UnitDeleteModal } from '@/features/units/components/UnitDeleteModal';
 import type { IUnit } from '@/features/units/types/units.types';
+import { SystemConfigForm } from '@/features/system-config/components/SystemConfigForm';
 import { PurchaseToleranceSettings } from '@/features/purchase-settings/components/PurchaseToleranceSettings';
 
-export type SettingsTab = 'categories' | 'units' | 'purchases';
+export type SettingsTab = 'categories' | 'units' | 'purchases' | 'general';
+
+const ADMIN_TABS: SettingsTab[] = ['purchases', 'general'];
 
 export const SettingsPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -30,10 +33,12 @@ export const SettingsPage: React.FC = () => {
   const search = useSearch({ strict: false }) as { tab?: SettingsTab };
 
   const activeTab: SettingsTab =
-    search.tab === 'purchases' && !isAdmin ? 'categories' : (search.tab ?? 'categories');
+    ADMIN_TABS.includes(search.tab as SettingsTab) && !isAdmin
+      ? 'categories'
+      : (search.tab ?? 'categories');
 
   useEffect(() => {
-    if (search.tab === 'purchases' && !isAdmin) {
+    if (ADMIN_TABS.includes(search.tab as SettingsTab) && !isAdmin) {
       navigate({ to: '/settings', search: {}, replace: true });
     }
   }, [isAdmin, navigate, search.tab]);
@@ -172,10 +177,11 @@ export const SettingsPage: React.FC = () => {
             <TabsTrigger value="categories">Categorías</TabsTrigger>
             <TabsTrigger value="units">Unidades de Medida</TabsTrigger>
             {isAdmin && <TabsTrigger value="purchases">Compras</TabsTrigger>}
+            {isAdmin && <TabsTrigger value="general">General</TabsTrigger>}
           </TabsList>
 
           {/* Action button corresponding to active tab */}
-          {isAdmin && activeTab !== 'purchases' && (
+          {isAdmin && activeTab !== 'purchases' && activeTab !== 'general' && (
             <div>
               {activeTab === 'categories' ? (
                 <Button
@@ -227,6 +233,8 @@ export const SettingsPage: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="purchases">{isAdmin && <PurchaseToleranceSettings />}</TabsContent>
+
+        <TabsContent value="general">{isAdmin && <SystemConfigForm />}</TabsContent>
       </Tabs>
 
       {/* Category Modals */}

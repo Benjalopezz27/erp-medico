@@ -36,13 +36,11 @@ describe('ReceiptsController.getPdf', () => {
       { getDetail: jest.fn().mockResolvedValue({ receiptNumber: 'x' }) } as any,
       pdfService as any,
       {
-        getIssuer: jest
-          .fn()
-          .mockResolvedValue({
-            razonSocial: null,
-            cuit: null,
-            taxCondition: null,
-          }),
+        getIssuer: jest.fn().mockResolvedValue({
+          razonSocial: null,
+          cuit: null,
+          taxCondition: null,
+        }),
       } as any,
     );
 

@@ -14,9 +14,9 @@
 
 ## 3. Frontend
 
-- [ ] 3.1 `features/system-config/` (api, hook de query y mutation, validación de formulario, tests). Verificar con vitest.
-- [ ] 3.2 Componente `SystemConfigForm` con aviso WSFE y pestaña "General" solo ADMINISTRADOR en `SettingsPage`. Test de render, validación y guardado. Verificar con vitest.
+- [x] 3.1 `features/system-config/` (api, hook de query y mutation, validación de formulario, tests). Verificar con vitest.
+- [x] 3.2 Componente `SystemConfigForm` con aviso WSFE y pestaña "General" solo ADMINISTRADOR en `SettingsPage`. Test de render, validación y guardado. Verificar con vitest.
 
 ## 4. Cierre
 
-- [ ] 4.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en verde.
+- [x] 4.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en verde.
