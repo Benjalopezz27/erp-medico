@@ -21,6 +21,8 @@ const routeTitles: Record<string, string> = {
   '/treasury/checks': 'Gestión de Cheques',
   '/reports': 'Reportes Operativos',
   '/settings': 'Configuración del Sistema',
+  '/account': 'Mi cuenta',
+  '/help': 'Ayuda',
   '/prices/review': 'Revisión de Precios',
   '/admin/users': 'Usuarios',
   '/admin/markups': 'Márgenes',

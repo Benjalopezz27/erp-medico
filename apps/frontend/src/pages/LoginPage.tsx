@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { TermsLink } from '@/features/legal/TermsLink';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { Mail, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
@@ -131,11 +132,14 @@ export const LoginPage: React.FC = () => {
           </Button>
         </CardFooter>
       </form>
-      <p className="pb-6 text-center text-xs text-slate-400">
+      <p className="pb-2 text-center text-xs text-slate-400">
         ¿No tiene cuenta?{' '}
         <Link to="/signup" className="text-blue-400 hover:text-blue-300 underline">
           Regístrese
         </Link>
+      </p>
+      <p className="pb-6 text-center text-xs text-slate-400">
+        <TermsLink />
       </p>
     </Card>
   );

@@ -17,7 +17,7 @@ export const loginSchema = z.object({
 export type LoginCredentials = z.infer<typeof loginSchema>;
 
 // Mirrors backend CreateUserDto password rules (8-128, upper + lower + digit|symbol).
-const passwordRules = z
+export const passwordRules = z
   .string()
   .min(8, 'La contraseña debe tener al menos 8 caracteres')
   .max(128, 'La contraseña no puede exceder 128 caracteres')
@@ -25,13 +25,15 @@ const passwordRules = z
   .regex(/(?=.*[a-z])/, 'Debe incluir una minúscula')
   .regex(/(?=.*[\d\W])/, 'Debe incluir un dígito o símbolo');
 
+export const nameRule = z
+  .string()
+  .trim()
+  .min(1, 'El nombre es requerido')
+  .max(100, 'El nombre no puede exceder 100 caracteres');
+
 export const signupSchema = z
   .object({
-    name: z
-      .string()
-      .trim()
-      .min(1, 'El nombre es requerido')
-      .max(100, 'El nombre no puede exceder 100 caracteres'),
+    name: nameRule,
     email: loginSchema.shape.email,
     password: passwordRules,
     confirmPassword: z.string().min(1, 'Confirme la contraseña'),

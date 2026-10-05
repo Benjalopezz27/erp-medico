@@ -85,6 +85,16 @@ describe('Sidebar permissions and badges', () => {
     expect(screen.getByRole('button', { name: /cerrar sesión/i })).toBeInTheDocument();
   });
 
+  it.each([UserRole.VENDEDOR, UserRole.ADMINISTRADOR])(
+    'links Ayuda and the user block to /help and /account for %s',
+    async (role) => {
+      renderSidebar(role);
+
+      expect(await screen.findByRole('link', { name: 'Ayuda' })).toHaveAttribute('href', '/help');
+      expect(screen.getByRole('link', { name: 'Mi cuenta' })).toHaveAttribute('href', '/account');
+    },
+  );
+
   it('highlights the parent item for unified child routes', async () => {
     renderSidebar(UserRole.ADMINISTRADOR, '/importer');
 

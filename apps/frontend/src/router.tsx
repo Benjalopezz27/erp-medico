@@ -9,6 +9,9 @@ import { AppShell } from '@/components/layout/AppShell';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { LoginPage } from '@/pages/LoginPage';
 import { SignupPage } from '@/pages/SignupPage';
+import { AccountPage } from '@/pages/AccountPage';
+import { HelpView } from '@/features/help/HelpView';
+import { TermsView } from '@/features/legal/TermsView';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { UsersPage } from '@/pages/admin/UsersPage';
@@ -569,6 +572,13 @@ const signupRoute = createRoute({
   component: () => <SignupPage />,
 });
 
+// Public (no auth guard, reachable with or without session)
+const termsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/terms',
+  component: () => <TermsView />,
+});
+
 // 3. App Routes (Protected / Shell)
 const appShellRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -825,6 +835,18 @@ const settingsRoute = createRoute({
   component: () => <SettingsPage />,
 });
 
+const accountRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/account',
+  component: () => <AccountPage />,
+});
+
+const helpRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/help',
+  component: () => <HelpView />,
+});
+
 const adminUsersRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/admin/users',
@@ -859,6 +881,7 @@ const priceReviewsRoute = createRoute({
 // 4. Build Route Tree
 const routeTree = rootRoute.addChildren([
   authLayoutRoute.addChildren([loginRoute, signupRoute]),
+  termsRoute,
   appShellRoute.addChildren([
     indexRoute,
     productsRoute,
@@ -895,6 +918,8 @@ const routeTree = rootRoute.addChildren([
     reportsRoute,
     reportRoute,
     settingsRoute,
+    accountRoute,
+    helpRoute,
     adminUsersRoute,
     adminMarkupsRoute,
     fiscalAlertsRoute,

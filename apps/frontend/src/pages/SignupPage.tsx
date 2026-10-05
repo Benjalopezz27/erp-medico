@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
+import { TermsLink } from '@/features/legal/TermsLink';
 import { Link } from '@tanstack/react-router';
 import { User, Mail, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { signupSchema, type SignupFormValues } from '@/features/auth/auth.schema';
@@ -184,6 +185,9 @@ export const SignupPage: React.FC = () => {
           >
             {pending ? 'Creando cuenta...' : 'Crear cuenta'}
           </Button>
+          <p className="text-xs text-slate-400">
+            Al registrarte aceptás los <TermsLink />.
+          </p>
           <p className="text-xs text-slate-400">
             ¿Ya tiene cuenta?{' '}
             <Link to="/login" className="text-blue-400 hover:text-blue-300 underline">

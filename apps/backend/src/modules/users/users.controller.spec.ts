@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { UserRole } from '@erp/shared-types';
+import { ROLES_KEY } from '../auth/constants/auth.constants';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 
 describe('UsersController', () => {
@@ -42,6 +43,9 @@ describe('UsersController', () => {
           hasPreviousPage: false,
         },
       }),
+      getMe: jest.fn().mockResolvedValue(mockUserResponse),
+      updateMe: jest.fn().mockResolvedValue(mockUserResponse),
+      changePassword: jest.fn().mockResolvedValue(undefined),
       getByIdOrFail: jest.fn().mockResolvedValue(mockUserResponse),
       createByAdmin: jest.fn().mockResolvedValue(mockUserResponse),
       updateByAdmin: jest.fn().mockResolvedValue(mockUserResponse),
@@ -150,5 +154,41 @@ describe('UsersController', () => {
       query,
     );
     expect(result.data).toBeDefined();
+  });
+
+  describe('self-service /me routes (#280)', () => {
+    it('delegates with the JWT user, never a client id', async () => {
+      await controller.getMe(mockAdminActor);
+      await controller.updateMe(mockAdminActor, { name: 'X' });
+      await controller.changePassword(mockAdminActor, {
+        currentPassword: 'a',
+        newPassword: 'b',
+      });
+      expect(service.getMe).toHaveBeenCalledWith(mockAdminActor);
+      expect(service.updateMe).toHaveBeenCalledWith(mockAdminActor, {
+        name: 'X',
+      });
+      expect(service.changePassword).toHaveBeenCalledWith(mockAdminActor, {
+        currentPassword: 'a',
+        newPassword: 'b',
+      });
+    });
+
+    it.each(['getMe', 'updateMe', 'changePassword'] as const)(
+      '%s is open to every role (overrides class-level admin only)',
+      (handler) => {
+        const roles = Reflect.getMetadata(
+          ROLES_KEY,
+          UsersController.prototype[handler],
+        );
+        expect(roles).toEqual(expect.arrayContaining(Object.values(UserRole)));
+      },
+    );
+
+    it('declares getMe before findOne so ":id" does not capture "me"', () => {
+      const names = Object.getOwnPropertyNames(UsersController.prototype);
+      expect(names.indexOf('getMe')).toBeLessThan(names.indexOf('findOne'));
+      expect(names.indexOf('updateMe')).toBeLessThan(names.indexOf('update'));
+    });
   });
 });

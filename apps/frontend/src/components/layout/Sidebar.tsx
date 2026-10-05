@@ -18,6 +18,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   FileWarning,
+  CircleHelp,
 } from 'lucide-react';
 import { UserRole } from '@erp/shared-types';
 import { useAuthStore } from '@/stores/authStore';
@@ -82,6 +83,7 @@ const navigationSections: NavSection[] = [
       },
     ],
   },
+  { label: 'Soporte', items: [{ name: 'Ayuda', href: '/help', icon: CircleHelp }] },
 ];
 
 function isItemActive(item: NavItem, pathname: string): boolean {
@@ -167,7 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         title={collapsed ? item.name : undefined}
         aria-label={collapsed ? item.name : undefined}
         className={cn(
-          'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+          'relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
           collapsed && 'lg:justify-center lg:px-0',
           active
             ? 'bg-blue-600 text-white shadow-sm'
@@ -268,10 +270,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation */}
-        <nav
-          aria-label="Navegación principal"
-          className="flex-1 space-y-5 overflow-y-auto px-3 py-4"
-        >
+        <nav aria-label="Navegación principal" className="flex-1 space-y-3 px-3 py-3">
           {visibleSections.map((section) => (
             <div key={section.label}>
               <div
@@ -299,21 +298,29 @@ export const Sidebar: React.FC<SidebarProps> = ({
             collapsed && 'lg:flex-col lg:gap-2',
           )}
         >
-          <div
-            title={collapsed ? (user?.name ?? undefined) : undefined}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-bold text-slate-800"
+          <Link
+            to="/account"
+            onClick={onClose}
+            title="Mi cuenta"
+            aria-label="Mi cuenta"
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl transition-colors hover:bg-slate-100"
           >
-            {getInitials(user?.name || user?.email || 'Usuario')}
-          </div>
-          <div className={cn('min-w-0 flex-1', hideWhenCollapsed)}>
-            <div className="truncate text-sm font-semibold text-slate-900">
-              {user?.name || 'Usuario'}
+            <div
+              title={collapsed ? (user?.name ?? undefined) : undefined}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs font-bold text-slate-800"
+            >
+              {getInitials(user?.name || user?.email || 'Usuario')}
             </div>
-            <div className="truncate text-xs text-slate-500">{user?.email}</div>
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-              {isAdmin ? 'Administrador' : 'Vendedor'}
+            <div className={cn('min-w-0 flex-1', hideWhenCollapsed)}>
+              <div className="truncate text-sm font-semibold text-slate-900">
+                {user?.name || 'Usuario'}
+              </div>
+              <div className="truncate text-xs text-slate-500">{user?.email}</div>
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                {isAdmin ? 'Administrador' : 'Vendedor'}
+              </div>
             </div>
-          </div>
+          </Link>
           <button
             type="button"
             onClick={() => void sessionTerminator.terminate('user_logout')}

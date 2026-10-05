@@ -12,6 +12,7 @@ import {
   HttpStatus,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -25,6 +26,8 @@ import { UserRole } from '@erp/shared-types';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateMeDto } from './dto/update-me.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { PaginatedUsersResponseDto } from './dto/paginated-users-response.dto';
@@ -44,6 +47,50 @@ export class UsersController {
   @ApiResponse({ status: 200, description: 'Users module operational' })
   getStatus() {
     return this.usersService.getStatus();
+  }
+
+  // `me` routes must be declared before `:id` so the param route does not capture them.
+  @Get('me')
+  @Roles(...Object.values(UserRole))
+  @ApiOperation({ summary: 'Get the authenticated user profile' })
+  @ApiResponse({ status: 200, type: UserResponseDto })
+  getMe(@CurrentUser() actor: AuthenticatedUser): Promise<UserResponseDto> {
+    return this.usersService.getMe(actor);
+  }
+
+  @Patch('me')
+  @Roles(...Object.values(UserRole))
+  @ApiOperation({ summary: 'Update own name' })
+  @ApiResponse({ status: 200, type: UserResponseDto })
+  @ApiResponse({ status: 400, description: 'Invalid or no-op payload' })
+  updateMe(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Body() dto: UpdateMeDto,
+  ): Promise<UserResponseDto> {
+    return this.usersService.updateMe(actor, dto);
+  }
+
+  @Post('me/change-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Roles(...Object.values(UserRole))
+  @Throttle({
+    default: {
+      limit: Number(process.env.THROTTLE_LIMIT_LOGIN || 5),
+      ttl: Number(process.env.THROTTLE_TTL_MS || 60000),
+    },
+  })
+  @ApiOperation({ summary: 'Change own password' })
+  @ApiResponse({ status: 204, description: 'Password changed' })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid, current password incorrect, or same as current',
+  })
+  @ApiResponse({ status: 429, description: 'Too Many Requests' })
+  changePassword(
+    @CurrentUser() actor: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+  ): Promise<void> {
+    return this.usersService.changePassword(actor, dto);
   }
 
   @Post()
