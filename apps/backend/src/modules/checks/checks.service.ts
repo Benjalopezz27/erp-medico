@@ -11,6 +11,8 @@ import {
   ICheckListItem,
   ICheckListResponse,
   PaymentStatus,
+  TreasuryAccountType,
+  TreasuryMovementType,
 } from '@erp/shared-types';
 import { DataSource, EntityManager } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
@@ -23,6 +25,7 @@ import {
 } from '../receivables/receivables.service';
 import { Supplier } from '../suppliers/entities/supplier.entity';
 import { QueryChecksDto } from './dto/query-checks.dto';
+import { TreasuryService } from '../treasury/treasury.service';
 import { Check } from './entities/check.entity';
 
 type TransitionAction = 'to-cartera' | 'deposit' | 'endorse' | 'reject';
@@ -46,6 +49,7 @@ export class ChecksService {
     private readonly dataSource: DataSource,
     private readonly audit: AuditService,
     private readonly receivables: ReceivablesService,
+    private readonly treasury: TreasuryService,
   ) {}
 
   getStatus(): { module: string; status: string } {
@@ -200,6 +204,7 @@ export class ChecksService {
       }
       const previous = check.status;
       await mutate?.(manager, check);
+      await this.recordTreasury(manager, action, check, previous, userId);
       check.status = rule.to;
       const saved = await repo.save(check);
       await this.audit.record(manager, {
@@ -217,6 +222,42 @@ export class ChecksService {
       });
       return saved;
     });
+  }
+
+  /** Mueve el monto entre cuentas de tesorería según la transición, en la misma transacción. */
+  private async recordTreasury(
+    manager: EntityManager,
+    action: TransitionAction,
+    check: Check,
+    previous: CheckStatus,
+    userId: string,
+  ): Promise<void> {
+    const move = (
+      accountType: TreasuryAccountType,
+      movementType: TreasuryMovementType,
+      verb: string,
+    ) =>
+      this.treasury.recordMovement(manager, {
+        accountType,
+        movementType,
+        amount: check.amount,
+        concept: `Cheque ${check.bankName} N° ${check.checkNumber} ${verb}`,
+        referenceType: 'CHECK',
+        referenceId: check.id,
+        userId,
+      });
+    const { CHEQUES_CARTERA, BANCOS } = TreasuryAccountType;
+    const { INGRESO, EGRESO } = TreasuryMovementType;
+    if (action === 'deposit') {
+      await move(CHEQUES_CARTERA, EGRESO, 'depositado');
+      await move(BANCOS, INGRESO, 'depositado');
+    } else if (action === 'endorse') {
+      await move(CHEQUES_CARTERA, EGRESO, 'endosado');
+    } else if (action === 'reject') {
+      const origin =
+        previous === CheckStatus.DEPOSITADO ? BANCOS : CHEQUES_CARTERA;
+      await move(origin, EGRESO, 'rechazado');
+    }
   }
 }
 

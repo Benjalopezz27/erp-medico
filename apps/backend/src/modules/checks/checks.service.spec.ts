@@ -4,6 +4,8 @@ import {
   CheckErrorCode,
   CheckStatus,
   PaymentStatus,
+  TreasuryAccountType,
+  TreasuryMovementType,
 } from '@erp/shared-types';
 import { PaymentAllocation } from '../payments/entities/payment-allocation.entity';
 import { Payment } from '../payments/entities/payment.entity';
@@ -50,16 +52,21 @@ describe('ChecksService transitions', () => {
       totalIncrease: '1000.00',
     })) as jest.Mock,
   };
+  const treasury = { recordMovement: jest.fn(async () => ({})) };
   const service = new ChecksService(
     dataSource as any,
     audit as any,
     receivables as any,
+    treasury as any,
   );
 
   const withStatus = (status: CheckStatus) => {
     check = {
       id: 'k-1',
       paymentId: 'p-1',
+      amount: '1000.00',
+      bankName: 'Galicia',
+      checkNumber: '123',
       status,
       endorsedToSupplierId: null,
     };
@@ -154,6 +161,62 @@ describe('ChecksService transitions', () => {
     expect(findOne).toHaveBeenCalledWith(
       expect.objectContaining({ lock: { mode: 'pessimistic_write' } }),
     );
+  });
+
+  describe('treasury movements', () => {
+    const calls = () =>
+      (treasury.recordMovement.mock.calls as unknown as [unknown, any][]).map(
+        ([, input]) => [input.accountType, input.movementType, input.amount],
+      );
+
+    it('moves the amount from cartera to bancos on deposit', async () => {
+      withStatus(CheckStatus.EN_CARTERA);
+      await service.deposit('k-1', 'u-1');
+      expect(calls()).toEqual([
+        [
+          TreasuryAccountType.CHEQUES_CARTERA,
+          TreasuryMovementType.EGRESO,
+          '1000.00',
+        ],
+        [TreasuryAccountType.BANCOS, TreasuryMovementType.INGRESO, '1000.00'],
+      ]);
+    });
+
+    it('removes the amount from cartera on endorse', async () => {
+      withStatus(CheckStatus.EN_CARTERA);
+      await service.endorse('k-1', 's-1', 'u-1');
+      expect(calls()).toEqual([
+        [
+          TreasuryAccountType.CHEQUES_CARTERA,
+          TreasuryMovementType.EGRESO,
+          '1000.00',
+        ],
+      ]);
+    });
+
+    it.each([
+      [CheckStatus.EN_CARTERA, TreasuryAccountType.CHEQUES_CARTERA],
+      [CheckStatus.DEPOSITADO, TreasuryAccountType.BANCOS],
+    ])('reject from %s debits %s', async (from, account) => {
+      withStatus(from);
+      await service.reject('k-1', undefined, 'u-1');
+      expect(calls()).toEqual([
+        [account, TreasuryMovementType.EGRESO, '1000.00'],
+      ]);
+    });
+
+    it('records nothing for RECIBIDO -> EN_CARTERA', async () => {
+      withStatus(CheckStatus.RECIBIDO);
+      await service.toCartera('k-1', 'u-1');
+      expect(treasury.recordMovement).not.toHaveBeenCalled();
+    });
+
+    it('does not change the check when the movement fails', async () => {
+      withStatus(CheckStatus.EN_CARTERA);
+      treasury.recordMovement.mockRejectedValueOnce(new Error('boom'));
+      await expect(service.deposit('k-1', 'u-1')).rejects.toThrow('boom');
+      expect(check?.status).toBe(CheckStatus.EN_CARTERA);
+    });
   });
 
   describe('reject', () => {
