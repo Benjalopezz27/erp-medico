@@ -126,7 +126,7 @@ describe('FiscalContingencyOrchestrator', () => {
     };
 
     invoiceTypeResolver = {
-      resolve: jest.fn().mockReturnValue(FiscalDocumentType.FACTURA_A),
+      resolve: jest.fn().mockResolvedValue(FiscalDocumentType.FACTURA_A),
     };
 
     numberingService = {

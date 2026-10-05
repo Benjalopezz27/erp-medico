@@ -1,39 +1,73 @@
-import { TreasuryAccountType, CashRegisterStatus } from '../enums/financial.enum';
+import { TreasuryAccountType } from '../enums/financial.enum';
+import { IReceivablesPaginationMeta } from './receivables.model';
 
-export interface ITreasuryAccount {
-  id: string;
+export enum TreasuryMovementType {
+  INGRESO = 'INGRESO',
+  EGRESO = 'EGRESO',
+}
+
+/** Cuentas en las que se admite un movimiento manual (cartera solo se mueve por cheques). */
+export type ManualTreasuryAccountType = TreasuryAccountType.EFECTIVO | TreasuryAccountType.BANCOS;
+
+export interface ITreasuryAccountBalance {
+  accountType: TreasuryAccountType;
   name: string;
-  type: TreasuryAccountType;
-  currentBalance: number;
-  bankAccountNumber?: string | null;
-  isActive: boolean;
-  createdAt: Date | string;
-  updatedAt: Date | string;
+  /** Decimal con 2 decimales: ingresos menos egresos. */
+  balance: string;
+}
+
+export interface ITreasurySummary {
+  accounts: ITreasuryAccountBalance[];
 }
 
 export interface ITreasuryMovement {
   id: string;
-  treasuryAccountId: string;
-  amount: number;
-  movementType: 'INGRESO' | 'EGRESO' | 'TRANSFERENCIA';
-  previousBalance: number;
-  subsequentBalance: number;
+  accountType: TreasuryAccountType;
+  movementType: TreasuryMovementType;
+  amount: string;
   concept: string;
-  referenceDocument?: string | null;
-  userId: string;
-  createdAt: Date | string;
+  referenceType: string | null;
+  referenceId: string | null;
+  user: { id: string; name: string } | null;
+  createdAt: string;
 }
 
-export interface ICashRegister {
+export interface ITreasuryMovementListResponse {
+  data: ITreasuryMovement[];
+  meta: IReceivablesPaginationMeta;
+}
+
+export interface ICreateTreasuryMovementPayload {
+  accountType: ManualTreasuryAccountType;
+  movementType: TreasuryMovementType;
+  amount: string;
+  concept: string;
+}
+
+export interface ICashRegisterSession {
   id: string;
-  openedAt: Date | string;
-  closedAt?: Date | string | null;
-  initialCash: number;
-  expectedCash?: number | null;
-  actualCash?: number | null;
-  difference?: number | null;
-  status: CashRegisterStatus;
-  openedByUserId: string;
-  closedByUserId?: string | null;
-  notes?: string | null;
+  openedAt: string;
+  openingBalance: string;
+  closedAt: string | null;
+  expectedBalance: string | null;
+  actualBalance: string | null;
+  difference: string | null;
+  observation: string | null;
+}
+
+export interface ICashRegisterState {
+  /** Turno abierto, o null si la caja está cerrada. */
+  open: (ICashRegisterSession & { expectedBalance: string }) | null;
+  /** Movimientos de efectivo del turno abierto (más nuevo primero). */
+  movements: ITreasuryMovement[];
+  lastClosed: ICashRegisterSession | null;
+}
+
+export interface IOpenCashRegisterPayload {
+  openingBalance: string;
+}
+
+export interface ICloseCashRegisterPayload {
+  actualBalance: string;
+  observation?: string;
 }

@@ -11,6 +11,7 @@ import {
   PaymentMethod,
   ProductTaxTreatment,
   SaleStatus,
+  TreasuryMovementType,
   SalesErrorCode,
   StockMovementType,
 } from '@erp/shared-types';
@@ -39,6 +40,8 @@ import {
   QuerySalesDto,
   SaleResponseDto,
 } from './dto';
+import { accountForPaymentMethod } from '../treasury/payment-method-account';
+import { TreasuryService } from '../treasury/treasury.service';
 import { FiscalDocument } from './entities/fiscal-document.entity';
 import { SaleItem } from './entities/sale-item.entity';
 import { Sale } from './entities/sale.entity';
@@ -59,6 +62,7 @@ export class SalesService {
     private readonly pdfGenerateQueueService: PdfGenerateQueueService,
     private readonly invoiceTypeResolverService: InvoiceTypeResolverService,
     private readonly pendingFiscalService: PendingFiscalService,
+    private readonly treasuryService: TreasuryService,
   ) {}
 
   async create(dto: CreateSaleDto, userId: string): Promise<SaleResponseDto> {
@@ -217,6 +221,21 @@ export class SalesService {
         sale.status = SaleStatus.CONFIRMADA;
         sale = await saleRepository.save(sale);
 
+        const treasuryAccount = dto.isCreditSale
+          ? null
+          : accountForPaymentMethod(dto.paymentMethod);
+        if (treasuryAccount) {
+          await this.treasuryService.recordMovement(manager, {
+            accountType: treasuryAccount,
+            movementType: TreasuryMovementType.INGRESO,
+            amount: sale.totalGross,
+            concept: `Venta ${saleNumber}`,
+            referenceType: 'SALE',
+            referenceId: sale.id,
+            userId,
+          });
+        }
+
         await this.auditService.record(manager, {
           actorId: userId,
           action: AuditAction.CREATE,
@@ -326,7 +345,7 @@ export class SalesService {
     const isEmitted = fiscalDocument.arcaStatus === ArcaStatus.EMITIDO;
     const invoiceType = isEmitted
       ? fiscalDocument.documentType!
-      : this.invoiceTypeResolverService.resolve(
+      : await this.invoiceTypeResolverService.resolve(
           sale.customer
             ? {
                 taxCondition: sale.customer.taxCondition,

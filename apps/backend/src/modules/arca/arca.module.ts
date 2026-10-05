@@ -8,8 +8,10 @@ import { ArcaTicketCacheService } from './services/arca-ticket-cache.service';
 import { InvoiceTypeResolverService } from './services/invoice-type-resolver.service';
 import { redisConnectionProvider } from '../queue/services/redis-client.factory';
 import { ARCA_SERVICE } from './arca.constants';
+import { SystemConfigModule } from '../config/system-config.module';
 
 @Module({
+  imports: [SystemConfigModule],
   controllers: [ArcaController],
   providers: [
     ArcaService,

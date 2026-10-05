@@ -8,6 +8,7 @@ import { FiscalInvoiceQueueService } from './services/fiscal-invoice.queue';
 import { FiscalContingencyOrchestrator } from './services/fiscal-contingency-orchestrator.service';
 import { FiscalReconciliationSweepService } from './services/fiscal-reconciliation-sweep.service';
 import { ArcaModule } from '../arca/arca.module';
+import { SystemConfigModule } from '../config/system-config.module';
 import { FiscalNumberingService } from '../sales/services/fiscal-numbering.service';
 import { FiscalQrPayloadService } from '../sales/services/fiscal-qr-payload.service';
 import { FiscalPdfTemplateService } from '../sales/services/fiscal-pdf-template.service';
@@ -19,7 +20,7 @@ import { FiscalPdfTemplateService } from '../sales/services/fiscal-pdf-template.
   // DataSource with full entity metadata (see DatabaseModule's `entities`
   // glob, imported by WorkerModule) and ArcaModule for ARCA_SERVICE /
   // InvoiceTypeResolverService.
-  imports: [ArcaModule],
+  imports: [ArcaModule, SystemConfigModule],
   providers: [
     redisConnectionProvider,
     OpsProbeProcessor,

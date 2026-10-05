@@ -11,9 +11,12 @@ import {
   PaymentAllocationType,
   PaymentErrorCode,
   PaymentMethod,
+  TreasuryMovementType,
 } from '@erp/shared-types';
 import Decimal from 'decimal.js';
 import { DataSource } from 'typeorm';
+import { accountForPaymentMethod } from '../treasury/payment-method-account';
+import { TreasuryService } from '../treasury/treasury.service';
 import { Check } from '../checks/entities/check.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { ReceivablesService } from '../receivables/receivables.service';
@@ -42,6 +45,7 @@ export class PaymentsService {
     private readonly dataSource: DataSource,
     private readonly receivables: ReceivablesService,
     private readonly receiptNumbers: ReceiptNumberService,
+    private readonly treasury: TreasuryService,
   ) {}
 
   getStatus(): { module: string; status: string } {
@@ -168,6 +172,16 @@ export class PaymentsService {
           userId,
         }),
       );
+
+      await this.treasury.recordMovement(manager, {
+        accountType: accountForPaymentMethod(dto.paymentMethod)!,
+        movementType: TreasuryMovementType.INGRESO,
+        amount: applied.total,
+        concept: `Cobro - Recibo ${receipt.receiptNumber}`,
+        referenceType: 'PAYMENT',
+        referenceId: payment.id,
+        userId,
+      });
 
       return { payment, receipt };
     });

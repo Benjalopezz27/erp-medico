@@ -21,6 +21,7 @@ const routeTitles: Record<string, string> = {
   '/importer': 'Importador de Proveedores',
   '/receivables': 'Cuentas Corrientes',
   '/treasury': 'Tesorería y Caja',
+  '/treasury/cash-register': 'Caja Diaria',
   '/treasury/checks': 'Gestión de Cheques',
   '/reports': 'Reportes Operativos',
   '/settings': 'Configuración del Sistema',
@@ -35,6 +36,7 @@ export const Topbar: React.FC<TopbarProps> = ({ onMenuToggle }) => {
     (currentPath === '/sales/new' ? 'Punto de Venta' : undefined) ||
     (currentPath.startsWith('/sales/') ? 'Detalle de Venta' : undefined) ||
     routeTitles[currentPath] ||
+    (currentPath.startsWith('/reports/') ? 'Reportes Operativos' : undefined) ||
     (currentPath.startsWith('/customers/') ? 'Detalle de Cliente' : 'Página');
 
   const handleLogout = () => void sessionTerminator.terminate('user_logout');

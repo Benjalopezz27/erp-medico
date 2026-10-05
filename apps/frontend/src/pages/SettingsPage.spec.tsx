@@ -71,6 +71,15 @@ describe('SettingsPage master catalog management', () => {
       http.get(`${baseUrl}/units`, () => {
         return HttpResponse.json(mockUnits);
       }),
+      http.get(`${baseUrl}/config`, () =>
+        HttpResponse.json({
+          issuerRazonSocial: 'Distribuidora Sur SA',
+          issuerCuit: '20123456786',
+          issuerTaxCondition: 'RESPONSABLE_INSCRIPTO',
+          arcaPuntoVenta: 1,
+          operatingCurrency: 'ARS',
+        }),
+      ),
       http.get(`${baseUrl}/config/purchases`, () =>
         HttpResponse.json({
           costTolerancePercentage: '5.0000',
@@ -132,6 +141,21 @@ describe('SettingsPage master catalog management', () => {
         }),
       ).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: 'Compras' })).toHaveAttribute('aria-selected', 'true');
+    });
+  });
+
+  describe('General config tab', () => {
+    it('opens the general tab for administrators', async () => {
+      renderSettingsPage(UserRole.ADMINISTRADOR, '/settings?tab=general');
+      expect(await screen.findByLabelText('CUIT del emisor')).toHaveValue('20123456786');
+      expect(screen.getByRole('tab', { name: 'General' })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('does not expose the general tab to sellers even through the URL', async () => {
+      renderSettingsPage(UserRole.VENDEDOR, '/settings?tab=general');
+      expect(await screen.findByText('Analgésicos')).toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: 'General' })).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('CUIT del emisor')).not.toBeInTheDocument();
     });
   });
 
