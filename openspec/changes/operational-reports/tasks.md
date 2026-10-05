@@ -2,14 +2,14 @@
 
 ## 1. Base de reportes
 
-- [ ] 1.1 Tests que fallan primero y helper `WhereBuilder` (fechas válidas, rango argentino, enums) y `createSqlReport` (totales con decimales exactos). Verificar que pasan.
+- [x] 1.1 Tests que fallan primero y helper `WhereBuilder` (fechas válidas, rango argentino, enums) y `createSqlReport` (totales con decimales exactos). Verificar que pasan.
 
 ## 2. Reportes backend
 
-- [ ] 2.1 US-37 `sales` y US-43 `collections`, con tests de armado de consulta.
-- [ ] 2.2 US-39 `stock-valuation`, US-40 `stock-movements` y US-38 `profitability`.
-- [ ] 2.3 US-41 `purchases`, US-44 `checks-portfolio`, US-45 `supplier-invoices` y US-42 `receivables-aging`.
-- [ ] 2.4 Registrar las nueve en `ReportsModule` y ejecutar cada una contra la base local para validar el SQL.
+- [x] 2.1 US-37 `sales` y US-43 `collections`, con tests de armado de consulta.
+- [x] 2.2 US-39 `stock-valuation`, US-40 `stock-movements` y US-38 `profitability`.
+- [x] 2.3 US-41 `purchases`, US-44 `checks-portfolio`, US-45 `supplier-invoices` y US-42 `receivables-aging`.
+- [x] 2.4 Registrar las nueve en `ReportsModule` y ejecutar cada una contra la base local para validar el SQL.
 
 ## 3. Frontend
 
