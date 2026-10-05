@@ -1,39 +1,45 @@
-import { TreasuryAccountType, CashRegisterStatus } from '../enums/financial.enum';
+import { TreasuryAccountType } from '../enums/financial.enum';
+import { IReceivablesPaginationMeta } from './receivables.model';
 
-export interface ITreasuryAccount {
-  id: string;
+export enum TreasuryMovementType {
+  INGRESO = 'INGRESO',
+  EGRESO = 'EGRESO',
+}
+
+/** Cuentas en las que se admite un movimiento manual (cartera solo se mueve por cheques). */
+export type ManualTreasuryAccountType = TreasuryAccountType.EFECTIVO | TreasuryAccountType.BANCOS;
+
+export interface ITreasuryAccountBalance {
+  accountType: TreasuryAccountType;
   name: string;
-  type: TreasuryAccountType;
-  currentBalance: number;
-  bankAccountNumber?: string | null;
-  isActive: boolean;
-  createdAt: Date | string;
-  updatedAt: Date | string;
+  /** Decimal con 2 decimales: ingresos menos egresos. */
+  balance: string;
+}
+
+export interface ITreasurySummary {
+  accounts: ITreasuryAccountBalance[];
 }
 
 export interface ITreasuryMovement {
   id: string;
-  treasuryAccountId: string;
-  amount: number;
-  movementType: 'INGRESO' | 'EGRESO' | 'TRANSFERENCIA';
-  previousBalance: number;
-  subsequentBalance: number;
+  accountType: TreasuryAccountType;
+  movementType: TreasuryMovementType;
+  amount: string;
   concept: string;
-  referenceDocument?: string | null;
-  userId: string;
-  createdAt: Date | string;
+  referenceType: string | null;
+  referenceId: string | null;
+  user: { id: string; name: string } | null;
+  createdAt: string;
 }
 
-export interface ICashRegister {
-  id: string;
-  openedAt: Date | string;
-  closedAt?: Date | string | null;
-  initialCash: number;
-  expectedCash?: number | null;
-  actualCash?: number | null;
-  difference?: number | null;
-  status: CashRegisterStatus;
-  openedByUserId: string;
-  closedByUserId?: string | null;
-  notes?: string | null;
+export interface ITreasuryMovementListResponse {
+  data: ITreasuryMovement[];
+  meta: IReceivablesPaginationMeta;
+}
+
+export interface ICreateTreasuryMovementPayload {
+  accountType: ManualTreasuryAccountType;
+  movementType: TreasuryMovementType;
+  amount: string;
+  concept: string;
 }
