@@ -17,8 +17,8 @@
 
 ## 4. Frontend
 
-- [ ] 4.1 Crear `features/reports/api/download-report.ts` (blob + nombre desde `Content-Disposition`) con test. Verificar con `pnpm --filter frontend test`.
+- [x] 4.1 Crear `features/reports/api/download-report.ts` (blob + nombre desde `Content-Disposition`) con test. Verificar con `pnpm --filter frontend test`.
 
 ## 5. Cierre
 
-- [ ] 5.1 Correr `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build`. Verificar todo en verde.
+- [x] 5.1 Correr `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build`. Verificar todo en verde.
