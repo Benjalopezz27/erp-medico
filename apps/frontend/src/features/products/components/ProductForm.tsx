@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Lock, Loader2, DollarSign, Package, AlertCircle } from 'lucide-react';
@@ -6,7 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { productFormSchema, type ProductFormSchemaValues } from '../schemas/product.schema';
-import { calculateSuggestedPrice, formatCurrency } from '../utils/products.math';
+import {
+  calculateFinalFromNet,
+  calculateNetFromFinal,
+  calculateSuggestedPrice,
+  formatCurrency,
+} from '../utils/products.math';
 import { ProductConversionsGrid, type ConversionRowItem } from './ProductConversionsGrid';
 import type { ICategory, IProduct, IUnit, ProductFormValues } from '../types/products.types';
 import { PRODUCT_IVA_RATES, ProductTaxTreatment } from '@erp/shared-types';
@@ -38,6 +43,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   );
 
   const [localConversions, setLocalConversions] = useState<ConversionRowItem[]>([]);
+  // The user types the final (VAT-included) price; `activePriceNet` is derived from it.
+  const [finalPrice, setFinalPrice] = useState('');
+  // Last `final|treatment|iva` combination already reflected in `activePriceNet`, so loading an
+  // existing product does not re-derive (and possibly shift by a cent) its stored net price.
+  const derivedKeyRef = useRef(`|${ProductTaxTreatment.GRAVADO}|21`);
 
   const {
     register,
@@ -75,6 +85,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       }));
 
       setLocalConversions(convs);
+
+      const initialFinal = initialProduct.activePriceNet
+        ? String(
+            calculateFinalFromNet(
+              initialProduct.activePriceNet,
+              initialProduct.taxTreatment === ProductTaxTreatment.GRAVADO
+                ? initialProduct.ivaPercentage
+                : null,
+            ),
+          )
+        : '';
+      setFinalPrice(initialFinal);
+      derivedKeyRef.current = `${initialFinal}|${initialProduct.taxTreatment}|${initialProduct.ivaPercentage}`;
 
       reset({
         name: initialProduct.name,
@@ -141,11 +164,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const selectedBaseUnit = units.find((unit) => unit.id === watchedBaseUnitId);
 
   const liveSuggestedPrice = calculateSuggestedPrice(watchedCost, watchedMarkup);
-  const liveFinalPrice =
-    Number(watchedActivePrice || 0) *
-    (watchedTaxTreatment === ProductTaxTreatment.GRAVADO
-      ? 1 + Number(watchedIvaPercentage || 0) / 100
-      : 1);
+  const appliedIva =
+    watchedTaxTreatment === ProductTaxTreatment.GRAVADO ? watchedIvaPercentage : null;
+  const liveSuggestedFinalPrice = calculateFinalFromNet(liveSuggestedPrice, appliedIva);
+
+  useEffect(() => {
+    const key = `${finalPrice}|${watchedTaxTreatment}|${watchedIvaPercentage}`;
+    if (key === derivedKeyRef.current) return;
+    derivedKeyRef.current = key;
+    setValue('activePriceNet', calculateNetFromFinal(finalPrice, appliedIva), {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  }, [appliedIva, finalPrice, setValue, watchedIvaPercentage, watchedTaxTreatment]);
 
   useEffect(() => {
     if (watchedTaxTreatment !== ProductTaxTreatment.GRAVADO) {
@@ -392,23 +423,23 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <div className="h-9 px-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center font-mono font-bold text-slate-700 text-xs select-none">
               {formatCurrency(liveSuggestedPrice)}
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">Costo × (1 + Markup/100)</p>
+            <p className="text-[10px] text-slate-400 mt-1">
+              Neto: Costo × (1 + Markup/100). Con IVA: {formatCurrency(liveSuggestedFinalPrice)}
+            </p>
           </div>
 
-          {/* Active Selling Price */}
+          {/* Final Selling Price (typed by the user) */}
           <div>
-            <label
-              htmlFor="activePriceNet"
-              className="block text-xs font-semibold text-slate-700 mb-1"
-            >
-              Precio Activo Neto ($) *
+            <label htmlFor="finalPrice" className="block text-xs font-semibold text-slate-700 mb-1">
+              Precio final con IVA ($) *
             </label>
             <Input
-              id="activePriceNet"
+              id="finalPrice"
               type="number"
               step="any"
               min="0"
-              {...register('activePriceNet')}
+              value={finalPrice}
+              onChange={(event) => setFinalPrice(event.target.value)}
               disabled={isSubmitting}
               placeholder="0.00"
               aria-invalid={Boolean(errors.activePriceNet)}
@@ -464,13 +495,16 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
           <div>
             <span className="mb-1 block text-xs font-semibold text-slate-500">
-              Precio final estimado
+              Precio activo neto
             </span>
-            <div className="flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 font-mono text-xs font-bold text-slate-700">
-              {formatCurrency(liveFinalPrice)}
+            <div
+              data-testid="active-price-net"
+              className="flex h-9 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 font-mono text-xs font-bold text-slate-700"
+            >
+              {formatCurrency(watchedActivePrice)}
             </div>
             <p className="mt-1 text-[10px] text-slate-400">
-              Precio activo neto más el IVA correspondiente.
+              Precio final menos el IVA correspondiente. Es el valor que se guarda.
             </p>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ProductStatus } from '@erp/shared-types';
+import { ProductStatus, ProductTaxTreatment } from '@erp/shared-types';
 import { ProductEditPage } from './ProductEditPage';
 import * as categoriesApi from '@/features/categories/api/categories.api';
 import * as unitsApi from '@/features/units/api/units.api';
@@ -39,6 +39,8 @@ describe('ProductEditPage', () => {
     markupPercentage: 35,
     suggestedPriceNet: 1350,
     activePriceNet: 1350,
+    taxTreatment: ProductTaxTreatment.GRAVADO,
+    ivaPercentage: 21,
     status: ProductStatus.ACTIVE,
     conversions: [
       {

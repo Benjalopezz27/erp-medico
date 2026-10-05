@@ -174,4 +174,64 @@ describe('ProductForm', () => {
     );
     await waitFor(() => expect(rate).toBeDisabled());
   });
+
+  it('derives the net price from the typed final price and keeps it when VAT changes', async () => {
+    const user = userEvent.setup();
+    render(
+      <ProductForm
+        mode="create"
+        categories={mockCategories}
+        units={mockUnits}
+        onSubmit={vi.fn()}
+        onCancel={vi.fn()}
+        isSubmitting={false}
+      />,
+    );
+
+    const final = screen.getByLabelText(/Precio final con IVA/i);
+    await user.clear(final);
+    await user.type(final, '121');
+    await waitFor(() => expect(screen.getByTestId('active-price-net')).toHaveTextContent(/100,00/));
+
+    await user.selectOptions(screen.getByLabelText(/Alícuota de IVA/i), '10.5');
+    await waitFor(() => expect(screen.getByTestId('active-price-net')).toHaveTextContent(/109,50/));
+    expect(final).toHaveValue(121);
+
+    await user.selectOptions(
+      screen.getByLabelText(/Tratamiento de IVA/i),
+      ProductTaxTreatment.EXENTO,
+    );
+    await waitFor(() => expect(screen.getByTestId('active-price-net')).toHaveTextContent(/121,00/));
+  });
+
+  it('preloads the final price in edit mode and submits the net price', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    const catId = '11111111-1111-4111-8111-111111111111';
+    const unitId = '22222222-2222-4222-8222-222222222222';
+    render(
+      <ProductForm
+        mode="edit"
+        initialProduct={{
+          ...mockInitialProduct,
+          categoryId: catId,
+          baseUnitId: unitId,
+          conversions: [],
+        }}
+        categories={[{ ...mockCategories[0], id: catId }]}
+        units={[{ ...mockUnits[0], id: unitId }]}
+        onSubmit={onSubmit}
+        onCancel={vi.fn()}
+        isSubmitting={false}
+      />,
+    );
+
+    // 1355 * 1.21 = 1639.55
+    expect(screen.getByLabelText(/Precio final con IVA/i)).toHaveValue(1639.55);
+    expect(screen.getByTestId('active-price-net')).toHaveTextContent(/1\.355,00/);
+
+    await user.click(screen.getByRole('button', { name: /Guardar Cambios/i }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ activePriceNet: 1355 });
+  });
 });
