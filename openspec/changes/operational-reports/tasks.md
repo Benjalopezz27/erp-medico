@@ -13,9 +13,9 @@
 
 ## 3. Frontend
 
-- [ ] 3.1 `features/reports/`: configuración de reportes, hook de consulta y componentes de filtros y tabla. Tests con vitest.
-- [ ] 3.2 Páginas `/reports` (índice) y `/reports/$type`, rutas, título de la barra y botones Excel/PDF. Tests.
+- [x] 3.1 `features/reports/`: configuración de reportes, hook de consulta y componentes de filtros y tabla. Tests con vitest.
+- [x] 3.2 Páginas `/reports` (índice) y `/reports/$type`, rutas, título de la barra y botones Excel/PDF. Tests.
 
 ## 4. Cierre
 
-- [ ] 4.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en verde.
+- [x] 4.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en verde.

@@ -10,7 +10,6 @@ import { AuthLayout } from '@/components/layout/AuthLayout';
 import { LoginPage } from '@/pages/LoginPage';
 import { SignupPage } from '@/pages/SignupPage';
 import { DashboardPage } from '@/pages/DashboardPage';
-import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { UsersPage } from '@/pages/admin/UsersPage';
 import { MarkupsPage } from '@/pages/admin/MarkupsPage';
@@ -179,6 +178,8 @@ import { PaymentFormPage } from '@/pages/payments/PaymentFormPage';
 import { ReceiptPage } from '@/pages/payments/ReceiptPage';
 import { ChecksPage } from '@/pages/treasury/ChecksPage';
 import { TreasuryPage } from '@/pages/treasury/TreasuryPage';
+import { ReportPage } from '@/pages/reports/ReportPage';
+import { ReportsIndexPage } from '@/pages/reports/ReportsIndexPage';
 import { CashRegisterPage } from '@/pages/treasury/CashRegisterPage';
 import { validateReceivablesSearchParams } from '@/features/receivables/schemas/receivables.schema';
 import { validateFiscalAlertsSearchParams } from '@/features/fiscal-alerts/schemas/fiscal-alerts.schema';
@@ -803,13 +804,14 @@ const reportsRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/reports',
   beforeLoad: () => requireRoutePermission('/reports'),
-  component: () => (
-    <PlaceholderPage
-      title="Reportes Operativos y Financieros"
-      description="Métricas de rentabilidad, rotación de stock y exportaciones Excel/PDF"
-      sprint="Sprint 10 — US-37"
-    />
-  ),
+  component: () => <ReportsIndexPage />,
+});
+
+const reportRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/reports/$type',
+  beforeLoad: () => requireRoutePermission('/reports'),
+  component: () => <ReportPage />,
 });
 
 const settingsRoute = createRoute({
@@ -887,6 +889,7 @@ const routeTree = rootRoute.addChildren([
     treasuryChecksRoute,
     treasuryCashRegisterRoute,
     reportsRoute,
+    reportRoute,
     settingsRoute,
     adminUsersRoute,
     adminMarkupsRoute,
