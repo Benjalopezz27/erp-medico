@@ -169,7 +169,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         title={collapsed ? item.name : undefined}
         aria-label={collapsed ? item.name : undefined}
         className={cn(
-          'relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+          'relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
           collapsed && 'lg:justify-center lg:px-0',
           active
             ? 'bg-blue-600 text-white shadow-sm'
@@ -272,7 +272,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Navigation */}
         <nav
           aria-label="Navegación principal"
-          className="flex-1 space-y-5 overflow-y-auto px-3 py-4"
+          className="flex-1 space-y-3 px-3 py-3"
         >
           {visibleSections.map((section) => (
             <div key={section.label}>
