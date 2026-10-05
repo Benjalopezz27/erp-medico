@@ -21,7 +21,7 @@
 
 1. **exceljs + pdf-lib en vez de SheetJS + Puppeteer.** Ya instaladas; AGENTS.md prohíbe sumar dependencias sin aprobación (aprobado "recomendado"). PDF tabular alcanza para listados. Alternativa Puppeteer descartada: Chromium en Docker y mayor superficie.
 2. **`ReportColumn { key, header, type?: 'text'|'money'|'number'|'date'; width? }`** y `rows: Record<string, string|number|null>[]`. `type` decide formato en Excel (numFmt) y alineación a derecha en PDF.
-3. **Registro por inyección.** `REPORT_DEFINITIONS` multi-provider (array) consumido por `ReportsController`; cada módulo de reporte aporta su definición. Se prefirió sobre un switch central por bajo acoplamiento.
+3. **Registro por inyección.** Token `REPORT_DEFINITIONS` (array vía factory en `ReportsModule`); cada reporte nuevo se suma a `providers` y a `inject` de la factory. Se prefirió sobre un switch central: el controller y el exportador no cambian.
 4. **`format=json`** devuelve `{ title, columns, rows }` para la vista previa; así preview y export usan la misma consulta.
 5. **Filtros** llegan como query params crudos; cada definición los valida con su propio DTO y lanza 400.
 
