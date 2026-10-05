@@ -1,5 +1,6 @@
+import { BackLink } from '@/components/ui/back-link';
 import { useMemo, useRef, useState } from 'react';
-import { Link, useBlocker } from '@tanstack/react-router';
+import { useBlocker } from '@tanstack/react-router';
 import { useQueries } from '@tanstack/react-query';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -156,12 +157,9 @@ export function SalesNewPage() {
   return (
     <div className="space-y-5">
       <div>
-        <nav className="mb-1 text-xs text-slate-400">
-          <Link to="/sales" search={{ page: 1, limit: 20 }} className="hover:text-blue-600">
-            Ventas
-          </Link>{' '}
-          / Nueva venta
-        </nav>
+        <BackLink to="/sales" search={{ page: 1, limit: 20 }} className="mb-3">
+          Volver a Ventas
+        </BackLink>
         <h1 className="text-2xl font-bold text-slate-900">Punto de Venta</h1>
         <p className="text-xs text-slate-500">
           Cargá los productos y confirmá la operación una sola vez.

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from '@tanstack/react-router';
-import { ArrowLeft, CheckCircle2, Info, RefreshCw, SlidersHorizontal, X } from 'lucide-react';
+import { BackLink } from '@/components/ui/back-link';
+import { CheckCircle2, Info, RefreshCw, SlidersHorizontal, X } from 'lucide-react';
 import { MarkupLevel } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
 import { useCategoriesQuery } from '@/features/categories/hooks/use-categories-query';
@@ -43,12 +43,9 @@ export function MarkupsPage() {
   return (
     <main className="mx-auto max-w-7xl space-y-5 animate-in fade-in duration-200">
       <header className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <Link
-          to="/settings"
-          className="mb-3 inline-flex items-center text-xs font-medium text-blue-700 hover:underline"
-        >
-          <ArrowLeft className="mr-1 h-4 w-4" /> Volver a Configuración
-        </Link>
+        <BackLink to="/settings" className="mb-3">
+          Volver a Configuración
+        </BackLink>
         <div className="flex items-start gap-3">
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-2.5 text-blue-700">
             <SlidersHorizontal className="h-5 w-5" />

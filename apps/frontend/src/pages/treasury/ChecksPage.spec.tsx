@@ -28,6 +28,7 @@ describe('ChecksPage', () => {
       ),
     );
     renderPage();
+    expect(await screen.findByRole('link', { name: /volver a tesorería/i })).toBeInTheDocument();
     expect(await screen.findByText('12345678')).toBeInTheDocument();
     expect(screen.getByText('Farmacia Central')).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('1 cheque vence en los próximos 7 días.');

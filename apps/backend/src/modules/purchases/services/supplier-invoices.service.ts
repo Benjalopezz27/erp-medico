@@ -24,7 +24,11 @@ import { PurchaseOrderItem } from '../entities/purchase-order-item.entity';
 import { SupplierInvoice } from '../entities/supplier-invoice.entity';
 import { SupplierInvoiceItem } from '../entities/supplier-invoice-item.entity';
 import { CreateSupplierInvoiceDto } from '../dto/create-supplier-invoice.dto';
-import { QuerySupplierInvoicesDto } from '../dto/query-supplier-invoices.dto';
+import {
+  QuerySupplierInvoicesDto,
+  SUPPLIER_INVOICE_SORT_FIELDS,
+} from '../dto/query-supplier-invoices.dto';
+import { resolveSort } from '../../../common/sorting/sorting';
 import { QueryPendingInvoiceReceiptsDto } from '../dto/query-pending-invoice-receipts.dto';
 import {
   calculateSupplierInvoiceAllocation,
@@ -50,6 +54,20 @@ interface AllocationTotals {
   purchase: string;
   base: string;
 }
+
+// Property paths (not raw columns) so TypeORM skip/take keeps working with joins.
+const INVOICE_SORT_COLUMNS: Record<
+  (typeof SUPPLIER_INVOICE_SORT_FIELDS)[number],
+  string
+> = {
+  invoiceNumber: 'invoice.invoiceNumber',
+  supplier: 'supplier.businessName',
+  invoiceDate: 'invoice.invoiceDate',
+  status: 'invoice.status',
+  totalNet: 'invoice.netTotal',
+  ivaTotal: 'invoice.taxTotal',
+  totalGross: 'invoice.totalAmount',
+};
 
 @Injectable()
 export class SupplierInvoicesService {
@@ -345,10 +363,20 @@ export class SupplierInvoicesService {
         { search },
       );
     }
-    qb.orderBy('invoice.createdAt', 'DESC')
-      .addOrderBy('invoice.id', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit);
+    const sort = resolveSort(
+      INVOICE_SORT_COLUMNS,
+      query.sortBy,
+      query.sortOrder,
+    );
+    if (sort) {
+      qb.orderBy(sort.column, sort.direction).addOrderBy(
+        'invoice.id',
+        sort.direction,
+      );
+    } else {
+      qb.orderBy('invoice.createdAt', 'DESC').addOrderBy('invoice.id', 'DESC');
+    }
+    qb.skip((page - 1) * limit).take(limit);
     const [invoices, total] = await qb.getManyAndCount();
     return paginateSupplierInvoices(invoices, total, page, limit);
   }

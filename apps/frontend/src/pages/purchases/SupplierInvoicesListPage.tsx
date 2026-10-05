@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { PurchasesNavigationTabs } from '@/features/purchase-orders/components/PurchasesNavigationTabs';
 import { PurchaseOrderPagination } from '@/features/purchase-orders/components/PurchaseOrderPagination';
 import { SupplierInvoiceFilters } from '@/features/supplier-invoices/components/SupplierInvoiceFilters';
+import { nextSort } from '@/lib/sorting';
 import { SupplierInvoicesTable } from '@/features/supplier-invoices/components/SupplierInvoicesTable';
 import { useSupplierInvoicesQuery } from '@/features/supplier-invoices/hooks/use-supplier-invoices';
 import {
@@ -121,6 +122,9 @@ export function SupplierInvoicesListPage() {
           <SupplierInvoicesTable
             invoices={query.data?.data ?? []}
             loading={query.isLoading}
+            sortBy={filters.sortBy}
+            sortOrder={filters.sortOrder}
+            onSort={(field) => update(nextSort(filters, field))}
             hasFilters={Boolean(
               filters.search ||
               filters.supplierId ||

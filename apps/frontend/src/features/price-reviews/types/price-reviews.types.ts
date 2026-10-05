@@ -1,11 +1,15 @@
 import type {
+  ISortParams,
   IPriceReviewDetail,
   PriceReviewApprovalMode,
   PriceReviewDecisionAction,
   PriceReviewStatus,
 } from '@erp/shared-types';
 
-export interface PriceReviewSearchParams {
+export const PRICE_REVIEW_SORT_FIELDS = ['product', 'costNet', 'markup', 'status'] as const;
+export type PriceReviewSortField = (typeof PRICE_REVIEW_SORT_FIELDS)[number];
+
+export interface PriceReviewSearchParams extends ISortParams<PriceReviewSortField> {
   page: number;
   limit: number;
   status: PriceReviewStatus;

@@ -22,7 +22,11 @@ import { Product } from '../../products/entities/product.entity';
 import { PriceReview } from '../../purchases/entities/price-review.entity';
 import { mapPriceReview } from '../../purchases/mappers/supplier-cost-adjustment.mapper';
 import { ApprovePriceReviewDto } from '../dto/price-review-decision.dto';
-import { QueryPriceReviewsDto } from '../dto/query-price-reviews.dto';
+import {
+  PRICE_REVIEW_SORT_FIELDS,
+  QueryPriceReviewsDto,
+} from '../dto/query-price-reviews.dto';
+import { resolveSort } from '../../../common/sorting/sorting';
 
 interface DecisionInput {
   action: PriceReviewDecisionAction;
@@ -34,6 +38,18 @@ interface StaleState {
   reasons: PriceReviewStaleReason[];
   supersededByReviewId: string | null;
 }
+
+// Property paths (not raw columns) so TypeORM skip/take keeps working.
+const PRICE_REVIEW_SORT_COLUMNS: Record<
+  (typeof PRICE_REVIEW_SORT_FIELDS)[number],
+  string
+> = {
+  product: 'review.productNameSnapshot',
+  costNet: 'review.newCostNet',
+  markup: 'review.markupPercentageSnapshot',
+  status: 'review.status',
+  createdAt: 'review.createdAt',
+};
 
 @Injectable()
 export class PriceReviewsService {
@@ -78,10 +94,20 @@ export class PriceReviewsService {
         dateToExclusive: this.startOfNextUtcDate(query.dateTo),
       });
 
-    qb.orderBy('review.createdAt', 'DESC')
-      .addOrderBy('review.id', 'DESC')
-      .skip((page - 1) * limit)
-      .take(limit);
+    const sort = resolveSort(
+      PRICE_REVIEW_SORT_COLUMNS,
+      query.sortBy,
+      query.sortOrder,
+    );
+    if (sort) {
+      qb.orderBy(sort.column, sort.direction).addOrderBy(
+        'review.id',
+        sort.direction,
+      );
+    } else {
+      qb.orderBy('review.createdAt', 'DESC').addOrderBy('review.id', 'DESC');
+    }
+    qb.skip((page - 1) * limit).take(limit);
     const [reviews, total] = await qb.getManyAndCount();
     const latestByProduct = await this.loadLatestByProduct(
       this.dataSource.manager,

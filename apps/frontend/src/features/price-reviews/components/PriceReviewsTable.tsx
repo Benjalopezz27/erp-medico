@@ -5,6 +5,9 @@ import {
   PriceReviewStatus,
   type IPriceReviewDetail,
 } from '@erp/shared-types';
+import type { SortOrder } from '@erp/shared-types';
+import { SortableTh } from '@/components/ui/sortable-th';
+import type { PriceReviewSortField } from '../types/price-reviews.types';
 import { Button } from '@/components/ui/button';
 import {
   calculateCostVariation,
@@ -103,13 +106,20 @@ export function PriceReviewsTable({
   hasFilters,
   onAction,
   onFilterInvoice,
+  sortBy,
+  sortOrder,
+  onSort = () => {},
 }: {
   reviews: IPriceReviewDetail[];
   loading: boolean;
   hasFilters: boolean;
   onAction: (review: IPriceReviewDetail, action: PriceReviewDecisionAction) => void;
   onFilterInvoice: (invoiceId: string) => void;
+  sortBy?: PriceReviewSortField;
+  sortOrder?: SortOrder;
+  onSort?: (field: PriceReviewSortField) => void;
 }) {
+  const sort = { sortBy, sortOrder, onSort };
   if (loading) {
     return (
       <div aria-label="Cargando revisiones de precio" className="space-y-2">
@@ -140,24 +150,24 @@ export function PriceReviewsTable({
         >
           <thead className="bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500">
             <tr>
-              <th scope="col" className="px-3 py-3">
+              <SortableTh field="product" {...sort} className="px-3 py-3">
                 Producto
-              </th>
+              </SortableTh>
               <th scope="col" className="px-3 py-3">
                 Origen
               </th>
-              <th scope="col" className="px-3 py-3">
+              <SortableTh field="costNet" {...sort} className="px-3 py-3">
                 Costo
-              </th>
+              </SortableTh>
               <th scope="col" className="px-3 py-3">
                 Precios netos
               </th>
-              <th scope="col" className="px-3 py-3">
+              <SortableTh field="markup" {...sort} className="px-3 py-3">
                 Markup
-              </th>
-              <th scope="col" className="px-3 py-3">
+              </SortableTh>
+              <SortableTh field="status" {...sort} className="px-3 py-3">
                 Estado y antigüedad
-              </th>
+              </SortableTh>
               <th scope="col" className="px-3 py-3">
                 Acciones
               </th>

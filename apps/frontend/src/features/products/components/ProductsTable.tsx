@@ -1,12 +1,18 @@
 import React from 'react';
+import { ClickableRow } from '@/components/ui/clickable-row';
 import { Edit, Trash2, RotateCcw, Package, Loader2 } from 'lucide-react';
 import { ProductStatus, ProductTaxTreatment } from '@erp/shared-types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { SortableTh } from '@/components/ui/sortable-th';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
 import { formatCurrency, formatDecimal } from '../utils/products.math';
-import { isProductAdminView, type ProductListItem } from '../types/products.types';
+import {
+  isProductAdminView,
+  type ProductListItem,
+  type ProductSortField,
+} from '../types/products.types';
 
 interface ProductsTableProps {
   products: ProductListItem[];
@@ -17,6 +23,9 @@ interface ProductsTableProps {
   onDeactivate: (product: ProductListItem) => void;
   onReactivate: (product: ProductListItem) => void;
   mutatingProductId?: string | null;
+  sortBy?: ProductSortField;
+  sortOrder?: 'ASC' | 'DESC';
+  onSort: (field: ProductSortField) => void;
 }
 
 export const ProductsTable: React.FC<ProductsTableProps> = ({
@@ -28,6 +37,9 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
   onDeactivate,
   onReactivate,
   mutatingProductId,
+  sortBy,
+  sortOrder,
+  onSort,
 }) => {
   if (isLoading) {
     return (
@@ -62,32 +74,82 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
       <table className="w-full text-left text-xs text-slate-600 border-collapse">
         <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-700 font-semibold uppercase tracking-wider text-[11px]">
           <tr>
-            <th scope="col" className="py-3 px-4">
+            <SortableTh<ProductSortField>
+              field="internalCode"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="py-3 px-4"
+            >
               Código
-            </th>
-            <th scope="col" className="py-3 px-4">
+            </SortableTh>
+            <SortableTh<ProductSortField>
+              field="name"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="py-3 px-4"
+            >
               Nombre
-            </th>
-            <th scope="col" className="py-3 px-4">
+            </SortableTh>
+            <SortableTh<ProductSortField>
+              field="category"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="py-3 px-4"
+            >
               Categoría
-            </th>
-            <th scope="col" className="py-3 px-4">
+            </SortableTh>
+            <SortableTh<ProductSortField>
+              field="baseUnit"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="py-3 px-4"
+            >
               Unidad Base
-            </th>
-            <th scope="col" className="py-3 px-4 text-right">
+            </SortableTh>
+            <SortableTh<ProductSortField>
+              field="netPrice"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              right
+              className="py-3 px-4"
+            >
               Precio Neto
-            </th>
-            <th scope="col" className="py-3 px-4 text-center">
+            </SortableTh>
+            <SortableTh<ProductSortField>
+              field="ivaRate"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="py-3 px-4 text-center"
+            >
               IVA
-            </th>
-            <th scope="col" className="py-3 px-4 text-center">
+            </SortableTh>
+            <SortableTh<ProductSortField>
+              field="status"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="py-3 px-4 text-center"
+            >
               Estado
-            </th>
+            </SortableTh>
             {isAdmin && (
               <>
-                <th scope="col" className="py-3 px-4 text-right">
+                <SortableTh<ProductSortField>
+                  field="costNet"
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onSort={onSort}
+                  right
+                  className="py-3 px-4"
+                >
                   Costo Neto
-                </th>
+                </SortableTh>
                 <th scope="col" className="py-3 px-4 text-right">
                   Markup
                 </th>
@@ -105,7 +167,11 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
             const adminProduct = isProductAdminView(product) ? product : null;
 
             return (
-              <tr key={product.id} className="hover:bg-slate-50/75 transition-colors group">
+              <ClickableRow
+                key={product.id}
+                onActivate={() => onEdit(product.id)}
+                className="hover:bg-slate-50/75 group"
+              >
                 {/* Code */}
                 <td className="py-3 px-4 font-mono font-medium text-slate-900 whitespace-nowrap">
                   <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200">
@@ -224,7 +290,7 @@ export const ProductsTable: React.FC<ProductsTableProps> = ({
                     </td>
                   </>
                 )}
-              </tr>
+              </ClickableRow>
             );
           })}
         </tbody>

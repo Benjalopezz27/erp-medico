@@ -38,8 +38,10 @@ import {
   FiscalDocumentResponseDto,
   PaginatedSalesResponseDto,
   QuerySalesDto,
+  SALE_SORT_FIELDS,
   SaleResponseDto,
 } from './dto';
+import { resolveSort } from '../../common/sorting/sorting';
 import { accountForPaymentMethod } from '../treasury/payment-method-account';
 import { TreasuryService } from '../treasury/treasury.service';
 import { FiscalDocument } from './entities/fiscal-document.entity';
@@ -48,6 +50,16 @@ import { Sale } from './entities/sale.entity';
 import { SalesMapper } from './mappers/sales.mapper';
 import { PendingFiscalService } from './services/pending-fiscal.service';
 import { RetryFiscalDocumentResponseDto } from './dto/pending-fiscal-response.dto';
+
+// Property paths (not raw columns) so TypeORM skip/take keeps working.
+const SALE_SORT_COLUMNS: Record<(typeof SALE_SORT_FIELDS)[number], string> = {
+  saleNumber: 'sale.saleNumber',
+  createdAt: 'sale.createdAt',
+  customer: 'customer.businessName',
+  paymentMethod: 'sale.paymentMethod',
+  status: 'sale.status',
+  totalGross: 'sale.totalGross',
+};
 
 @Injectable()
 export class SalesService {
@@ -300,7 +312,17 @@ export class SalesService {
       });
     if (query.status)
       qb.andWhere('sale.status = :status', { status: query.status });
-    qb.orderBy('sale.createdAt', 'DESC').addOrderBy('sale.id', 'DESC');
+    const sort = resolveSort(SALE_SORT_COLUMNS, query.sortBy, query.sortOrder);
+    if (sort) {
+      if (query.sortBy === 'customer')
+        qb.leftJoinAndSelect('sale.customer', 'customer');
+      qb.orderBy(sort.column, sort.direction).addOrderBy(
+        'sale.id',
+        sort.direction,
+      );
+    } else {
+      qb.orderBy('sale.createdAt', 'DESC').addOrderBy('sale.id', 'DESC');
+    }
     qb.skip((page - 1) * limit).take(limit);
     const [sales, total] = await qb.getManyAndCount();
     const data = await Promise.all(

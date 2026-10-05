@@ -2,8 +2,13 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 import { IStockAlertsSearchParams } from '@erp/shared-types';
+import { SortableQuery } from '../../../common/sorting/sorting';
+import { STOCK_SORT_FIELDS } from '../utils/stock-sort';
 
-export class QueryStockAlertsDto implements IStockAlertsSearchParams {
+export class QueryStockAlertsDto
+  extends SortableQuery(STOCK_SORT_FIELDS)
+  implements IStockAlertsSearchParams
+{
   @ApiPropertyOptional({
     description: 'Page number (1-indexed)',
     default: 1,

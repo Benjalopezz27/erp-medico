@@ -1,11 +1,23 @@
 import type {
+  ISortParams,
   DebtorStatus,
   ICustomerAccountResponse,
   IReceivableDebtorsResponse,
 } from '@erp/shared-types';
 import { apiClient } from '@/services/api.client';
 
-export interface DebtorSearchParams {
+export const DEBTOR_SORT_FIELDS = [
+  'businessName',
+  'pendingCount',
+  'aging0to30',
+  'aging31to60',
+  'aging60Plus',
+  'totalBalance',
+  'oldestDebtDate',
+] as const;
+export type DebtorSortField = (typeof DEBTOR_SORT_FIELDS)[number];
+
+export interface DebtorSearchParams extends ISortParams<DebtorSortField> {
   page: number;
   limit: number;
   search?: string;
@@ -34,6 +46,7 @@ export async function getDebtorsApi(
         limit: params.limit,
         ...(params.search ? { search: params.search } : {}),
         ...(params.status ? { status: params.status } : {}),
+        ...(params.sortBy ? { sortBy: params.sortBy, sortOrder: params.sortOrder ?? 'ASC' } : {}),
       },
     })
   ).data;

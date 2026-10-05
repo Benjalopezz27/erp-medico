@@ -1,5 +1,6 @@
 import { DebtorStatus } from '@erp/shared-types';
-import type { DebtorSearchParams } from '../api/receivables.api';
+import { parseSort } from '@/lib/sorting';
+import { DEBTOR_SORT_FIELDS, type DebtorSearchParams } from '../api/receivables.api';
 
 export function validateReceivablesSearchParams(
   search: Record<string, unknown>,
@@ -15,5 +16,6 @@ export function validateReceivablesSearchParams(
     limit: [10, 20, 50, 100].includes(limit) ? limit : 20,
     search: text ? text.slice(0, 100) : undefined,
     status,
+    ...parseSort(search, DEBTOR_SORT_FIELDS),
   };
 }

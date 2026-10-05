@@ -1,6 +1,8 @@
 import React from 'react';
 import { ShieldAlert, Loader2, AlertCircle, RotateCcw, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SortableTh } from '@/components/ui/sortable-th';
+import type { SortOrder, QuarantineSortField } from '@erp/shared-types';
 import { QuarantineStatusBadge } from './QuarantineStatusBadge';
 import { QuarantineStatus, type IQuarantineStock } from '../../types/quarantine.types';
 
@@ -11,6 +13,9 @@ interface QuarantineTableProps {
   errorMessage?: string;
   onRetry: () => void;
   onOpenResolve: (item: IQuarantineStock) => void;
+  sortBy?: QuarantineSortField;
+  sortOrder?: SortOrder;
+  onSort?: (field: QuarantineSortField) => void;
 }
 
 export const QuarantineTable: React.FC<QuarantineTableProps> = ({
@@ -20,6 +25,9 @@ export const QuarantineTable: React.FC<QuarantineTableProps> = ({
   errorMessage,
   onRetry,
   onOpenResolve,
+  sortBy,
+  sortOrder,
+  onSort = () => {},
 }) => {
   if (isLoading) {
     return (
@@ -79,27 +87,29 @@ export const QuarantineTable: React.FC<QuarantineTableProps> = ({
     );
   }
 
+  const sort = { sortBy, sortOrder, onSort };
+
   return (
     <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead className="bg-muted/50 text-muted-foreground uppercase text-[11px] font-semibold tracking-wider border-b border-border">
             <tr>
-              <th scope="col" className="py-3.5 px-4">
+              <SortableTh field="product" {...sort} className="py-3.5 px-4">
                 Producto
-              </th>
-              <th scope="col" className="py-3.5 px-4 text-right">
+              </SortableTh>
+              <SortableTh field="quantity" {...sort} right className="py-3.5 px-4">
                 Cantidad Retenida
-              </th>
+              </SortableTh>
               <th scope="col" className="py-3.5 px-4">
                 Motivo / Ingresado Por
               </th>
-              <th scope="col" className="py-3.5 px-4">
+              <SortableTh field="createdAt" {...sort} className="py-3.5 px-4">
                 Fecha Ingreso
-              </th>
-              <th scope="col" className="py-3.5 px-4 text-center">
+              </SortableTh>
+              <SortableTh field="status" {...sort} className="py-3.5 px-4 text-center">
                 Estado
-              </th>
+              </SortableTh>
               <th scope="col" className="py-3.5 px-4">
                 Resolución / Notas
               </th>

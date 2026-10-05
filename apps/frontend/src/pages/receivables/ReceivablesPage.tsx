@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { BackLink } from '@/components/ui/back-link';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { DebtorStatus } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { nextSort } from '@/lib/sorting';
 import { DebtorsTable } from '@/features/receivables/components/DebtorsTable';
 import type { DebtorSearchParams } from '@/features/receivables/api/receivables.api';
 import { useDebtorsQuery } from '@/features/receivables/hooks/use-receivables-query';
@@ -44,6 +46,13 @@ export function ReceivablesPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
+          <BackLink
+            to="/customers"
+            search={{ page: 1, limit: 10, isActive: true }}
+            className="mb-3"
+          >
+            Volver a Clientes
+          </BackLink>
           <h1 className="text-2xl font-bold text-slate-900">Cuentas Corrientes</h1>
           <p className="text-xs text-slate-500">
             Clientes con deuda pendiente, saldo por antigüedad y estado de morosidad.
@@ -106,7 +115,15 @@ export function ReceivablesPage() {
           </Button>
         </div>
       )}
-      {!query.isError && <DebtorsTable rows={query.data?.data ?? []} loading={query.isLoading} />}
+      {!query.isError && (
+        <DebtorsTable
+          rows={query.data?.data ?? []}
+          loading={query.isLoading}
+          sortBy={params.sortBy}
+          sortOrder={params.sortOrder}
+          onSort={(field) => update(nextSort(params, field), true)}
+        />
+      )}
 
       {meta && meta.total > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">

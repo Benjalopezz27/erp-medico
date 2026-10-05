@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BackLink } from '@/components/ui/back-link';
 import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import {
   ArrowLeft,
@@ -17,6 +18,7 @@ import { getSupplierByIdApi } from '@/features/suppliers/api/suppliers.api';
 import { supplierKeys } from '@/features/suppliers/hooks/suppliers-keys';
 import { SupplierStatusBadge } from '@/features/suppliers/components/SupplierStatusBadge';
 import { SupplierTaxConditionBadge } from '@/features/suppliers/components/SupplierTaxConditionBadge';
+import { nextSort } from '@/lib/sorting';
 import { SupplierProductTable } from '@/features/supplier-products/components/SupplierProductTable';
 import { SupplierProductFilters } from '@/features/supplier-products/components/SupplierProductFilters';
 import { SupplierProductPagination } from '@/features/supplier-products/components/SupplierProductPagination';
@@ -270,15 +272,7 @@ export const SupplierCatalogPage: React.FC = () => {
     <div className="space-y-6 pb-12">
       {/* Top Breadcrumb / Return button */}
       <div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate({ to: '/suppliers' })}
-          className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 -ml-2"
-        >
-          <ArrowLeft className="w-4 h-4 mr-1.5" />
-          Volver al listado de proveedores
-        </Button>
+        <BackLink to="/suppliers">Volver a Proveedores</BackLink>
       </div>
 
       {/* Supplier Header */}
@@ -388,6 +382,9 @@ export const SupplierCatalogPage: React.FC = () => {
       ) : (
         <div className="space-y-0">
           <SupplierProductTable
+            sortBy={currentFilters.sortBy}
+            sortOrder={currentFilters.sortOrder}
+            onSort={(field) => updateSearch((prev) => ({ ...nextSort(prev, field), page: 1 }))}
             items={catalogData?.data || []}
             onEdit={handleOpenEditModal}
             onDelete={handleOpenDeleteModal}

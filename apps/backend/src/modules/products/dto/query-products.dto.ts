@@ -11,8 +11,20 @@ import {
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 import { ProductStatus } from '@erp/shared-types';
+import { SortableQuery } from '../../../common/sorting/sorting';
 
-export class QueryProductsDto {
+export const PRODUCT_SORT_FIELDS = [
+  'internalCode',
+  'name',
+  'category',
+  'baseUnit',
+  'netPrice',
+  'ivaRate',
+  'status',
+  'costNet',
+] as const;
+
+export class QueryProductsDto extends SortableQuery(PRODUCT_SORT_FIELDS) {
   @ApiPropertyOptional({
     description: 'Filter by text matching internalCode or name',
     example: 'Ibuprofeno',

@@ -15,6 +15,20 @@ import {
 import Decimal from 'decimal.js';
 import { DataSource } from 'typeorm';
 import { AccountReceivable } from './entities/account-receivable.entity';
+import { DEBTOR_SORT_FIELDS } from './dto/query-account.dto';
+import { resolveSort } from '../../common/sorting/sorting';
+
+// Output aliases of the `grouped` subquery in listDebtors.
+const DEBTOR_SORT_COLUMNS: Record<(typeof DEBTOR_SORT_FIELDS)[number], string> =
+  {
+    businessName: 'business_name',
+    pendingCount: 'pending_count',
+    aging0to30: 'days_0_30',
+    aging31to60: 'days_31_60',
+    aging60Plus: 'days_61_plus',
+    totalBalance: 'total_balance',
+    oldestDebtDate: 'oldest_debt_date',
+  };
 
 /** Una deuda con más de estos días desde su creación es morosa. */
 export const OVERDUE_DAYS = 30;
@@ -202,6 +216,8 @@ export class ReceivablesQueryService {
   async listDebtors(query: {
     search?: string;
     status?: DebtorStatus;
+    sortBy?: (typeof DEBTOR_SORT_FIELDS)[number];
+    sortOrder?: string;
     page: number;
     limit: number;
   }): Promise<IReceivableDebtorsResponse> {
@@ -239,9 +255,18 @@ export class ReceivablesQueryService {
       `SELECT COUNT(*)::int AS total FROM (${grouped}) g`,
       params,
     );
+    // Whitelisted aliases only; user input never reaches the SQL text.
+    const sort = resolveSort(
+      DEBTOR_SORT_COLUMNS,
+      query.sortBy,
+      query.sortOrder,
+    );
+    const orderBy = sort
+      ? `${sort.column} ${sort.direction}, customer_id ${sort.direction}`
+      : 'total_balance DESC, business_name ASC, customer_id ASC';
     const rows = await this.dataSource.query(
       `${grouped}
-       ORDER BY total_balance DESC, business_name ASC, customer_id ASC
+       ORDER BY ${orderBy}
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       [...params, query.limit, (query.page - 1) * query.limit],
     );

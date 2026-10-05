@@ -1,7 +1,15 @@
-import type { CheckStatus, ICheck, ICheckDetail, ICheckListResponse } from '@erp/shared-types';
+import type {
+  CheckStatus,
+  ISortParams,
+  ICheck,
+  ICheckDetail,
+  ICheckListResponse,
+} from '@erp/shared-types';
 import { apiClient } from '@/services/api.client';
 
-export interface CheckSearchParams {
+export type CheckSortField = 'bank' | 'checkNumber' | 'customer' | 'amount' | 'dueDate' | 'status';
+
+export interface CheckSearchParams extends ISortParams<CheckSortField> {
   page: number;
   limit: number;
   status?: CheckStatus;

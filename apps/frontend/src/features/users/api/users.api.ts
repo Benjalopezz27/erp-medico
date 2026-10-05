@@ -25,6 +25,11 @@ export async function getUsersApi(params: UserSearchParams): Promise<PaginatedUs
     queryParams.isActive = params.isActive;
   }
 
+  if (params.sortBy) {
+    queryParams.sortBy = params.sortBy;
+    if (params.sortOrder) queryParams.sortOrder = params.sortOrder;
+  }
+
   const response = await apiClient.get<PaginatedUsersResponse>('/users', {
     params: queryParams,
   });

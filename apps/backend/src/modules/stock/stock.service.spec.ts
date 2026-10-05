@@ -1,3 +1,9 @@
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { QueryStockDto } from './dto/query-stock.dto';
+import { QueryStockAlertsDto } from './dto/query-stock-alerts.dto';
+import { QueryStockMovementsDto } from './dto/query-stock-movements.dto';
+import { STOCK_CURRENT_SQL, STOCK_STATUS_SQL } from './utils/stock-sort';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import {
@@ -109,6 +115,7 @@ describe('StockService', () => {
       leftJoin: jest.fn().mockReturnThis(),
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
@@ -522,6 +529,94 @@ describe('StockService', () => {
     });
   });
 
+  describe('stock sorting', () => {
+    it('sorts by derived current stock with COALESCE and id tie-break', async () => {
+      await service.findAllStock({ sortBy: 'currentStock', sortOrder: 'desc' });
+      expect(mockProductQueryBuilder.addSelect).toHaveBeenCalledWith(
+        'COALESCE(stock.current_base_stock, 0)',
+        'sort_current_stock',
+      );
+      expect(mockProductQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'sort_current_stock',
+        'DESC',
+      );
+      expect(mockProductQueryBuilder.addOrderBy).toHaveBeenCalledWith(
+        'product.id',
+        'DESC',
+      );
+    });
+
+    it('sorts by joined category name', async () => {
+      await service.findAllStock({ sortBy: 'category' });
+      expect(mockProductQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'category.name',
+        'ASC',
+      );
+      expect(mockProductQueryBuilder.addSelect).not.toHaveBeenCalled();
+    });
+
+    it('applies the same sort to alerts and keeps default order otherwise', async () => {
+      await service.findStockAlerts({ sortBy: 'minStock', sortOrder: 'DESC' });
+      expect(mockProductQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'product.minStock',
+        'DESC',
+      );
+      mockProductQueryBuilder.orderBy.mockClear();
+      await service.findAllStock({});
+      await service.findStockAlerts({});
+      expect(mockProductQueryBuilder.orderBy).toHaveBeenNthCalledWith(
+        1,
+        'product.name',
+        'ASC',
+      );
+      expect(mockProductQueryBuilder.orderBy).toHaveBeenNthCalledWith(
+        2,
+        'product.name',
+        'ASC',
+      );
+    });
+
+    it('status SQL CASE matches deriveStockStatus', () => {
+      const evaluate = (current: number | null, min: number) => {
+        const js = STOCK_STATUS_SQL.replaceAll(STOCK_CURRENT_SQL, '(c ?? 0)')
+          .replaceAll('product.min_stock', 'm')
+          .replace(
+            /CASE WHEN (.+?) THEN (.+?) WHEN (.+?) THEN (.+?) ELSE (.+?) END/,
+            '($1) ? $2 : ($3) ? $4 : $5',
+          );
+        return new Function('c', 'm', `return ${js};`)(current, min);
+      };
+      const cases: Array<[number | null, number]> = [
+        [null, 5],
+        [0, 5],
+        [-1, 5],
+        [3, 5],
+        [5, 5],
+        [5.01, 5],
+        [100, 0],
+        [0.01, 0],
+      ];
+      for (const [c, m] of cases) {
+        expect(evaluate(c, m)).toBe(deriveStockStatus(c, m));
+      }
+    });
+
+    it('rejects invalid sortBy at DTO level', async () => {
+      for (const Dto of [
+        QueryStockDto,
+        QueryStockAlertsDto,
+        QueryStockMovementsDto,
+      ]) {
+        const dto = plainToInstance(Dto as new () => object, {
+          sortBy: 'nope',
+        });
+        expect((await validate(dto)).map((e) => e.property)).toContain(
+          'sortBy',
+        );
+      }
+    });
+  });
+
   describe('findStockAlerts', () => {
     it('applies alerts predicate and filters by category and search', async () => {
       await service.findStockAlerts({
@@ -541,6 +636,33 @@ describe('StockService', () => {
       expect(mockProductQueryBuilder.andWhere).toHaveBeenCalledWith(
         'product.categoryId = :categoryId',
         { categoryId: 'cat-1' },
+      );
+    });
+  });
+
+  describe('findProductMovements sorting', () => {
+    it('sorts by user name with id tie-break, default is createdAt DESC', async () => {
+      mockProductQueryBuilder.getOne.mockResolvedValue(mockProduct);
+      await service.findProductMovements('prod-1', {
+        sortBy: 'user',
+        sortOrder: 'asc',
+      });
+      expect(mockMovementQueryBuilder.orderBy).toHaveBeenLastCalledWith(
+        'user.name',
+        'ASC',
+      );
+      expect(mockMovementQueryBuilder.addOrderBy).toHaveBeenLastCalledWith(
+        'movement.id',
+        'ASC',
+      );
+      await service.findProductMovements('prod-1', {});
+      expect(mockMovementQueryBuilder.orderBy).toHaveBeenLastCalledWith(
+        'movement.createdAt',
+        'DESC',
+      );
+      expect(mockMovementQueryBuilder.addOrderBy).toHaveBeenLastCalledWith(
+        'movement.id',
+        'DESC',
       );
     });
   });

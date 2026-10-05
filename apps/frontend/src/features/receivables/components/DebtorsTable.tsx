@@ -1,5 +1,8 @@
-import { Link } from '@tanstack/react-router';
-import type { IReceivableDebtorRow } from '@erp/shared-types';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { ClickableRow } from '@/components/ui/clickable-row';
+import type { IReceivableDebtorRow, SortOrder } from '@erp/shared-types';
+import { SortableTh } from '@/components/ui/sortable-th';
+import type { DebtorSortField } from '../api/receivables.api';
 import { formatCurrency } from '@/features/products/utils/products.math';
 import { formatDate } from '../utils/receivables.format';
 import { DebtorStatusBadge } from './DebtorStatusBadge';
@@ -7,10 +10,18 @@ import { DebtorStatusBadge } from './DebtorStatusBadge';
 export function DebtorsTable({
   rows,
   loading,
+  sortBy,
+  sortOrder,
+  onSort = () => {},
 }: {
   rows: IReceivableDebtorRow[];
   loading: boolean;
+  sortBy?: DebtorSortField;
+  sortOrder?: SortOrder;
+  onSort?: (field: DebtorSortField) => void;
 }) {
+  const navigate = useNavigate();
+  const sort = { sortBy, sortOrder, onSort };
   if (loading)
     return (
       <div
@@ -30,19 +41,36 @@ export function DebtorsTable({
       <table className="w-full min-w-[900px] text-left text-xs">
         <thead className="bg-slate-50 text-slate-600">
           <tr>
-            <th className="px-4 py-3">Cliente</th>
-            <th className="px-4 py-3 text-right">Fact. pend.</th>
-            <th className="px-4 py-3 text-right">0-30 días</th>
-            <th className="px-4 py-3 text-right">31-60 días</th>
-            <th className="px-4 py-3 text-right">+60 días</th>
-            <th className="px-4 py-3 text-right">Saldo total</th>
-            <th className="px-4 py-3">Deuda más antigua</th>
+            <SortableTh field="businessName" {...sort} className="px-4 py-3">
+              Cliente
+            </SortableTh>
+            <SortableTh field="pendingCount" {...sort} right className="px-4 py-3">
+              Fact. pend.
+            </SortableTh>
+            <SortableTh field="aging0to30" {...sort} right className="px-4 py-3">
+              0-30 días
+            </SortableTh>
+            <SortableTh field="aging31to60" {...sort} right className="px-4 py-3">
+              31-60 días
+            </SortableTh>
+            <SortableTh field="aging60Plus" {...sort} right className="px-4 py-3">
+              +60 días
+            </SortableTh>
+            <SortableTh field="totalBalance" {...sort} right className="px-4 py-3">
+              Saldo total
+            </SortableTh>
+            <SortableTh field="oldestDebtDate" {...sort} className="px-4 py-3">
+              Deuda más antigua
+            </SortableTh>
             <th className="px-4 py-3">Estado</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
           {rows.map((row) => (
-            <tr key={row.customerId} className="hover:bg-slate-50">
+            <ClickableRow
+              key={row.customerId}
+              onActivate={() => navigate({ to: '/customers/$id', params: { id: row.customerId } })}
+            >
               <td className="px-4 py-3">
                 <Link
                   to="/customers/$id"
@@ -64,7 +92,7 @@ export function DebtorsTable({
               <td className="px-4 py-3">
                 <DebtorStatusBadge status={row.status} />
               </td>
-            </tr>
+            </ClickableRow>
           ))}
         </tbody>
       </table>

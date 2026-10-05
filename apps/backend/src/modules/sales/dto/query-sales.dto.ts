@@ -11,7 +11,18 @@ import {
   Min,
 } from 'class-validator';
 
-export class QuerySalesDto {
+import { SortableQuery } from '../../../common/sorting/sorting';
+
+export const SALE_SORT_FIELDS = [
+  'saleNumber',
+  'createdAt',
+  'customer',
+  'paymentMethod',
+  'status',
+  'totalGross',
+] as const;
+
+export class QuerySalesDto extends SortableQuery(SALE_SORT_FIELDS) {
   @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsOptional()
   @Type(() => Number)

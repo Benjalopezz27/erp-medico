@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { Plus, RefreshCw, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PurchaseOrderFilters } from '@/features/purchase-orders/components/PurchaseOrderFilters';
+import { nextSort } from '@/lib/sorting';
 import { PurchaseOrderTable } from '@/features/purchase-orders/components/PurchaseOrderTable';
 import { PurchaseOrderPagination } from '@/features/purchase-orders/components/PurchaseOrderPagination';
 import { usePurchaseOrdersListQuery } from '@/features/purchase-orders/hooks/use-purchase-orders-query';
@@ -160,7 +161,13 @@ export const PurchaseOrdersListPage: React.FC = () => {
       {/* Table & Pagination */}
       {!isError && (
         <div>
-          <PurchaseOrderTable orders={orders} isLoading={isLoading} />
+          <PurchaseOrderTable
+            orders={orders}
+            isLoading={isLoading}
+            sortBy={searchParams.sortBy}
+            sortOrder={searchParams.sortOrder}
+            onSort={(field) => handleFilterChange(nextSort(searchParams, field))}
+          />
           {orders.length > 0 && (
             <PurchaseOrderPagination
               page={meta.page}

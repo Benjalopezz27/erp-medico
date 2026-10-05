@@ -4,6 +4,7 @@ import { UserPlus, Users, AlertCircle, CheckCircle2, RotateCcw } from 'lucide-re
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
 import { UserFilters } from '@/features/users/components/UserFilters';
+import { nextSort } from '@/lib/sorting';
 import { UserTable } from '@/features/users/components/UserTable';
 import { UserPagination } from '@/features/users/components/UserPagination';
 import { UserFormModal } from '@/features/users/components/UserFormModal';
@@ -226,6 +227,9 @@ export const UsersPage: React.FC = () => {
       {/* User Table & Pagination */}
       <div className="space-y-0">
         <UserTable
+          sortBy={searchParams.sortBy}
+          sortOrder={searchParams.sortOrder}
+          onSort={(field) => updateSearch((prev) => ({ ...nextSort(prev, field), page: 1 }))}
           users={data?.data || []}
           isPending={isPending}
           isFetching={isFetching && !isPending}

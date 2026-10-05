@@ -27,6 +27,7 @@ describe('StockOverviewTable Component', () => {
   it('renders loading state when isLoading is true', () => {
     render(
       <StockOverviewTable
+        onSort={vi.fn()}
         items={[]}
         isLoading={true}
         isError={false}
@@ -42,6 +43,7 @@ describe('StockOverviewTable Component', () => {
     const handleRetry = vi.fn();
     render(
       <StockOverviewTable
+        onSort={vi.fn()}
         items={[]}
         isLoading={false}
         isError={true}
@@ -62,6 +64,7 @@ describe('StockOverviewTable Component', () => {
   it('renders empty state when items is empty', () => {
     render(
       <StockOverviewTable
+        onSort={vi.fn()}
         items={[]}
         isLoading={false}
         isError={false}
@@ -78,6 +81,7 @@ describe('StockOverviewTable Component', () => {
     const handleViewLedger = vi.fn();
     render(
       <StockOverviewTable
+        onSort={vi.fn()}
         items={mockItems}
         isLoading={false}
         isError={false}
@@ -113,6 +117,7 @@ describe('StockOverviewTable Component', () => {
     const handleOpenAdjustment = vi.fn();
     render(
       <StockOverviewTable
+        onSort={vi.fn()}
         items={mockItems}
         isLoading={false}
         isError={false}
@@ -145,6 +150,7 @@ describe('StockOverviewTable Component', () => {
     const handleOpenAdjustment = vi.fn();
     render(
       <StockOverviewTable
+        onSort={vi.fn()}
         items={mockItems}
         isLoading={false}
         isError={false}
@@ -159,5 +165,27 @@ describe('StockOverviewTable Component', () => {
         name: /ajustar stock de paracetamol 500mg/i,
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it('sorts via headers and reflects aria-sort', () => {
+    const onSort = vi.fn();
+    render(
+      <StockOverviewTable
+        items={mockItems as never}
+        isLoading={false}
+        isError={false}
+        onRetry={vi.fn()}
+        onViewLedger={vi.fn()}
+        sortBy="currentStock"
+        sortOrder="ASC"
+        onSort={onSort}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Stock Mínimo/ }));
+    expect(onSort).toHaveBeenCalledWith('minStock');
+    expect(screen.getByRole('columnheader', { name: /Stock Actual/ })).toHaveAttribute(
+      'aria-sort',
+      'ascending',
+    );
   });
 });

@@ -6,6 +6,9 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { QueryProductsDto } from './dto/query-products.dto';
 import {
   ProductStatus,
   ProductTaxTreatment,
@@ -542,6 +545,31 @@ describe('ProductsService', () => {
         '(UPPER(product.internalCode) LIKE UPPER(:searchPattern) OR product.name ILIKE :searchPattern)',
         expect.objectContaining({ searchPattern: '%100\\%\\_pure%' }),
       );
+    });
+  });
+
+  describe('findAll sorting', () => {
+    it('applies whitelisted sort with id tie-break', async () => {
+      const qb = productRepo.createQueryBuilder();
+      qb.orderBy.mockClear();
+      qb.addOrderBy.mockClear();
+      await service.findAll({ sortBy: 'category', sortOrder: 'desc' });
+      expect(qb.orderBy).toHaveBeenCalledWith('category.name', 'DESC');
+      expect(qb.addOrderBy).toHaveBeenCalledWith('product.id', 'DESC');
+    });
+
+    it('keeps default order without sortBy', async () => {
+      const qb = productRepo.createQueryBuilder();
+      qb.orderBy.mockClear();
+      qb.addOrderBy.mockClear();
+      await service.findAll({});
+      expect(qb.orderBy).toHaveBeenCalledWith('product.name', 'ASC');
+      expect(qb.addOrderBy).toHaveBeenCalledWith('product.id', 'ASC');
+    });
+
+    it('rejects invalid sortBy at DTO level', async () => {
+      const dto = plainToInstance(QueryProductsDto, { sortBy: 'x; DROP' });
+      expect((await validate(dto)).map((e) => e.property)).toContain('sortBy');
     });
   });
 

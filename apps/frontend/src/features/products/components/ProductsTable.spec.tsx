@@ -49,6 +49,7 @@ describe('ProductsTable', () => {
   it('renders products with all columns for Administrator', () => {
     render(
       <ProductsTable
+        onSort={vi.fn()}
         products={[mockAdminProduct]}
         isLoading={false}
         isAdmin={true}
@@ -71,6 +72,7 @@ describe('ProductsTable', () => {
   it('strictly omits cost, markup, and actions columns for Seller', () => {
     render(
       <ProductsTable
+        onSort={vi.fn()}
         products={[mockSellerProduct]}
         isLoading={false}
         isAdmin={false}
@@ -94,6 +96,7 @@ describe('ProductsTable', () => {
 
     render(
       <ProductsTable
+        onSort={vi.fn()}
         products={[{ ...mockAdminProduct, status: ProductStatus.INACTIVE }]}
         isLoading={false}
         isAdmin={true}
@@ -113,6 +116,7 @@ describe('ProductsTable', () => {
   it('renders empty state when products array is empty', () => {
     render(
       <ProductsTable
+        onSort={vi.fn()}
         products={[]}
         isLoading={false}
         isAdmin={true}
@@ -128,6 +132,7 @@ describe('ProductsTable', () => {
   it('renders loading state when isLoading is true', () => {
     const { container } = render(
       <ProductsTable
+        onSort={vi.fn()}
         products={[]}
         isLoading={true}
         isAdmin={true}
@@ -138,5 +143,34 @@ describe('ProductsTable', () => {
     );
 
     expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
+  });
+
+  it('calls onSort from sortable headers and reflects aria-sort', async () => {
+    const onSort = vi.fn();
+    render(
+      <ProductsTable
+        products={[mockAdminProduct]}
+        isLoading={false}
+        isAdmin={true}
+        onEdit={vi.fn()}
+        onDeactivate={vi.fn()}
+        onReactivate={vi.fn()}
+        sortBy="netPrice"
+        sortOrder="DESC"
+        onSort={onSort}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /^Nombre/ }));
+    expect(onSort).toHaveBeenCalledWith('name');
+    expect(screen.getByRole('columnheader', { name: /Precio Neto/ })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
+    expect(screen.getByRole('columnheader', { name: /Nombre/ })).toHaveAttribute(
+      'aria-sort',
+      'none',
+    );
+    expect(screen.queryByRole('button', { name: /Acciones/ })).not.toBeInTheDocument();
   });
 });

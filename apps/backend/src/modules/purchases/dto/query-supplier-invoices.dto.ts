@@ -13,7 +13,21 @@ import {
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { SupplierInvoiceStatus } from '@erp/shared-types';
 
-export class QuerySupplierInvoicesDto {
+import { SortableQuery } from '../../../common/sorting/sorting';
+
+export const SUPPLIER_INVOICE_SORT_FIELDS = [
+  'invoiceNumber',
+  'supplier',
+  'invoiceDate',
+  'status',
+  'totalNet',
+  'ivaTotal',
+  'totalGross',
+] as const;
+
+export class QuerySupplierInvoicesDto extends SortableQuery(
+  SUPPLIER_INVOICE_SORT_FIELDS,
+) {
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()
   @Type(() => Number)

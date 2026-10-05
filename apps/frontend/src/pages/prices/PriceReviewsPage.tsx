@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { BackLink } from '@/components/ui/back-link';
 import { useNavigate, useSearch } from '@tanstack/react-router';
 import { AlertCircle, CheckCircle2, Info, RefreshCw, Tags, X } from 'lucide-react';
 import { PriceReviewDecisionAction, type IPriceReviewDetail } from '@erp/shared-types';
@@ -6,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { PriceReviewDecisionModal } from '@/features/price-reviews/components/PriceReviewDecisionModal';
 import { PriceReviewsFilters } from '@/features/price-reviews/components/PriceReviewsFilters';
+import { nextSort } from '@/lib/sorting';
 import { PriceReviewsTable } from '@/features/price-reviews/components/PriceReviewsTable';
 import {
   usePriceReviewPendingCountQuery,
@@ -79,6 +81,9 @@ export function PriceReviewsPage() {
 
   return (
     <main className="mx-auto max-w-7xl space-y-5 animate-in fade-in duration-200">
+      <BackLink to="/products" search={{ page: 1, limit: 10 }}>
+        Volver a Productos
+      </BackLink>
       <header className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-center gap-3">
           <div className="rounded-lg border border-blue-200 bg-blue-50 p-2.5 text-blue-700">
@@ -161,6 +166,9 @@ export function PriceReviewsPage() {
             reviews={reviewsQuery.data?.data ?? []}
             loading={reviewsQuery.isLoading}
             hasFilters={hasFilters}
+            sortBy={filters.sortBy}
+            sortOrder={filters.sortOrder}
+            onSort={(field) => update(nextSort(filters, field))}
             onAction={openDecision}
             onFilterInvoice={(supplierInvoiceId) => update({ supplierInvoiceId })}
           />

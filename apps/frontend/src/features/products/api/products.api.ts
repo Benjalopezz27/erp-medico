@@ -36,6 +36,11 @@ export async function getProductsApi(
     queryParams.search = params.search.trim();
   }
 
+  if (params.sortBy) {
+    queryParams.sortBy = params.sortBy;
+    if (params.sortOrder) queryParams.sortOrder = params.sortOrder;
+  }
+
   const { data } = await apiClient.get<PaginatedProductsResponse<ProductListItem>>('/products', {
     params: queryParams,
   });

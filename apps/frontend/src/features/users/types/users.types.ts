@@ -3,7 +3,12 @@ import { IUser, UserRole, IAuthUser } from '@erp/shared-types';
 export { UserRole };
 export type { IUser, IAuthUser };
 
+export const USER_SORT_FIELDS = ['name', 'email', 'role', 'isActive', 'createdAt'] as const;
+export type UserSortField = (typeof USER_SORT_FIELDS)[number];
+
 export interface UserSearchParams {
+  sortBy?: UserSortField;
+  sortOrder?: 'ASC' | 'DESC';
   page: number;
   limit: number;
   search?: string;

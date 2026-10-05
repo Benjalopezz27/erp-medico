@@ -11,6 +11,11 @@ const mockSearch: Record<string, unknown> = { page: 1, limit: 10 };
 vi.mock('@tanstack/react-router', () => ({
   useNavigate: () => mockNavigate,
   useSearch: () => mockSearch,
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
+  useRouter: () => ({ history: { back: vi.fn() } }),
+  useCanGoBack: () => false,
 }));
 
 vi.mock('@/features/stock/hooks/use-quarantine', () => ({

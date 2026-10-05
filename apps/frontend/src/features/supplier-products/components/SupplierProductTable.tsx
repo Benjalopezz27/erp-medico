@@ -1,9 +1,10 @@
 import React from 'react';
 import { Edit2, Trash2, Layers } from 'lucide-react';
+import { SortableTh } from '@/components/ui/sortable-th';
 import { Button } from '@/components/ui/button';
 import { PrimarySupplierBadge } from './PrimarySupplierBadge';
 import { formatCurrency } from '@/features/products/utils/products.math';
-import type { ISupplierProduct } from '../types/supplier-products.types';
+import type { ISupplierProduct, SupplierProductSortField } from '../types/supplier-products.types';
 
 interface SupplierProductTableProps {
   items: ISupplierProduct[];
@@ -12,6 +13,9 @@ interface SupplierProductTableProps {
   isSupplierActive: boolean;
   isLoading?: boolean;
   isMutating?: boolean;
+  sortBy?: SupplierProductSortField;
+  sortOrder?: 'ASC' | 'DESC';
+  onSort: (field: SupplierProductSortField) => void;
 }
 
 export const SupplierProductTable: React.FC<SupplierProductTableProps> = ({
@@ -21,6 +25,9 @@ export const SupplierProductTable: React.FC<SupplierProductTableProps> = ({
   isSupplierActive,
   isLoading = false,
   isMutating = false,
+  sortBy,
+  sortOrder,
+  onSort,
 }) => {
   if (items.length === 0 && !isLoading) {
     return (
@@ -46,13 +53,37 @@ export const SupplierProductTable: React.FC<SupplierProductTableProps> = ({
         <table className="w-full text-left text-sm">
           <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-800">
             <tr>
-              <th className="py-3.5 px-4">SKU Proveedor</th>
+              <SortableTh<SupplierProductSortField>
+                field="supplierExternalCode"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3.5 px-4"
+              >
+                SKU Proveedor
+              </SortableTh>
               <th className="py-3.5 px-4">Descripción Externa</th>
-              <th className="py-3.5 px-4">Producto Interno</th>
+              <SortableTh<SupplierProductSortField>
+                field="productName"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3.5 px-4"
+              >
+                Producto Interno
+              </SortableTh>
               <th className="py-3.5 px-4">Unidad Compra</th>
               <th className="py-3.5 px-4 text-center">Factor a Base</th>
               <th className="py-3.5 px-4 text-right">Costo Habitual</th>
-              <th className="py-3.5 px-4 text-center">Habitual</th>
+              <SortableTh<SupplierProductSortField>
+                field="isPrimarySupplier"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3.5 px-4 text-center"
+              >
+                Habitual
+              </SortableTh>
               <th className="py-3.5 px-4 text-right">Acciones</th>
             </tr>
           </thead>

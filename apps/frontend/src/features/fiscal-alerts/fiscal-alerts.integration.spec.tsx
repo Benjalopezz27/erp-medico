@@ -16,6 +16,7 @@ import type { IFiscalAlertRow } from './types/fiscal-alerts.types';
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children }: { children: React.ReactNode }) => <a>{children}</a>,
+  useNavigate: () => vi.fn(),
 }));
 
 function DemoHarness() {

@@ -1,6 +1,9 @@
 import React from 'react';
-import { Link } from '@tanstack/react-router';
+import { ClickableRow } from '@/components/ui/clickable-row';
+import { Link, useNavigate } from '@tanstack/react-router';
 import { Eye, Edit3, PackageX, FileText } from 'lucide-react';
+import { SortableTh } from '@/components/ui/sortable-th';
+import type { PurchaseOrderSortField, SortOrder } from '@erp/shared-types';
 import { PurchaseOrderStatusBadge } from './PurchaseOrderStatusBadge';
 import { formatCurrency } from '../utils/purchase-orders.math';
 import { type IPurchaseOrderSummary, PurchaseOrderStatus } from '../types/purchase-orders.types';
@@ -8,12 +11,20 @@ import { type IPurchaseOrderSummary, PurchaseOrderStatus } from '../types/purcha
 export interface PurchaseOrderTableProps {
   orders: IPurchaseOrderSummary[];
   isLoading?: boolean;
+  sortBy?: PurchaseOrderSortField;
+  sortOrder?: SortOrder;
+  onSort?: (field: PurchaseOrderSortField) => void;
 }
 
 export const PurchaseOrderTable: React.FC<PurchaseOrderTableProps> = ({
   orders,
   isLoading = false,
+  sortBy,
+  sortOrder,
+  onSort = () => {},
 }) => {
+  const navigate = useNavigate();
+  const sort = { sortBy, sortOrder, onSort };
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return '-';
     try {
@@ -58,13 +69,25 @@ export const PurchaseOrderTable: React.FC<PurchaseOrderTableProps> = ({
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/50 font-semibold text-slate-700 dark:text-slate-300">
-              <th className="py-3 px-4">N° OC</th>
-              <th className="py-3 px-4">Proveedor</th>
-              <th className="py-3 px-4">Fecha Creación</th>
-              <th className="py-3 px-4">Fecha Emisión</th>
-              <th className="py-3 px-4 text-center">Estado</th>
+              <SortableTh field="orderNumber" {...sort} className="py-3 px-4">
+                N° OC
+              </SortableTh>
+              <SortableTh field="supplier" {...sort} className="py-3 px-4">
+                Proveedor
+              </SortableTh>
+              <SortableTh field="createdAt" {...sort} className="py-3 px-4">
+                Fecha Creación
+              </SortableTh>
+              <SortableTh field="emittedAt" {...sort} className="py-3 px-4">
+                Fecha Emisión
+              </SortableTh>
+              <SortableTh field="status" {...sort} className="py-3 px-4 text-center">
+                Estado
+              </SortableTh>
               <th className="py-3 px-4 text-center">Ítems</th>
-              <th className="py-3 px-4 text-right">Total Neto</th>
+              <SortableTh field="totalNet" {...sort} right className="py-3 px-4">
+                Total Neto
+              </SortableTh>
               <th className="py-3 px-4 text-right">Acciones</th>
             </tr>
           </thead>
@@ -73,9 +96,12 @@ export const PurchaseOrderTable: React.FC<PurchaseOrderTableProps> = ({
               const isDraft = order.status === PurchaseOrderStatus.BORRADOR;
 
               return (
-                <tr
+                <ClickableRow
                   key={order.id}
-                  className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors"
+                  onActivate={() =>
+                    navigate({ to: '/purchases/orders/$id', params: { id: order.id } })
+                  }
+                  className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50"
                 >
                   {/* Order Number */}
                   <td className="py-3 px-4 font-mono font-bold text-blue-600 dark:text-blue-400">
@@ -151,7 +177,7 @@ export const PurchaseOrderTable: React.FC<PurchaseOrderTableProps> = ({
                       )}
                     </div>
                   </td>
-                </tr>
+                </ClickableRow>
               );
             })}
           </tbody>

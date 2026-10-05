@@ -30,7 +30,21 @@ export function isProductAdminView(product: ProductListItem): product is IProduc
 
 export type ProductNoticeType = 'created' | 'updated' | 'deactivated' | 'reactivated';
 
+export const PRODUCT_SORT_FIELDS = [
+  'internalCode',
+  'name',
+  'category',
+  'baseUnit',
+  'netPrice',
+  'ivaRate',
+  'status',
+  'costNet',
+] as const;
+export type ProductSortField = (typeof PRODUCT_SORT_FIELDS)[number];
+
 export interface ProductSearchParams {
+  sortBy?: ProductSortField;
+  sortOrder?: 'ASC' | 'DESC';
   page: number;
   limit: number;
   search?: string;

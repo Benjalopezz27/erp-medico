@@ -24,7 +24,8 @@ import {
   ReceivablesService,
 } from '../receivables/receivables.service';
 import { Supplier } from '../suppliers/entities/supplier.entity';
-import { QueryChecksDto } from './dto/query-checks.dto';
+import { CHECK_SORT_FIELDS, QueryChecksDto } from './dto/query-checks.dto';
+import { resolveSort } from '../../common/sorting/sorting';
 import { TreasuryService } from '../treasury/treasury.service';
 import { Check } from './entities/check.entity';
 
@@ -41,6 +42,16 @@ const TRANSITIONS: Record<
     from: [CheckStatus.EN_CARTERA, CheckStatus.DEPOSITADO],
     to: CheckStatus.RECHAZADO,
   },
+};
+
+// Property paths (not raw columns) so TypeORM skip/take keeps working.
+const CHECK_SORT_COLUMNS: Record<(typeof CHECK_SORT_FIELDS)[number], string> = {
+  bank: 'c.bankName',
+  checkNumber: 'c.checkNumber',
+  customer: 'customer.businessName',
+  amount: 'c.amount',
+  dueDate: 'c.dueDate',
+  status: 'c.status',
 };
 
 @Injectable()
@@ -68,9 +79,16 @@ export class ChecksService {
     if (query.dueFrom)
       qb.andWhere('c.dueDate >= :from', { from: query.dueFrom });
     if (query.dueTo) qb.andWhere('c.dueDate <= :to', { to: query.dueTo });
+    const sort = resolveSort(CHECK_SORT_COLUMNS, query.sortBy, query.sortOrder);
+    if (sort) {
+      qb.orderBy(sort.column, sort.direction).addOrderBy(
+        'c.id',
+        sort.direction,
+      );
+    } else {
+      qb.orderBy('c.dueDate', 'ASC').addOrderBy('c.id', 'ASC');
+    }
     const [rows, total] = await qb
-      .orderBy('c.dueDate', 'ASC')
-      .addOrderBy('c.id', 'ASC')
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();

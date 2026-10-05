@@ -1,3 +1,6 @@
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { QueryPriceReviewsDto } from '../dto/query-price-reviews.dto';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import {
   PriceReviewApprovalMode,
@@ -230,6 +233,53 @@ describe('PriceReviewsService', () => {
     await expect(service.getPendingCount()).resolves.toEqual({ count: 7 });
     expect(manager.countBy).toHaveBeenCalledWith(PriceReview, {
       status: PriceReviewStatus.PENDIENTE,
+    });
+  });
+
+  describe('findAll sorting', () => {
+    const setup = () => {
+      const qb: any = {};
+      for (const m of [
+        'leftJoin',
+        'leftJoinAndSelect',
+        'andWhere',
+        'orderBy',
+        'addOrderBy',
+        'skip',
+        'take',
+      ]) {
+        qb[m] = jest.fn().mockReturnValue(qb);
+      }
+      qb.getManyAndCount = jest.fn().mockResolvedValue([[], 0]);
+      manager.createQueryBuilder.mockReturnValue(qb);
+      return qb;
+    };
+
+    it('sorts by whitelisted column with id tie-break', async () => {
+      const qb = setup();
+      await service.findAll({
+        page: 1,
+        limit: 20,
+        sortBy: 'markup',
+        sortOrder: 'desc',
+      });
+      expect(qb.orderBy).toHaveBeenCalledWith(
+        'review.markupPercentageSnapshot',
+        'DESC',
+      );
+      expect(qb.addOrderBy).toHaveBeenCalledWith('review.id', 'DESC');
+    });
+
+    it('keeps createdAt DESC default without sortBy', async () => {
+      const qb = setup();
+      await service.findAll({ page: 1, limit: 20 });
+      expect(qb.orderBy).toHaveBeenCalledWith('review.createdAt', 'DESC');
+      expect(qb.addOrderBy).toHaveBeenCalledWith('review.id', 'DESC');
+    });
+
+    it('rejects invalid sortBy at DTO level', async () => {
+      const dto = plainToInstance(QueryPriceReviewsDto, { sortBy: 'x' });
+      expect((await validate(dto)).map((e) => e.property)).toContain('sortBy');
     });
   });
 });

@@ -125,7 +125,7 @@ export const Modal: React.FC<ModalProps> = ({
         aria-describedby={description ? 'modal-description' : undefined}
         tabIndex={-1}
         className={cn(
-          'w-full max-w-lg bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden outline-none animate-in zoom-in-95 duration-200',
+          'w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200/60 overflow-hidden outline-none animate-in zoom-in-95 duration-200',
           className,
         )}
         onClick={(e) => e.stopPropagation()}

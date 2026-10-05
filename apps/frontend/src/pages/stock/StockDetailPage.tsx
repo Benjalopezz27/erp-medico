@@ -3,13 +3,17 @@ import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import { StockDetailHeader } from '@/features/stock/components/StockDetailHeader';
 import { StockEvolutionChart } from '@/features/stock/components/StockEvolutionChart';
 import { StockMovementsFilters } from '@/features/stock/components/StockMovementsFilters';
+import { nextSort } from '@/lib/sorting';
 import { StockMovementsTable } from '@/features/stock/components/StockMovementsTable';
 import { StockPagination } from '@/features/stock/components/StockPagination';
 import { StockAdjustmentModal } from '@/features/stock/components/StockAdjustmentModal';
 import { useStockMovementsQuery } from '@/features/stock/hooks/use-stock-movements-query';
 import { useStockEvolutionQuery } from '@/features/stock/hooks/use-stock-evolution-query';
 import { parseStockApiError } from '@/features/stock/utils/stock.errors';
-import type { IStockMovementsSearchParams } from '@/features/stock/types/stock.types';
+import type {
+  IStockMovementsSearchParams,
+  StockMovementSortField,
+} from '@/features/stock/types/stock.types';
 
 export const StockDetailPage: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +31,8 @@ export const StockDetailPage: React.FC = () => {
     movementType: searchParams?.movementType || undefined,
     from: searchParams?.from || undefined,
     to: searchParams?.to || undefined,
+    sortBy: searchParams?.sortBy,
+    sortOrder: searchParams?.sortOrder,
   };
 
   const {
@@ -65,16 +71,6 @@ export const StockDetailPage: React.FC = () => {
     });
   };
 
-  const handleBack = () => {
-    navigate({
-      to: '/stock',
-      search: {
-        page: 1,
-        limit: 10,
-      } as any,
-    });
-  };
-
   const product = movementsData?.product;
   const items = movementsData?.items || [];
   const meta = movementsData?.meta || {
@@ -99,7 +95,6 @@ export const StockDetailPage: React.FC = () => {
       {product && (
         <StockDetailHeader
           product={product}
-          onBack={handleBack}
           onOpenAdjustment={() => setIsAdjustmentModalOpen(true)}
         />
       )}
@@ -129,6 +124,9 @@ export const StockDetailPage: React.FC = () => {
         isError={isErrorMovements}
         errorMessage={parseStockApiError(movementsError)}
         onRetry={() => refetchMovements()}
+        sortBy={currentFilters.sortBy as StockMovementSortField | undefined}
+        sortOrder={currentFilters.sortOrder}
+        onSort={(field) => updateSearch({ ...nextSort(currentFilters, field), page: 1 })}
       />
 
       {/* Pagination */}

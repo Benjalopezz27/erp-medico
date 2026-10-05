@@ -1,9 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
+import { createTestRouter, renderWithRouter } from '@/test/test-utils';
 import { StockDetailHeader } from './StockDetailHeader';
 import { StockStatus, ProductStatus } from '../types/stock.types';
 import { useAuthStore } from '@/stores/authStore';
 import { UserRole } from '@erp/shared-types';
+
+async function render(ui: React.ReactElement) {
+  const router = createTestRouter([{ path: '/', component: () => ui }] as never, '/');
+  renderWithRouter({ router });
+  await screen.findByText('P0001');
+}
 
 describe('StockDetailHeader Component', () => {
   const mockProduct = {
@@ -22,8 +29,8 @@ describe('StockDetailHeader Component', () => {
     useAuthStore.setState(useAuthStore.getInitialState(), true);
   });
 
-  it('renders product details and balance numbers correctly', () => {
-    render(<StockDetailHeader product={mockProduct} onBack={vi.fn()} />);
+  it('renders product details and balance numbers correctly', async () => {
+    await render(<StockDetailHeader product={mockProduct} />);
 
     expect(screen.getByText('P0001')).toBeInTheDocument();
     expect(screen.getByText('Suero Fisiológico 1L')).toBeInTheDocument();
@@ -33,18 +40,16 @@ describe('StockDetailHeader Component', () => {
     expect(screen.getByText(/100,00/i)).toBeInTheDocument();
   });
 
-  it('handles onBack click', () => {
-    const handleBack = vi.fn();
-    render(<StockDetailHeader product={mockProduct} onBack={handleBack} />);
+  it('links back to the stock list', async () => {
+    await render(<StockDetailHeader product={mockProduct} />);
 
-    const backBtn = screen.getByRole('button', {
-      name: /volver al inventario de stock/i,
-    });
-    fireEvent.click(backBtn);
-    expect(handleBack).toHaveBeenCalled();
+    expect(screen.getByRole('link', { name: /volver a stock/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('/stock'),
+    );
   });
 
-  it('displays inactive warning banner when product status is INACTIVE and hides adjustment button', () => {
+  it('displays inactive warning banner when product status is INACTIVE and hides adjustment button', async () => {
     useAuthStore.getState().setSession({
       accessToken: 'token',
       user: {
@@ -56,10 +61,10 @@ describe('StockDetailHeader Component', () => {
       },
     });
 
-    render(
+    await render(
       <StockDetailHeader
         product={{ ...mockProduct, status: ProductStatus.INACTIVE }}
-        onBack={vi.fn()}
+
         onOpenAdjustment={vi.fn()}
       />,
     );
@@ -69,7 +74,7 @@ describe('StockDetailHeader Component', () => {
     expect(screen.queryByRole('button', { name: /registrar ajuste/i })).not.toBeInTheDocument();
   });
 
-  it('shows adjustment button for administrators on active product', () => {
+  it('shows adjustment button for administrators on active product', async () => {
     useAuthStore.getState().setSession({
       accessToken: 'token',
       user: {
@@ -82,10 +87,10 @@ describe('StockDetailHeader Component', () => {
     });
 
     const handleOpenAdjustment = vi.fn();
-    render(
+    await render(
       <StockDetailHeader
         product={mockProduct}
-        onBack={vi.fn()}
+
         onOpenAdjustment={handleOpenAdjustment}
       />,
     );
@@ -98,7 +103,7 @@ describe('StockDetailHeader Component', () => {
     expect(handleOpenAdjustment).toHaveBeenCalled();
   });
 
-  it('hides adjustment button for sellers', () => {
+  it('hides adjustment button for sellers', async () => {
     useAuthStore.getState().setSession({
       accessToken: 'token',
       user: {
@@ -110,7 +115,7 @@ describe('StockDetailHeader Component', () => {
       },
     });
 
-    render(<StockDetailHeader product={mockProduct} onBack={vi.fn()} onOpenAdjustment={vi.fn()} />);
+    await render(<StockDetailHeader product={mockProduct} onOpenAdjustment={vi.fn()} />);
 
     expect(
       screen.queryByRole('button', { name: /registrar ajuste de stock/i }),

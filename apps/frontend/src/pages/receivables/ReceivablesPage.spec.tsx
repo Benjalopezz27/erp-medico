@@ -43,6 +43,7 @@ describe('ReceivablesPage', () => {
       ),
     );
     renderPage();
+    expect(await screen.findByRole('link', { name: /volver a clientes/i })).toBeInTheDocument();
     expect(await screen.findByRole('link', { name: 'Farmacia Central' })).toHaveAttribute(
       'href',
       '/customers/10000000-0000-4000-8000-000000000001',

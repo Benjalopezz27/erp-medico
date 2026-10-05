@@ -27,7 +27,22 @@ import {
   PurchaseOrderDetailResponseDto,
   PaginatedPurchaseOrdersResponseDto,
 } from '../dto';
+import { PURCHASE_ORDER_SORT_FIELDS } from '../dto/query-purchase-order.dto';
+import { resolveSort } from '../../../common/sorting/sorting';
 import { PurchaseOrderMapper } from '../mappers/purchase-order.mapper';
+
+// Property paths (not raw columns) so TypeORM skip/take keeps working with joins.
+const PURCHASE_ORDER_SORT_COLUMNS: Record<
+  (typeof PURCHASE_ORDER_SORT_FIELDS)[number],
+  string
+> = {
+  orderNumber: 'po.orderNumber',
+  supplier: 'supplier.businessName',
+  createdAt: 'po.createdAt',
+  emittedAt: 'po.emittedAt',
+  status: 'po.status',
+  totalNet: 'po.totalNet',
+};
 
 @Injectable()
 export class PurchaseOrdersService {
@@ -762,7 +777,19 @@ export class PurchaseOrdersService {
       );
     }
 
-    qb.orderBy('po.createdAt', 'DESC').addOrderBy('po.orderNumber', 'DESC');
+    const sort = resolveSort(
+      PURCHASE_ORDER_SORT_COLUMNS,
+      query.sortBy,
+      query.sortOrder,
+    );
+    if (sort) {
+      qb.orderBy(sort.column, sort.direction).addOrderBy(
+        'po.id',
+        sort.direction,
+      );
+    } else {
+      qb.orderBy('po.createdAt', 'DESC').addOrderBy('po.orderNumber', 'DESC');
+    }
     qb.skip(skip).take(limit);
 
     const [items, total] = await qb.getManyAndCount();

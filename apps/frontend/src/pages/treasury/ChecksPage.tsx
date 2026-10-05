@@ -1,10 +1,18 @@
 import { useState } from 'react';
+import { BackLink } from '@/components/ui/back-link';
 import { AlertCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { CheckStatus, type ICheckListItem } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
+import { TreasuryNavigationTabs } from '@/features/treasury/components/TreasuryNavigationTabs';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
-import type { CheckAction, CheckSearchParams } from '@/features/checks/api/checks.api';
+import { SortableTh } from '@/components/ui/sortable-th';
+import { nextSort, type SortState } from '@/lib/sorting';
+import type {
+  CheckAction,
+  CheckSearchParams,
+  CheckSortField,
+} from '@/features/checks/api/checks.api';
 import { CheckStatusBadge } from '@/features/checks/components/CheckStatusBadge';
 import { EndorseCheckModal } from '@/features/checks/components/EndorseCheckModal';
 import { RejectCheckModal } from '@/features/checks/components/RejectCheckModal';
@@ -25,6 +33,7 @@ export function ChecksPage() {
   const [dueFrom, setDueFrom] = useState('');
   const [dueTo, setDueTo] = useState('');
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<SortState<CheckSortField>>({});
   const [rejecting, setRejecting] = useState<ICheckListItem | null>(null);
   const [endorsing, setEndorsing] = useState<ICheckListItem | null>(null);
 
@@ -34,6 +43,7 @@ export function ChecksPage() {
     ...(status ? { status } : {}),
     ...(dueFrom ? { dueFrom } : {}),
     ...(dueTo ? { dueTo } : {}),
+    ...sort,
   };
   const query = useChecksQuery(params);
   const action = useCheckActionMutation();
@@ -48,6 +58,11 @@ export function ChecksPage() {
     setPage(1);
   };
 
+  const onSort = (field: CheckSortField) => {
+    setSort(nextSort(sort, field));
+    setPage(1);
+  };
+  const sortProps = { ...sort, onSort };
   const meta = query.data?.meta;
   const dueSoon = query.data?.dueSoonCount ?? 0;
 
@@ -55,6 +70,9 @@ export function ChecksPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
+          <BackLink to="/treasury" className="mb-3">
+            Volver a Tesorería
+          </BackLink>
           <h1 className="text-2xl font-bold text-slate-900">Gestión de cheques</h1>
           <p className="text-xs text-slate-500">
             Cheques de terceros recibidos: cartera, depósito, endoso y rechazo.
@@ -71,6 +89,8 @@ export function ChecksPage() {
           Actualizar
         </Button>
       </div>
+
+      <TreasuryNavigationTabs active="checks" />
 
       {dueSoon > 0 && (
         <p
@@ -137,12 +157,24 @@ export function ChecksPage() {
         <table className="w-full min-w-[760px] text-left text-xs">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
-              <th className="px-3 py-2">Banco</th>
-              <th className="px-3 py-2">N° cheque</th>
-              <th className="px-3 py-2">Cliente</th>
-              <th className="px-3 py-2 text-right">Monto</th>
-              <th className="px-3 py-2">Vencimiento</th>
-              <th className="px-3 py-2">Estado</th>
+              <SortableTh field="bank" {...sortProps} className="px-3 py-2">
+                Banco
+              </SortableTh>
+              <SortableTh field="checkNumber" {...sortProps} className="px-3 py-2">
+                N° cheque
+              </SortableTh>
+              <SortableTh field="customer" {...sortProps} className="px-3 py-2">
+                Cliente
+              </SortableTh>
+              <SortableTh field="amount" {...sortProps} right className="px-3 py-2">
+                Monto
+              </SortableTh>
+              <SortableTh field="dueDate" {...sortProps} className="px-3 py-2">
+                Vencimiento
+              </SortableTh>
+              <SortableTh field="status" {...sortProps} className="px-3 py-2">
+                Estado
+              </SortableTh>
               <th className="px-3 py-2 text-right">Acciones</th>
             </tr>
           </thead>

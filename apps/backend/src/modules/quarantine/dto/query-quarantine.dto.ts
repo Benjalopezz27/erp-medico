@@ -11,7 +11,16 @@ import {
 import { Type, Transform } from 'class-transformer';
 import { QuarantineStatus } from '@erp/shared-types';
 
-export class QueryQuarantineDto {
+import { SortableQuery } from '../../../common/sorting/sorting';
+
+export const QUARANTINE_SORT_FIELDS = [
+  'product',
+  'quantity',
+  'createdAt',
+  'status',
+] as const;
+
+export class QueryQuarantineDto extends SortableQuery(QUARANTINE_SORT_FIELDS) {
   @ApiPropertyOptional({
     description: 'Page number (1-based)',
     default: 1,

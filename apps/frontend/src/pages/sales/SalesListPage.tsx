@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { AlertCircle, Plus, RefreshCw } from 'lucide-react';
 import type { ICustomer, ISaleSearchParams } from '@erp/shared-types';
+import { nextSort, type SortState } from '@/lib/sorting';
+import type { SaleSortField } from '@/features/sales/types/sales.types';
 import { Button } from '@/components/ui/button';
 import { SalesFilters } from '@/features/sales/components/SalesFilters';
 import { SalesTable } from '@/features/sales/components/SalesTable';
@@ -80,7 +82,15 @@ export function SalesListPage() {
           </Button>
         </div>
       )}
-      {!query.isError && <SalesTable sales={query.data?.data ?? []} loading={query.isLoading} />}
+      {!query.isError && (
+        <SalesTable
+          sales={query.data?.data ?? []}
+          loading={query.isLoading}
+          sortBy={search.sortBy as SaleSortField | undefined}
+          sortOrder={search.sortOrder}
+          onSort={(field) => update(nextSort(search as SortState<SaleSortField>, field), true)}
+        />
+      )}
       {meta && meta.total > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
           <span>{meta.total} ventas</span>

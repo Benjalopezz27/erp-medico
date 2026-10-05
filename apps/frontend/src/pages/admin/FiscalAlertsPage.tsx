@@ -3,6 +3,7 @@ import { useNavigate, useSearch } from '@tanstack/react-router';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FiscalAlertsFilters } from '@/features/fiscal-alerts/components/FiscalAlertsFilters';
+import { nextSort } from '@/lib/sorting';
 import { FiscalAlertsTable } from '@/features/fiscal-alerts/components/FiscalAlertsTable';
 import { RetryFiscalDocumentModal } from '@/features/fiscal-alerts/components/RetryFiscalDocumentModal';
 import { useFiscalAlertsQuery } from '@/features/fiscal-alerts/hooks/use-fiscal-alerts-query';
@@ -81,6 +82,9 @@ export function FiscalAlertsPage() {
           rows={query.data?.data ?? []}
           loading={query.isLoading}
           onRetry={setRetryRow}
+          sortBy={search.sortBy}
+          sortOrder={search.sortOrder}
+          onSort={(field) => update({ ...nextSort(search, field), page: 1 })}
         />
       )}
 

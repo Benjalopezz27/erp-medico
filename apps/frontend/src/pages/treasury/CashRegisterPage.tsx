@@ -1,3 +1,5 @@
+import { TreasuryNavigationTabs } from '@/features/treasury/components/TreasuryNavigationTabs';
+import { BackLink } from '@/components/ui/back-link';
 import { AlertCircle } from 'lucide-react';
 import { TreasuryMovementType } from '@erp/shared-types';
 import { CloseCashForm } from '@/features/cash-register/components/CloseCashForm';
@@ -13,9 +15,14 @@ export function CashRegisterPage() {
   return (
     <div className="space-y-5">
       <div>
+        <BackLink to="/treasury" className="mb-3">
+          Volver a Tesorería
+        </BackLink>
         <h1 className="text-2xl font-bold text-slate-900">Caja diaria</h1>
         <p className="text-xs text-slate-500">Apertura, movimientos de efectivo y arqueo.</p>
       </div>
+
+      <TreasuryNavigationTabs active="cash-register" />
 
       {isError && (
         <p role="alert" className="flex items-center gap-2 text-xs text-rose-700">

@@ -20,6 +20,7 @@ function renderAs(role: UserRole) {
 describe('DashboardPage KPIs', () => {
   beforeEach(() => {
     server.use(
+      http.get('*/api/v1/dashboard/activity', () => HttpResponse.json([])),
       http.get('*/api/v1/dashboard/kpis', () =>
         HttpResponse.json({
           salesToday: '450000.00',
@@ -72,5 +73,35 @@ describe('DashboardPage KPIs', () => {
     );
     renderAs(UserRole.ADMINISTRADOR);
     expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
+
+  it('shows the activity feed to both roles, replacing the static placeholder', async () => {
+    server.use(
+      http.get('*/api/v1/dashboard/activity', () =>
+        HttpResponse.json([
+          {
+            id: 'SALE_CONFIRMED:s1',
+            type: 'SALE_CONFIRMED',
+            title: 'Venta V-00000001',
+            detail: 'Consumidor final',
+            amount: '100.00',
+            occurredAt: new Date().toISOString(),
+            userName: 'Ana',
+            link: { to: '/sales/$id', params: { id: 's1' } },
+          },
+        ]),
+      ),
+    );
+    renderAs(UserRole.VENDEDOR);
+    expect(await screen.findByRole('link', { name: /venta v-00000001/i })).toBeInTheDocument();
+    expect(screen.queryByText(/aparecerán en tiempo real/i)).not.toBeInTheDocument();
+  });
+
+  it('makes each KPI card a full-card click target (link overlay covers the card)', async () => {
+    renderAs(UserRole.ADMINISTRADOR);
+    const link = await screen.findByRole('link', { name: 'Ver stock' });
+    expect(link.className).toContain('after:absolute');
+    expect(link.className).toContain('after:inset-0');
+    expect(link.closest('[class*="relative"]')).not.toBeNull();
   });
 });

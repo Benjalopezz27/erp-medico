@@ -1,10 +1,13 @@
-import { Link } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { ClickableRow } from '@/components/ui/clickable-row';
 import { ArcaStatus, PdfArtifactStatus, type IFiscalDocument } from '@erp/shared-types';
 import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FiscalStatusBadge } from '@/features/sales/components/FiscalStatusBadge';
 import { formatCurrency } from '@/features/products/utils/products.math';
-import type { IFiscalAlertRow } from '../types/fiscal-alerts.types';
+import { SortableTh } from '@/components/ui/sortable-th';
+import type { SortOrder } from '@erp/shared-types';
+import type { FiscalAlertSortField, IFiscalAlertRow } from '../types/fiscal-alerts.types';
 
 function formatDateTime(value: string | null): string {
   if (!value) return '—';
@@ -35,11 +38,19 @@ export function FiscalAlertsTable({
   rows,
   loading,
   onRetry,
+  sortBy,
+  sortOrder,
+  onSort = () => {},
 }: {
   rows: IFiscalAlertRow[];
   loading: boolean;
   onRetry: (row: IFiscalAlertRow) => void;
+  sortBy?: FiscalAlertSortField;
+  sortOrder?: SortOrder;
+  onSort?: (field: FiscalAlertSortField) => void;
 }) {
+  const navigate = useNavigate();
+  const sort = { sortBy, sortOrder, onSort };
   if (loading)
     return (
       <div
@@ -59,22 +70,43 @@ export function FiscalAlertsTable({
       <table className="w-full min-w-[1100px] text-left text-xs">
         <thead className="bg-slate-50 text-slate-600">
           <tr>
-            <th className="px-4 py-3">N° Venta</th>
-            <th className="px-4 py-3">Cliente</th>
-            <th className="px-4 py-3">Fecha</th>
-            <th className="px-4 py-3">Tipo</th>
-            <th className="px-4 py-3">Estado</th>
-            <th className="px-4 py-3 text-right">Importe</th>
-            <th className="px-4 py-3 text-center">Intentos</th>
-            <th className="px-4 py-3">Último intento</th>
-            <th className="px-4 py-3">Próximo intento</th>
+            <SortableTh field="saleNumber" {...sort} className="px-4 py-3">
+              N° Venta
+            </SortableTh>
+            <SortableTh field="customer" {...sort} className="px-4 py-3">
+              Cliente
+            </SortableTh>
+            <SortableTh field="createdAt" {...sort} className="px-4 py-3">
+              Fecha
+            </SortableTh>
+            <SortableTh field="type" {...sort} className="px-4 py-3">
+              Tipo
+            </SortableTh>
+            <SortableTh field="status" {...sort} className="px-4 py-3">
+              Estado
+            </SortableTh>
+            <SortableTh field="amount" {...sort} right className="px-4 py-3">
+              Importe
+            </SortableTh>
+            <SortableTh field="attempts" {...sort} className="px-4 py-3 text-center">
+              Intentos
+            </SortableTh>
+            <SortableTh field="lastAttemptAt" {...sort} className="px-4 py-3">
+              Último intento
+            </SortableTh>
+            <SortableTh field="nextAttemptAt" {...sort} className="px-4 py-3">
+              Próximo intento
+            </SortableTh>
             <th className="px-4 py-3">Error</th>
             <th className="px-4 py-3" />
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
           {rows.map((row) => (
-            <tr key={row.id} className="hover:bg-slate-50">
+            <ClickableRow
+              key={row.id}
+              onActivate={() => navigate({ to: '/sales/$id', params: { id: row.saleId } })}
+            >
               <td className="px-4 py-3 font-mono font-bold text-blue-700">
                 {row.saleNumber}
                 {row.saleReturnId && (
@@ -119,7 +151,7 @@ export function FiscalAlertsTable({
                   </Link>
                 </div>
               </td>
-            </tr>
+            </ClickableRow>
           ))}
         </tbody>
       </table>

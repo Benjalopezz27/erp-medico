@@ -21,9 +21,15 @@ import { ProductEditPage } from '@/pages/products/ProductEditPage';
 import { ProductBulkLoadPage } from '@/pages/products/ProductBulkLoadPage';
 import { useAuthStore } from '@/stores/authStore';
 import { isRouteAllowed } from '@/config/permissions.config';
-import { UserRole, type UserSearchParams } from '@/features/users/types/users.types';
+import {
+  UserRole,
+  USER_SORT_FIELDS,
+  type UserSearchParams,
+} from '@/features/users/types/users.types';
+import { parseSort } from '@/lib/sorting';
 import {
   ProductStatus,
+  PRODUCT_SORT_FIELDS,
   type ProductSearchParams,
   type ProductNoticeType,
 } from '@/features/products/types/products.types';
@@ -52,6 +58,7 @@ export function validateUserSearchParams(search: Record<string, unknown>): UserS
     search: searchParam,
     role,
     isActive,
+    ...parseSort(search, USER_SORT_FIELDS),
   };
 }
 
@@ -90,6 +97,7 @@ export function validateProductSearchParams(search: Record<string, unknown>): Pr
     category,
     status,
     notice,
+    ...parseSort(search, PRODUCT_SORT_FIELDS),
   };
 }
 
@@ -129,6 +137,8 @@ import {
   StockStatus,
   StockMovementType,
   QuarantineStatus,
+  STOCK_SORT_FIELDS,
+  STOCK_MOVEMENT_SORT_FIELDS,
   type IStockSearchParams,
   type IStockMovementsSearchParams,
   type IQuarantineSearchParams,
@@ -161,7 +171,13 @@ import type {
   ISupplierProductSearchParams,
   SupplierProductSortField,
 } from '@/features/supplier-products/types/supplier-products.types';
-import { PriceReviewStatus } from '@erp/shared-types';
+import {
+  PriceReviewStatus,
+  PURCHASE_ORDER_SORT_FIELDS,
+  SUPPLIER_INVOICE_SORT_FIELDS,
+  QUARANTINE_SORT_FIELDS,
+} from '@erp/shared-types';
+import { PRICE_REVIEW_SORT_FIELDS } from '@/features/price-reviews/types/price-reviews.types';
 import type { PriceReviewSearchParams } from '@/features/price-reviews/types/price-reviews.types';
 import { CustomersListPage } from '@/pages/customers/CustomersListPage';
 import { CustomerDetailPage } from '@/pages/customers/CustomerDetailPage';
@@ -202,11 +218,6 @@ export function validateCustomerSearchParams(
     'createdAt',
     'updatedAt',
   ];
-  const sortBy = sortFields.includes(search.sortBy as CustomerSortField)
-    ? (search.sortBy as CustomerSortField)
-    : undefined;
-  const sortOrder =
-    search.sortOrder === 'ASC' || search.sortOrder === 'DESC' ? search.sortOrder : undefined;
   let isActive: boolean | undefined;
   if (search.isActive === true || search.isActive === 'true') isActive = true;
   if (search.isActive === false || search.isActive === 'false') isActive = false;
@@ -216,8 +227,7 @@ export function validateCustomerSearchParams(
     search: rawSearch || undefined,
     taxCondition,
     isActive: isActive ?? true,
-    sortBy,
-    sortOrder,
+    ...parseSort(search, sortFields),
   };
 }
 
@@ -260,6 +270,7 @@ export function validatePriceReviewSearchParams(
     supplierInvoiceId: uuid(search.supplierInvoiceId),
     dateFrom,
     dateTo,
+    ...parseSort(search, PRICE_REVIEW_SORT_FIELDS),
   };
 }
 
@@ -318,6 +329,7 @@ export function validatePurchaseOrderSearchParams(
     status,
     dateFrom,
     dateTo,
+    ...parseSort(search, PURCHASE_ORDER_SORT_FIELDS),
   };
 }
 
@@ -374,6 +386,7 @@ export function validateSupplierInvoiceSearchParams(
     status,
     dateFrom,
     dateTo,
+    ...parseSort(search, SUPPLIER_INVOICE_SORT_FIELDS),
   };
 }
 
@@ -384,7 +397,6 @@ export function validateSupplierCatalogSearchParams(
   const limit = Number(search.limit);
   const validLimits = [10, 25, 50];
 
-  const rawSortBy = search.sortBy as SupplierProductSortField | undefined;
   const validSortFields: SupplierProductSortField[] = [
     'supplierExternalCode',
     'productInternalCode',
@@ -393,10 +405,6 @@ export function validateSupplierCatalogSearchParams(
     'createdAt',
     'updatedAt',
   ];
-  const sortBy = rawSortBy && validSortFields.includes(rawSortBy) ? rawSortBy : undefined;
-
-  const rawSortOrder = search.sortOrder as 'ASC' | 'DESC' | undefined;
-  const sortOrder = rawSortOrder === 'ASC' || rawSortOrder === 'DESC' ? rawSortOrder : undefined;
 
   const rawSearch = typeof search.search === 'string' ? search.search.trim() : undefined;
   const searchParam = rawSearch && rawSearch.length > 0 ? rawSearch : undefined;
@@ -405,8 +413,7 @@ export function validateSupplierCatalogSearchParams(
     page: Number.isInteger(page) && page >= 1 ? page : 1,
     limit: validLimits.includes(limit) ? limit : 10,
     search: searchParam,
-    sortBy,
-    sortOrder,
+    ...parseSort(search, validSortFields),
   };
 }
 
@@ -422,7 +429,6 @@ export function validateSuppliersSearchParams(
   if (rawIsActive === true || rawIsActive === 'true') isActive = true;
   else if (rawIsActive === false || rawIsActive === 'false') isActive = false;
 
-  const rawSortBy = search.sortBy as SupplierSortField | undefined;
   const validSortFields: SupplierSortField[] = [
     'businessName',
     'cuit',
@@ -430,10 +436,6 @@ export function validateSuppliersSearchParams(
     'createdAt',
     'updatedAt',
   ];
-  const sortBy = rawSortBy && validSortFields.includes(rawSortBy) ? rawSortBy : undefined;
-
-  const rawSortOrder = search.sortOrder as 'ASC' | 'DESC' | undefined;
-  const sortOrder = rawSortOrder === 'ASC' || rawSortOrder === 'DESC' ? rawSortOrder : undefined;
 
   const rawSearch = typeof search.search === 'string' ? search.search.trim() : undefined;
   const searchParam = rawSearch && rawSearch.length > 0 ? rawSearch : undefined;
@@ -443,8 +445,7 @@ export function validateSuppliersSearchParams(
     limit: validLimits.includes(limit) ? limit : 10,
     search: searchParam,
     isActive,
-    sortBy,
-    sortOrder,
+    ...parseSort(search, validSortFields),
   };
 }
 
@@ -477,6 +478,7 @@ export function validateQuarantineSearchParams(
     productId,
     search: searchParam,
     status,
+    ...parseSort(search, QUARANTINE_SORT_FIELDS),
   };
 }
 
@@ -507,6 +509,7 @@ export function validateStockSearchParams(search: Record<string, unknown>): ISto
     search: searchParam,
     category,
     stockStatus,
+    ...parseSort(search, STOCK_SORT_FIELDS),
   };
 }
 
@@ -536,6 +539,7 @@ export function validateStockMovementsSearchParams(
     movementType,
     from: rawFrom,
     to: rawTo,
+    ...parseSort(search, STOCK_MOVEMENT_SORT_FIELDS),
   };
 }
 

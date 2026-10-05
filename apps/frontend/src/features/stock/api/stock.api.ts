@@ -36,6 +36,11 @@ export async function getStockOverviewApi(
     queryParams.stockStatus = params.stockStatus;
   }
 
+  if (params.sortBy) {
+    queryParams.sortBy = params.sortBy;
+    if (params.sortOrder) queryParams.sortOrder = params.sortOrder;
+  }
+
   const endpoint = params.alertsOnly ? '/stock/alerts' : '/stock';
 
   const { data } = await apiClient.get<PaginatedStockResponse<IStockOverviewItem>>(endpoint, {
@@ -106,6 +111,11 @@ export async function getProductMovementsApi(
 
   if (params.to) {
     queryParams.to = params.to;
+  }
+
+  if (params.sortBy) {
+    queryParams.sortBy = params.sortBy;
+    if (params.sortOrder) queryParams.sortOrder = params.sortOrder;
   }
 
   const { data } = await apiClient.get<IStockDetailResponse>(`/stock/${productId}/movements`, {

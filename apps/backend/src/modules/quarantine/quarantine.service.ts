@@ -25,6 +25,18 @@ import {
   QuarantineStockResponseDto,
   PaginatedQuarantineResponseDto,
 } from './dto';
+import { QUARANTINE_SORT_FIELDS } from './dto/query-quarantine.dto';
+import { resolveSort } from '../../common/sorting/sorting';
+
+const QUARANTINE_SORT_COLUMNS: Record<
+  (typeof QUARANTINE_SORT_FIELDS)[number],
+  string
+> = {
+  product: 'product.name',
+  quantity: 'quarantine.quantityBase',
+  createdAt: 'quarantine.createdAt',
+  status: 'quarantine.status',
+};
 
 @Injectable()
 export class QuarantineService {
@@ -200,10 +212,22 @@ export class QuarantineService {
       );
     }
 
-    qb.orderBy('quarantine.createdAt', 'DESC').addOrderBy(
-      'quarantine.id',
-      'DESC',
+    const sort = resolveSort(
+      QUARANTINE_SORT_COLUMNS,
+      query.sortBy,
+      query.sortOrder,
     );
+    if (sort) {
+      qb.orderBy(sort.column, sort.direction).addOrderBy(
+        'quarantine.id',
+        sort.direction,
+      );
+    } else {
+      qb.orderBy('quarantine.createdAt', 'DESC').addOrderBy(
+        'quarantine.id',
+        'DESC',
+      );
+    }
     qb.skip(skip).take(limit);
 
     const [items, total] = await qb.getManyAndCount();

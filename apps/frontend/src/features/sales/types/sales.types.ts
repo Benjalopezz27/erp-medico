@@ -76,3 +76,13 @@ export interface ParsedSaleReturnError {
   canRetryDirectly: boolean;
   isConflict: boolean;
 }
+
+export const SALE_SORT_FIELDS = [
+  'saleNumber',
+  'createdAt',
+  'customer',
+  'paymentMethod',
+  'status',
+  'totalGross',
+] as const;
+export type SaleSortField = (typeof SALE_SORT_FIELDS)[number];

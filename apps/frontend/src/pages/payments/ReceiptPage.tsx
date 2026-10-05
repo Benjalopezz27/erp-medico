@@ -1,5 +1,6 @@
-import { Link, useParams } from '@tanstack/react-router';
-import { AlertCircle, ArrowLeft, Download, Printer } from 'lucide-react';
+import { useParams } from '@tanstack/react-router';
+import { BackLink } from '@/components/ui/back-link';
+import { AlertCircle, Download, Printer } from 'lucide-react';
 import { PaymentMethod, PaymentStatus } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/features/products/utils/products.math';
@@ -37,13 +38,9 @@ export function ReceiptPage() {
   return (
     <div className="space-y-4">
       <div className="print:hidden">
-        <Link
-          to="/customers/$id"
-          params={{ id: receipt.customerId }}
-          className="mb-2 inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" /> Volver al cliente
-        </Link>
+        <BackLink to="/customers/$id" params={{ id: receipt.customerId }}>
+          Volver al cliente
+        </BackLink>
         <div className="flex gap-2">
           <Button type="button" variant="outline" size="sm" onClick={() => window.print()}>
             <Printer className="mr-1.5 h-4 w-4" /> Imprimir

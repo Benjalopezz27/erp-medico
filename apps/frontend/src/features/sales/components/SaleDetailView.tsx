@@ -1,9 +1,8 @@
-import { Link } from '@tanstack/react-router';
+import { BackLink } from '@/components/ui/back-link';
 import type { ReactNode } from 'react';
-import { ArrowLeft, Calendar, UserRound } from 'lucide-react';
+import { Calendar, UserRound } from 'lucide-react';
 import { CustomerPricingRuleApplied, ProductTaxTreatment, type ISale } from '@erp/shared-types';
 import { Badge } from '@/components/ui/badge';
-import { buttonVariants } from '@/components/ui/button';
 import { formatCurrency, formatDecimal } from '@/features/products/utils/products.math';
 import { FiscalStatusBadge } from './FiscalStatusBadge';
 import { FiscalDocumentActions } from './FiscalDocumentActions';
@@ -26,14 +25,9 @@ export function SaleDetailView({ sale, extension }: { sale: ISale; extension?: R
             <Badge variant="info">{sale.status}</Badge>
           </div>
         </div>
-        <Link
-          to="/sales"
-          search={{ page: 1, limit: 20 }}
-          className={buttonVariants({ variant: 'outline', size: 'sm', className: 'text-xs' })}
-        >
-          <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+        <BackLink to="/sales" search={{ page: 1, limit: 20 }}>
           Volver al historial
-        </Link>
+        </BackLink>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

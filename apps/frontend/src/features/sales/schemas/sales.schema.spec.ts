@@ -67,4 +67,12 @@ describe('sales schemas', () => {
     });
     expect(validateSaleSearchParams({ from: '2026-02-31' }).from).toBeUndefined();
   });
+
+  it('keeps only whitelisted sort params', () => {
+    expect(validateSaleSearchParams({ sortBy: 'totalGross', sortOrder: 'desc' })).toMatchObject({
+      sortBy: 'totalGross',
+      sortOrder: 'DESC',
+    });
+    expect(validateSaleSearchParams({ sortBy: 'bogus', sortOrder: 'DESC' }).sortBy).toBeUndefined();
+  });
 });

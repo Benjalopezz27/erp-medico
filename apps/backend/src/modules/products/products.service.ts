@@ -23,7 +23,11 @@ import { Unit } from '../units/entities/unit.entity';
 import { Stock } from '../stock/entities/stock.entity';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { QueryProductsDto } from './dto/query-products.dto';
+import {
+  PRODUCT_SORT_FIELDS,
+  QueryProductsDto,
+} from './dto/query-products.dto';
+import { resolveSort } from '../../common/sorting/sorting';
 import { CreateProductUnitConversionDto } from './dto/create-product-unit-conversion.dto';
 import { UpdateProductUnitConversionDto } from './dto/update-product-unit-conversion.dto';
 import { ProductAdminResponseDto } from './dto/product-admin-response.dto';
@@ -40,6 +44,21 @@ import { StockAdjustmentsService } from '../stock/stock-adjustments.service';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { PricesService } from '../prices/prices.service';
 import { AuditService } from '../audit/audit.service';
+
+// Property paths (not raw columns) so TypeORM skip/take keeps working with joins.
+const PRODUCT_SORT_COLUMNS: Record<
+  (typeof PRODUCT_SORT_FIELDS)[number],
+  string
+> = {
+  internalCode: 'product.internalCode',
+  name: 'product.name',
+  category: 'category.name',
+  baseUnit: 'baseUnit.name',
+  netPrice: 'product.activePriceNet',
+  ivaRate: 'product.ivaPercentage',
+  status: 'product.status',
+  costNet: 'product.costNet',
+};
 
 export interface CreateProductCoreInput {
   name: string;
@@ -151,10 +170,20 @@ export class ProductsService {
       );
     }
 
-    qb.orderBy('product.name', 'ASC')
-      .addOrderBy('product.id', 'ASC')
-      .skip(offset)
-      .take(limit);
+    const sort = resolveSort(
+      PRODUCT_SORT_COLUMNS,
+      query.sortBy,
+      query.sortOrder,
+    );
+    if (sort) {
+      qb.orderBy(sort.column, sort.direction).addOrderBy(
+        'product.id',
+        sort.direction,
+      );
+    } else {
+      qb.orderBy('product.name', 'ASC').addOrderBy('product.id', 'ASC');
+    }
+    qb.skip(offset).take(limit);
 
     const [items, total] = await qb.getManyAndCount();
 

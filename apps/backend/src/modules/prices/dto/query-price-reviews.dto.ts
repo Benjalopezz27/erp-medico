@@ -12,7 +12,19 @@ import {
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PriceReviewStatus } from '@erp/shared-types';
 
-export class QueryPriceReviewsDto {
+import { SortableQuery } from '../../../common/sorting/sorting';
+
+export const PRICE_REVIEW_SORT_FIELDS = [
+  'product',
+  'costNet',
+  'markup',
+  'status',
+  'createdAt',
+] as const;
+
+export class QueryPriceReviewsDto extends SortableQuery(
+  PRICE_REVIEW_SORT_FIELDS,
+) {
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()
   @Type(() => Number)
