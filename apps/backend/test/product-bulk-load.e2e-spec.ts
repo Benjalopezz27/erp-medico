@@ -217,7 +217,7 @@ describe('Product Bulk Load API (E2E)', () => {
         .attach('file', buffer, 'missing_cols.csv')
         .expect(400);
 
-      expect(res.body.code).toBe(ProductBulkFileErrorCode.BULK_LOAD_EMPTY_FILE);
+      expect(res.body.code).toBe(ProductBulkFileErrorCode.BULK_LOAD_MISSING_HEADERS);
     });
 
     it('returns validation errors for row with unknown category or invalid numeric values', async () => {
@@ -238,7 +238,7 @@ describe('Product Bulk Load API (E2E)', () => {
       expect(res.body.rows[0].status).toBe(ProductBulkLoadRowStatus.INVALID);
       const errorCodes = res.body.rows[0].errors.map((e: any) => e.code);
       expect(errorCodes).toContain(ProductBulkRowErrorCode.CATEGORY_NOT_FOUND);
-      expect(errorCodes).toContain(ProductBulkRowErrorCode.COST_NEGATIVE);
+      expect(errorCodes).toContain(ProductBulkRowErrorCode.INVALID_COST_NET);
     });
 
     it('previews successfully for valid CSV data', async () => {
