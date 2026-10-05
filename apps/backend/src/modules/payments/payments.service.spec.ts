@@ -8,6 +8,8 @@ import {
   CheckStatus,
   PaymentAllocationType,
   PaymentMethod,
+  TreasuryAccountType,
+  TreasuryMovementType,
 } from '@erp/shared-types';
 import { Check } from '../checks/entities/check.entity';
 import { Customer } from '../customers/entities/customer.entity';
@@ -45,10 +47,12 @@ describe('PaymentsService.register', () => {
     })),
   };
   const receiptNumber = { next: jest.fn(async () => '0001-00000001') };
+  const treasury = { recordMovement: jest.fn() };
   const service = new PaymentsService(
     dataSource as any,
     receivables as any,
     receiptNumber as any,
+    treasury as any,
   );
 
   const dto = {
@@ -100,6 +104,33 @@ describe('PaymentsService.register', () => {
       totalAmount: '250.00',
     });
     expect(res.receipt.receiptNumber).toBe('0001-00000001');
+  });
+
+  describe('treasury movement', () => {
+    it.each([
+      [PaymentMethod.EFECTIVO, TreasuryAccountType.EFECTIVO],
+      [PaymentMethod.TRANSFERENCIA, TreasuryAccountType.BANCOS],
+    ])('records an income for %s in %s', async (paymentMethod, accountType) => {
+      await service.register({ ...dto, paymentMethod }, 'user-1');
+      expect(treasury.recordMovement).toHaveBeenCalledWith(
+        manager,
+        expect.objectContaining({
+          accountType,
+          movementType: TreasuryMovementType.INGRESO,
+          amount: '250.00',
+          referenceType: 'PAYMENT',
+          referenceId: 'Payment-1',
+          userId: 'user-1',
+        }),
+      );
+    });
+
+    it('rolls back the payment when the movement fails', async () => {
+      treasury.recordMovement.mockRejectedValueOnce(new Error('boom'));
+      await expect(service.register({ ...dto }, 'user-1')).rejects.toThrow(
+        'boom',
+      );
+    });
   });
 
   it('does not consume a receipt number when applying the payment fails', async () => {
