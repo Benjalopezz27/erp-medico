@@ -34,6 +34,8 @@ export async function getSalesApi(params: ISaleSearchParams): Promise<IPaginated
         ...(params.to ? { to: dayBoundaryToIso(params.to, true) } : {}),
         ...(params.customerId ? { customerId: params.customerId } : {}),
         ...(params.status ? { status: params.status } : {}),
+        ...(params.sortBy ? { sortBy: params.sortBy } : {}),
+        ...(params.sortBy && params.sortOrder ? { sortOrder: params.sortOrder } : {}),
       },
     })
   ).data;

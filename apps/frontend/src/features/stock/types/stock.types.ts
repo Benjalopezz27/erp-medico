@@ -77,6 +77,26 @@ export type {
   IQuarantineSearchParams,
 };
 
+export const STOCK_SORT_FIELDS = [
+  'internalCode',
+  'name',
+  'category',
+  'currentStock',
+  'minStock',
+  'status',
+] as const;
+export type StockSortField = (typeof STOCK_SORT_FIELDS)[number];
+
+export const STOCK_MOVEMENT_SORT_FIELDS = [
+  'createdAt',
+  'movementType',
+  'quantityBase',
+  'previousStock',
+  'subsequentStock',
+  'user',
+] as const;
+export type StockMovementSortField = (typeof STOCK_MOVEMENT_SORT_FIELDS)[number];
+
 export interface StockEvolutionParams {
   limit?: number;
   from?: string;

@@ -19,6 +19,7 @@ export async function getFiscalAlertsApi(
         ...(params.dateTo ? { dateTo: params.dateTo } : {}),
         ...(params.documentType ? { documentType: params.documentType } : {}),
         ...(params.search ? { search: params.search } : {}),
+        ...(params.sortBy ? { sortBy: params.sortBy, sortOrder: params.sortOrder ?? 'ASC' } : {}),
       },
     })
   ).data;

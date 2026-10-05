@@ -1,6 +1,8 @@
 import React from 'react';
 import { Pencil, Trash2, Scale, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SortableTh } from '@/components/ui/sortable-th';
+import { useClientSort } from '@/lib/sorting';
 import type { IUnit } from '../types/units.types';
 
 interface UnitsTableProps {
@@ -34,6 +36,12 @@ export const UnitsTable: React.FC<UnitsTableProps> = ({
       return String(dateValue);
     }
   };
+
+  const { sorted, ...sort } = useClientSort(units, {
+    name: (c) => c.name,
+    symbol: (c) => c.symbol,
+    createdAt: (c) => new Date(c.createdAt).getTime(),
+  });
 
   if (isLoading) {
     return (
@@ -94,14 +102,20 @@ export const UnitsTable: React.FC<UnitsTableProps> = ({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              <th className="py-3 px-4">Nombre</th>
-              <th className="py-3 px-4">Símbolo</th>
-              <th className="py-3 px-4">Fecha de Alta</th>
+              <SortableTh field="name" {...sort} className="py-3 px-4">
+                Nombre
+              </SortableTh>
+              <SortableTh field="symbol" {...sort} className="py-3 px-4">
+                Símbolo
+              </SortableTh>
+              <SortableTh field="createdAt" {...sort} className="py-3 px-4">
+                Fecha de Alta
+              </SortableTh>
               {isAdmin && <th className="py-3 px-4 text-right">Acciones</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-            {units.map((unit) => (
+            {sorted.map((unit) => (
               <tr key={unit.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="py-3 px-4 font-medium text-slate-900">
                   <div className="flex items-center gap-2">

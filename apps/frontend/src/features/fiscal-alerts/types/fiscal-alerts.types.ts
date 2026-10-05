@@ -1,4 +1,4 @@
-import type { ArcaStatus, FiscalDocumentType } from '@erp/shared-types';
+import type { ArcaStatus, FiscalDocumentType, ISortParams } from '@erp/shared-types';
 
 export type FiscalAlertTab = 'PENDIENTE_FACTURACION' | 'RECHAZADO';
 
@@ -20,7 +20,20 @@ export interface IFiscalAlertRow {
   createdAt: string;
 }
 
-export interface IFiscalAlertsSearchParams {
+export const FISCAL_ALERT_SORT_FIELDS = [
+  'saleNumber',
+  'customer',
+  'createdAt',
+  'type',
+  'status',
+  'amount',
+  'attempts',
+  'lastAttemptAt',
+  'nextAttemptAt',
+] as const;
+export type FiscalAlertSortField = (typeof FISCAL_ALERT_SORT_FIELDS)[number];
+
+export interface IFiscalAlertsSearchParams extends ISortParams<FiscalAlertSortField> {
   tab: FiscalAlertTab;
   page: number;
   limit: number;

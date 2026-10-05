@@ -1,5 +1,9 @@
 import { FiscalDocumentType } from '@erp/shared-types';
-import type { IFiscalAlertsSearchParams } from '../types/fiscal-alerts.types';
+import { parseSort } from '@/lib/sorting';
+import {
+  FISCAL_ALERT_SORT_FIELDS,
+  type IFiscalAlertsSearchParams,
+} from '../types/fiscal-alerts.types';
 
 function isCalendarDate(value: unknown): value is string {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -41,5 +45,6 @@ export function validateFiscalAlertsSearchParams(
     dateTo,
     documentType,
     search: searchParam,
+    ...parseSort(search, FISCAL_ALERT_SORT_FIELDS),
   };
 }

@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { parseSort } from '@/lib/sorting';
+import { SALE_SORT_FIELDS } from '../types/sales.types';
 import { PaymentMethod, SaleStatus, type ISaleSearchParams } from '@erp/shared-types';
 
 const optionalUuid = z.union([z.string().uuid(), z.literal(''), z.null()]).optional();
@@ -83,5 +85,6 @@ export function validateSaleSearchParams(search: Record<string, unknown>): ISale
     to: from && to && from > to ? undefined : to,
     customerId,
     status,
+    ...parseSort(search, SALE_SORT_FIELDS),
   };
 }

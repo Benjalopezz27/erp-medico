@@ -1,5 +1,8 @@
 import { Link, useNavigate } from '@tanstack/react-router';
+import { ClickableRow } from '@/components/ui/clickable-row';
 import { ReceiptText } from 'lucide-react';
+import { SortableTh } from '@/components/ui/sortable-th';
+import type { SortOrder, SupplierInvoiceSortField } from '@erp/shared-types';
 import type { ISupplierInvoiceSummary } from '../types/supplier-invoices.types';
 import { formatMoneyAr } from '../utils/supplier-invoices.math';
 import { SupplierInvoiceStatusBadge } from './SupplierInvoiceStatusBadge';
@@ -11,11 +14,18 @@ export function SupplierInvoicesTable({
   invoices,
   loading,
   hasFilters = false,
+  sortBy,
+  sortOrder,
+  onSort = () => {},
 }: {
   invoices: ISupplierInvoiceSummary[];
   loading: boolean;
   hasFilters?: boolean;
+  sortBy?: SupplierInvoiceSortField;
+  sortOrder?: SortOrder;
+  onSort?: (field: SupplierInvoiceSortField) => void;
 }) {
+  const sort = { sortBy, sortOrder, onSort };
   const navigate = useNavigate();
 
   const openInvoice = (id: string) =>
@@ -48,37 +58,37 @@ export function SupplierInvoicesTable({
       <table className="w-full min-w-[1050px] text-left text-xs">
         <thead className="bg-slate-50 dark:bg-slate-800/70">
           <tr>
-            <th className="px-4 py-3">Comprobante</th>
-            <th className="px-4 py-3">Proveedor</th>
+            <SortableTh field="invoiceNumber" {...sort} className="px-4 py-3">
+              Comprobante
+            </SortableTh>
+            <SortableTh field="supplier" {...sort} className="px-4 py-3">
+              Proveedor
+            </SortableTh>
             <th className="px-4 py-3">Recepción / OC</th>
-            <th className="px-4 py-3">Fecha</th>
-            <th className="px-4 py-3">Estado</th>
-            <th className="px-4 py-3 text-right">Neto</th>
-            <th className="px-4 py-3 text-right">IVA</th>
-            <th className="px-4 py-3 text-right">Total</th>
+            <SortableTh field="invoiceDate" {...sort} className="px-4 py-3">
+              Fecha
+            </SortableTh>
+            <SortableTh field="status" {...sort} className="px-4 py-3">
+              Estado
+            </SortableTh>
+            <SortableTh field="totalNet" {...sort} right className="px-4 py-3">
+              Neto
+            </SortableTh>
+            <SortableTh field="ivaTotal" {...sort} right className="px-4 py-3">
+              IVA
+            </SortableTh>
+            <SortableTh field="totalGross" {...sort} right className="px-4 py-3">
+              Total
+            </SortableTh>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {invoices.map((invoice) => (
-            <tr
+            <ClickableRow
               key={invoice.id}
               role="link"
-              tabIndex={0}
               aria-label={`Ver detalle de la factura ${invoice.invoiceNumber}`}
-              className="cursor-pointer hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-600 dark:hover:bg-slate-800/40"
-              onClick={(event) => {
-                if ((event.target as HTMLElement).closest('a, button, input, select, textarea')) {
-                  return;
-                }
-                void openInvoice(invoice.id);
-              }}
-              onKeyDown={(event) => {
-                if (event.target !== event.currentTarget) return;
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  void openInvoice(invoice.id);
-                }
-              }}
+              onActivate={() => void openInvoice(invoice.id)}
             >
               <td className="px-4 py-3">
                 <Link
@@ -111,7 +121,7 @@ export function SupplierInvoicesTable({
               <td className="px-4 py-3 text-right font-mono font-bold">
                 {formatMoneyAr(invoice.totalAmount)}
               </td>
-            </tr>
+            </ClickableRow>
           ))}
         </tbody>
       </table>

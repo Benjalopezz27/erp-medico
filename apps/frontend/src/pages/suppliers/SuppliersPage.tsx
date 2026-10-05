@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearch } from '@tanstack/react-router';
-import { Plus, Truck, AlertCircle, CheckCircle2, RotateCcw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
+import { Plus, Truck, AlertCircle, CheckCircle2, RotateCcw, FileUp } from 'lucide-react';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { SupplierFilters } from '@/features/suppliers/components/SupplierFilters';
+import { nextSort } from '@/lib/sorting';
 import { SupplierTable } from '@/features/suppliers/components/SupplierTable';
 import { SupplierPagination } from '@/features/suppliers/components/SupplierPagination';
 import { SupplierFormModal } from '@/features/suppliers/components/SupplierFormModal';
@@ -162,15 +163,24 @@ export const SuppliersPage: React.FC = () => {
           </div>
         </div>
 
-        <Button
-          type="button"
-          onClick={handleOpenCreateModal}
-          size="sm"
-          className="bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5 shadow-sm self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo Proveedor
-        </Button>
+        <div className="flex flex-wrap gap-2 self-start sm:self-auto">
+          <Link
+            to="/importer"
+            className={`${buttonVariants({ variant: 'outline', size: 'sm' })} text-xs gap-1.5`}
+          >
+            <FileUp className="w-4 h-4" />
+            Importador
+          </Link>
+          <Button
+            type="button"
+            onClick={handleOpenCreateModal}
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-700 text-white text-xs gap-1.5 shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Nuevo Proveedor
+          </Button>
+        </div>
       </div>
 
       {/* Global Feedback Banner */}
@@ -277,6 +287,9 @@ export const SuppliersPage: React.FC = () => {
       ) : (
         <div className="space-y-0 shadow-sm rounded-xl overflow-hidden">
           <SupplierTable
+            sortBy={searchParams.sortBy}
+            sortOrder={searchParams.sortOrder}
+            onSort={(field) => updateSearch((prev) => ({ ...nextSort(prev, field), page: 1 }))}
             suppliers={data?.data || []}
             isPending={isPending}
             isFetching={isFetching}

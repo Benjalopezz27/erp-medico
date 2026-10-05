@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BackLink } from '@/components/ui/back-link';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, ReceiptText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ export function SupplierInvoiceCreatePage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <nav className="mb-1 text-xs text-slate-400">
-            <Link to="/purchases/supplier-invoices">Facturas de proveedores</Link> / Nueva
+            <BackLink to="/purchases/supplier-invoices">Volver al listado</BackLink> / Nueva
           </nav>
           <div className="flex items-center gap-2">
             <ReceiptText className="h-7 w-7 text-blue-600" />

@@ -1,10 +1,12 @@
 import React from 'react';
+import { ClickableRow } from '@/components/ui/clickable-row';
 import { Eye, Inbox, RefreshCw, SlidersHorizontal } from 'lucide-react';
+import { SortableTh } from '@/components/ui/sortable-th';
 import { Button } from '@/components/ui/button';
 import { StockStatusBadge } from './StockStatusBadge';
 import { useAuthStore } from '@/stores/authStore';
 import { UserRole } from '@erp/shared-types';
-import type { IStockOverviewItem } from '../types/stock.types';
+import type { IStockOverviewItem, StockSortField } from '../types/stock.types';
 
 interface StockOverviewTableProps {
   items: IStockOverviewItem[];
@@ -14,6 +16,9 @@ interface StockOverviewTableProps {
   onRetry: () => void;
   onViewLedger: (productId: string) => void;
   onOpenAdjustment?: (item: IStockOverviewItem) => void;
+  sortBy?: StockSortField;
+  sortOrder?: 'ASC' | 'DESC';
+  onSort: (field: StockSortField) => void;
 }
 
 export const StockOverviewTable: React.FC<StockOverviewTableProps> = ({
@@ -24,6 +29,9 @@ export const StockOverviewTable: React.FC<StockOverviewTableProps> = ({
   onRetry,
   onViewLedger,
   onOpenAdjustment,
+  sortBy,
+  sortOrder,
+  onSort,
 }) => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === UserRole.ADMINISTRADOR;
@@ -83,24 +91,62 @@ export const StockOverviewTable: React.FC<StockOverviewTableProps> = ({
         >
           <thead className="bg-muted/50 text-foreground font-semibold border-b border-border">
             <tr>
-              <th scope="col" className="py-3 px-4 w-28">
+              <SortableTh<StockSortField>
+                field="internalCode"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3 px-4 w-28"
+              >
                 Código
-              </th>
-              <th scope="col" className="py-3 px-4">
+              </SortableTh>
+              <SortableTh<StockSortField>
+                field="name"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3 px-4"
+              >
                 Producto
-              </th>
-              <th scope="col" className="py-3 px-4">
+              </SortableTh>
+              <SortableTh<StockSortField>
+                field="category"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3 px-4"
+              >
                 Categoría
-              </th>
-              <th scope="col" className="py-3 px-4 text-right">
+              </SortableTh>
+              <SortableTh<StockSortField>
+                field="currentStock"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                right
+                className="py-3 px-4"
+              >
                 Stock Actual
-              </th>
-              <th scope="col" className="py-3 px-4 text-right">
+              </SortableTh>
+              <SortableTh<StockSortField>
+                field="minStock"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                right
+                className="py-3 px-4"
+              >
                 Stock Mínimo
-              </th>
-              <th scope="col" className="py-3 px-4 text-center">
+              </SortableTh>
+              <SortableTh<StockSortField>
+                field="status"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3 px-4 text-center"
+              >
                 Estado
-              </th>
+              </SortableTh>
               <th scope="col" className="py-3 px-4 text-center w-36">
                 Acciones
               </th>
@@ -112,7 +158,11 @@ export const StockOverviewTable: React.FC<StockOverviewTableProps> = ({
               const isLow = item.currentBaseStock > 0 && item.currentBaseStock <= item.minStock;
 
               return (
-                <tr key={item.productId} className="hover:bg-muted/30 transition-colors">
+                <ClickableRow
+                  key={item.productId}
+                  onActivate={() => onViewLedger(item.productId)}
+                  className="hover:bg-muted/30"
+                >
                   <td className="py-3 px-4 font-mono font-medium text-foreground text-xs">
                     {item.internalCode}
                   </td>
@@ -179,7 +229,7 @@ export const StockOverviewTable: React.FC<StockOverviewTableProps> = ({
                       </Button>
                     </div>
                   </td>
-                </tr>
+                </ClickableRow>
               );
             })}
           </tbody>

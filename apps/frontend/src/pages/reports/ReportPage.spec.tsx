@@ -49,6 +49,7 @@ describe('ReportPage', () => {
   it('renders the report rows with formatted money and the TOTAL row', async () => {
     server.use(http.get('*/api/v1/reports/sales', () => HttpResponse.json(salesReport)));
     renderReport('sales');
+    expect(await screen.findByRole('link', { name: /volver a reportes/i })).toBeInTheDocument();
     expect(await screen.findByText('01/10/2026')).toBeInTheDocument();
     expect(screen.getAllByText(/1\.500,50/)).toHaveLength(2);
     expect(screen.getByText('TOTAL')).toBeInTheDocument();

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/test/mocks/server';
@@ -41,40 +41,85 @@ describe('Sidebar permissions and badges', () => {
     renderSidebar(UserRole.VENDEDOR);
 
     expect(await screen.findByRole('link', { name: /productos/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /ventas/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /configuración/i })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /compras/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /usuarios/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /reportes/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /revisión precios/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('Abastecimiento')).not.toBeInTheDocument();
+    expect(screen.queryByText('Finanzas')).not.toBeInTheDocument();
   });
 
-  it('shows administrative navigation to administrators', async () => {
-    const { user } = renderSidebar(UserRole.ADMINISTRADOR);
+  it('shows all 12 items to administrators without expanding anything', async () => {
+    renderSidebar(UserRole.ADMINISTRADOR);
 
-    const supplyGroup = await screen.findByRole('button', { name: /abastecimiento/i });
-    expect(supplyGroup).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByRole('link', { name: /proveedores/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /importador/i })).not.toBeInTheDocument();
-
-    await user.click(supplyGroup);
-    expect(screen.getByRole('link', { name: /compras/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /proveedores/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /importador/i })).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: /administración/i }));
-    expect(screen.getByRole('link', { name: /usuarios/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /configuración/i })).toBeInTheDocument();
-    expect(supplyGroup).toHaveAttribute('aria-expanded', 'false');
+    await screen.findByRole('link', { name: /productos/i });
+    const names = [
+      'Inicio',
+      'Ventas',
+      'Productos',
+      'Stock',
+      'Clientes',
+      'Compras',
+      'Proveedores',
+      'Tesorería',
+      'Reportes',
+      'Usuarios',
+      'Alertas fiscales',
+      'Configuración',
+    ];
+    for (const name of names) {
+      expect(screen.getByRole('link', { name })).toBeInTheDocument();
+    }
+    expect(screen.queryByRole('link', { name: /importador|revisión|caja|cheques/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /abastecimiento/i })).toBeNull();
   });
 
-  it('automatically expands the group containing the active route', async () => {
-    renderSidebar(UserRole.ADMINISTRADOR, '/suppliers');
+  it('shows the brand, no version footer, and the user block with logout', async () => {
+    renderSidebar(UserRole.ADMINISTRADOR);
 
-    expect(await screen.findByRole('button', { name: /abastecimiento/i })).toHaveAttribute(
-      'aria-expanded',
-      'true',
+    expect(await screen.findByText('Distribuidora Médica')).toBeInTheDocument();
+    expect(screen.queryByText(/sprint 0/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Navigation User')).toBeInTheDocument();
+    expect(screen.getByText('navigation@erp.com')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /cerrar sesión/i })).toBeInTheDocument();
+  });
+
+  it('highlights the parent item for unified child routes', async () => {
+    renderSidebar(UserRole.ADMINISTRADOR, '/importer');
+
+    expect(await screen.findByRole('link', { name: 'Proveedores' })).toHaveClass('bg-blue-600');
+  });
+
+  it('collapses to icons with accessible names and toggles via the button', async () => {
+    const onToggle = vi.fn();
+    useAuthStore.getState().setSession({
+      accessToken: 'token',
+      user: {
+        id: 'u',
+        name: 'Nav User',
+        email: 'n@erp.com',
+        role: UserRole.ADMINISTRADOR,
+        isActive: true,
+      },
+    });
+    const router = createTestRouter(
+      [
+        {
+          path: '/',
+          component: () => (
+            <Sidebar isOpen onClose={() => undefined} collapsed onToggleCollapsed={onToggle} />
+          ),
+        },
+      ],
+      '/',
     );
-    expect(screen.getByRole('link', { name: /proveedores/i })).toHaveClass('bg-blue-600');
+    const { user } = renderWithRouter({ router });
+
+    const link = await screen.findByRole('link', { name: 'Ventas' });
+    expect(link).toHaveAttribute('title', 'Ventas');
+    await user.click(screen.getByRole('button', { name: /expandir menú lateral/i }));
+    expect(onToggle).toHaveBeenCalledTimes(1);
   });
 
   it('renders low stock alert badge when alert count > 0', async () => {
@@ -93,17 +138,6 @@ describe('Sidebar permissions and badges', () => {
     expect(badge).toHaveTextContent('3');
   });
 
-  it('renders the real pending price review count and hides zero', async () => {
-    server.use(
-      http.get('*/api/v1/price-reviews/pending-count', () => HttpResponse.json({ count: 4 })),
-    );
-    renderSidebar(UserRole.ADMINISTRADOR);
-    expect(await screen.findByTestId('price-reviews-pending-badge')).toHaveTextContent('4');
-    expect(screen.getByRole('button', { name: /productos y precios/i })).toContainElement(
-      screen.getByTestId('price-reviews-pending-badge'),
-    );
-  });
-
   it('renders the fiscal alerts pending/rejected count for admins and hides zero', async () => {
     server.use(
       http.get('*/api/v1/sales/pending-fiscal/count', () =>
@@ -112,7 +146,7 @@ describe('Sidebar permissions and badges', () => {
     );
     renderSidebar(UserRole.ADMINISTRADOR);
     expect(await screen.findByTestId('fiscal-alerts-badge')).toHaveTextContent('3');
-    expect(screen.getByRole('button', { name: /administración/i })).toContainElement(
+    expect(screen.getByRole('link', { name: /alertas fiscales/i })).toContainElement(
       screen.getByTestId('fiscal-alerts-badge'),
     );
   });

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
+import { BackLink } from '@/components/ui/back-link';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { ShieldAlert, Plus, ArrowLeft } from 'lucide-react';
+import { ShieldAlert, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuarantineFilters } from '@/features/stock/components/quarantine/QuarantineFilters';
 import { QuarantineTable } from '@/features/stock/components/quarantine/QuarantineTable';
@@ -9,6 +10,7 @@ import { QuarantineResolveModal } from '@/features/stock/components/quarantine/Q
 import { StockPagination } from '@/features/stock/components/StockPagination';
 import { useQuarantineListQuery } from '@/features/stock/hooks/use-quarantine';
 import { parseQuarantineApiError } from '@/features/stock/utils/quarantine.errors';
+import { nextSort } from '@/lib/sorting';
 import type {
   IQuarantineSearchParams,
   IQuarantineStock,
@@ -29,6 +31,8 @@ export const StockQuarantinePage: React.FC = () => {
     search: searchParams?.search || undefined,
     productId: searchParams?.productId || undefined,
     status: searchParams?.status || undefined,
+    sortBy: searchParams?.sortBy,
+    sortOrder: searchParams?.sortBy ? searchParams.sortOrder : undefined,
   };
 
   const { data, isLoading, isError, error, refetch } = useQuarantineListQuery(currentFilters);
@@ -94,16 +98,9 @@ export const StockQuarantinePage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => navigate({ to: '/stock' as any })}
-            className="text-xs gap-1.5"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
+          <BackLink to="/stock" search={{ page: 1, limit: 10 }}>
             Volver a Stock
-          </Button>
+          </BackLink>
 
           <Button
             type="button"
@@ -134,6 +131,9 @@ export const StockQuarantinePage: React.FC = () => {
         errorMessage={parseQuarantineApiError(error)}
         onRetry={() => refetch()}
         onOpenResolve={(item) => setSelectedItemForResolve(item)}
+        sortBy={currentFilters.sortBy}
+        sortOrder={currentFilters.sortOrder}
+        onSort={(field) => updateSearch(nextSort(currentFilters, field))}
       />
 
       {/* Pagination */}

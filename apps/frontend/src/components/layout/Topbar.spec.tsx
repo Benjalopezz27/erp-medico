@@ -21,4 +21,15 @@ describe('Topbar sales titles', () => {
     renderWithRouter({ router });
     expect(await screen.findByText('Detalle de Venta')).toBeInTheDocument();
   });
+
+  it('keeps breadcrumb and menu button but no user block or logout', async () => {
+    const router = createTestRouter(
+      [{ path: '/products', component: () => <Topbar onMenuToggle={() => undefined} /> }],
+      '/products',
+    );
+    renderWithRouter({ router });
+    expect(await screen.findByRole('button', { name: /abrir menú/i })).toBeInTheDocument();
+    expect(screen.getByText('Productos')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /cerrar sesión/i })).not.toBeInTheDocument();
+  });
 });

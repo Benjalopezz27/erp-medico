@@ -1,11 +1,13 @@
 import React from 'react';
+import { ClickableRow } from '@/components/ui/clickable-row';
 import { Edit2, Ban, CheckCircle2, Loader2, Building2, BookOpen } from 'lucide-react';
+import { SortableTh } from '@/components/ui/sortable-th';
 import { Button } from '@/components/ui/button';
 import { formatCuit } from '@erp/shared-types';
 import { SupplierStatusBadge } from './SupplierStatusBadge';
 import { SupplierTaxConditionBadge } from './SupplierTaxConditionBadge';
 import { SupplierContactLinks } from './SupplierContactLinks';
-import type { ISupplier } from '../types/suppliers.types';
+import type { ISupplier, SupplierSortField } from '../types/suppliers.types';
 
 export interface SupplierTableProps {
   suppliers: ISupplier[];
@@ -16,6 +18,9 @@ export interface SupplierTableProps {
   onReactivateSupplier: (supplier: ISupplier) => void;
   onOpenCatalog?: (supplier: ISupplier) => void;
   mutatingSupplierId?: string | null;
+  sortBy?: SupplierSortField;
+  sortOrder?: 'ASC' | 'DESC';
+  onSort: (field: SupplierSortField) => void;
 }
 
 export const SupplierTable: React.FC<SupplierTableProps> = ({
@@ -27,6 +32,9 @@ export const SupplierTable: React.FC<SupplierTableProps> = ({
   onReactivateSupplier,
   onOpenCatalog,
   mutatingSupplierId,
+  sortBy,
+  sortOrder,
+  onSort,
 }) => {
   if (isPending) {
     return (
@@ -69,9 +77,33 @@ export const SupplierTable: React.FC<SupplierTableProps> = ({
         <table className="w-full text-left border-collapse text-sm">
           <thead>
             <tr className="bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400 tracking-wider">
-              <th className="py-3.5 px-4">Proveedor</th>
-              <th className="py-3.5 px-4">CUIT</th>
-              <th className="py-3.5 px-4">Condición Fiscal</th>
+              <SortableTh<SupplierSortField>
+                field="businessName"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3.5 px-4"
+              >
+                Proveedor
+              </SortableTh>
+              <SortableTh<SupplierSortField>
+                field="cuit"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3.5 px-4"
+              >
+                CUIT
+              </SortableTh>
+              <SortableTh<SupplierSortField>
+                field="taxCondition"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3.5 px-4"
+              >
+                Condición Fiscal
+              </SortableTh>
               <th className="py-3.5 px-4">Contacto</th>
               <th className="py-3.5 px-4 hidden lg:table-cell">Dirección</th>
               <th className="py-3.5 px-4">Estado</th>
@@ -83,9 +115,10 @@ export const SupplierTable: React.FC<SupplierTableProps> = ({
               const isMutating = mutatingSupplierId === supplier.id;
 
               return (
-                <tr
+                <ClickableRow
                   key={supplier.id}
-                  className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-colors ${
+                  onActivate={onOpenCatalog ? () => onOpenCatalog(supplier) : undefined}
+                  className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/50 ${
                     !supplier.isActive ? 'bg-slate-50/30 dark:bg-slate-900/30' : ''
                   }`}
                 >
@@ -204,7 +237,7 @@ export const SupplierTable: React.FC<SupplierTableProps> = ({
                       )}
                     </div>
                   </td>
-                </tr>
+                </ClickableRow>
               );
             })}
           </tbody>

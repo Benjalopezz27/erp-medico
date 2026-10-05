@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle2, Plus, RotateCcw, Users } from 'lucide-react';
-import { useNavigate, useSearch } from '@tanstack/react-router';
+import { AlertCircle, CheckCircle2, Plus, Receipt, RotateCcw, Users } from 'lucide-react';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { UserRole } from '@erp/shared-types';
-import { Button } from '@/components/ui/button';
+import { nextSort } from '@/lib/sorting';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { CustomerFilters } from '@/features/customers/components/CustomerFilters';
 import { CustomerFormModal } from '@/features/customers/components/CustomerFormModal';
@@ -12,6 +13,7 @@ import { CustomerTable } from '@/features/customers/components/CustomerTable';
 import { useCustomersQuery } from '@/features/customers/hooks/use-customers-query';
 import type {
   CustomerSearchParams,
+  CustomerSortField,
   ICustomer,
   TaxCondition,
 } from '@/features/customers/types/customers.types';
@@ -82,17 +84,27 @@ export function CustomersListPage() {
             </p>
           </div>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => {
-            setFeedback(null);
-            setForm({ mode: 'create', customer: null });
-          }}
-        >
-          <Plus className="mr-1.5 h-4 w-4" />
-          Nuevo cliente
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to="/receivables"
+            search={{ page: 1, limit: 20 }}
+            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+          >
+            <Receipt className="mr-1.5 h-4 w-4" />
+            Cuentas corrientes
+          </Link>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => {
+              setFeedback(null);
+              setForm({ mode: 'create', customer: null });
+            }}
+          >
+            <Plus className="mr-1.5 h-4 w-4" />
+            Nuevo cliente
+          </Button>
+        </div>
       </header>
 
       {feedback && (
@@ -165,6 +177,11 @@ export function CustomersListPage() {
             isAdmin={isAdmin}
             onEdit={(customer) => setForm({ mode: 'edit', customer })}
             onLifecycle={setLifecycleCustomer}
+            sortBy={search.sortBy}
+            sortOrder={search.sortOrder}
+            onSort={(field: CustomerSortField) =>
+              updateSearch({ ...nextSort(search, field), page: 1 })
+            }
           />
           {query.data && (
             <CustomerPagination

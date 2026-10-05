@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/authStore';
 import { UserRole } from '@/features/users/types/users.types';
 import { StockOverviewFilters } from '@/features/stock/components/StockOverviewFilters';
+import { nextSort } from '@/lib/sorting';
 import { StockOverviewTable } from '@/features/stock/components/StockOverviewTable';
 import { StockPagination } from '@/features/stock/components/StockPagination';
 import {
@@ -13,7 +14,11 @@ import {
 } from '@/features/stock/components/StockAdjustmentModal';
 import { useStockQuery } from '@/features/stock/hooks/use-stock-query';
 import { parseStockApiError } from '@/features/stock/utils/stock.errors';
-import type { IStockSearchParams, IStockOverviewItem } from '@/features/stock/types/stock.types';
+import type {
+  IStockSearchParams,
+  IStockOverviewItem,
+  StockSortField,
+} from '@/features/stock/types/stock.types';
 
 export const StockOverviewPage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +33,8 @@ export const StockOverviewPage: React.FC = () => {
     search: searchParams?.search || undefined,
     category: searchParams?.category || undefined,
     stockStatus: searchParams?.stockStatus || undefined,
+    sortBy: searchParams?.sortBy,
+    sortOrder: searchParams?.sortOrder,
     alertsOnly:
       searchParams?.alertsOnly === true ||
       (searchParams?.alertsOnly as unknown as string) === 'true'
@@ -141,6 +148,9 @@ export const StockOverviewPage: React.FC = () => {
         onRetry={() => refetch()}
         onViewLedger={handleViewLedger}
         onOpenAdjustment={handleOpenAdjustment}
+        sortBy={currentFilters.sortBy as StockSortField | undefined}
+        sortOrder={currentFilters.sortOrder}
+        onSort={(field) => updateSearch({ ...nextSort(currentFilters, field), page: 1 })}
       />
 
       {/* Pagination */}

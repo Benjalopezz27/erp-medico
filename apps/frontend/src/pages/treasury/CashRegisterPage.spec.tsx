@@ -66,6 +66,7 @@ describe('CashRegisterPage', () => {
       }),
     );
     const { user } = renderPage(closedState);
+    expect(await screen.findByRole('link', { name: /volver a tesorería/i })).toBeInTheDocument();
     expect(await screen.findByText(/La caja está cerrada/i)).toBeInTheDocument();
     expect(screen.getByText(/Último cierre/i)).toBeInTheDocument();
     await user.type(screen.getByLabelText('Saldo inicial'), '1500,50');

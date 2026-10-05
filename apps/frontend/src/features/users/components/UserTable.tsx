@@ -1,10 +1,11 @@
 import React from 'react';
 import { Edit2, UserX, UserCheck, Loader2 } from 'lucide-react';
+import { SortableTh } from '@/components/ui/sortable-th';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { UserRoleBadge } from './UserRoleBadge';
 import { UserStatusBadge } from './UserStatusBadge';
-import type { IUser } from '../types/users.types';
+import type { IUser, UserSortField } from '../types/users.types';
 
 export interface UserTableProps {
   users: IUser[];
@@ -15,6 +16,9 @@ export interface UserTableProps {
   onDeactivateUser: (user: IUser) => void;
   onReactivateUser: (user: IUser) => void;
   mutatingUserId?: string | null;
+  sortBy?: UserSortField;
+  sortOrder?: 'ASC' | 'DESC';
+  onSort: (field: UserSortField) => void;
 }
 
 export const UserTable: React.FC<UserTableProps> = ({
@@ -26,6 +30,9 @@ export const UserTable: React.FC<UserTableProps> = ({
   onDeactivateUser,
   onReactivateUser,
   mutatingUserId,
+  sortBy,
+  sortOrder,
+  onSort,
 }) => {
   if (isPending) {
     return (
@@ -67,11 +74,51 @@ export const UserTable: React.FC<UserTableProps> = ({
         <table className="w-full text-left border-collapse text-xs">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50/75 text-slate-500 font-semibold uppercase tracking-wider text-[11px]">
-              <th className="py-3 px-4">Usuario</th>
-              <th className="py-3 px-4 hidden sm:table-cell">Correo Electrónico</th>
-              <th className="py-3 px-4">Rol</th>
-              <th className="py-3 px-4">Estado</th>
-              <th className="py-3 px-4 hidden md:table-cell">Fecha de Alta</th>
+              <SortableTh<UserSortField>
+                field="name"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3 px-4"
+              >
+                Usuario
+              </SortableTh>
+              <SortableTh<UserSortField>
+                field="email"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3 px-4 hidden sm:table-cell"
+              >
+                Correo Electrónico
+              </SortableTh>
+              <SortableTh<UserSortField>
+                field="role"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3 px-4"
+              >
+                Rol
+              </SortableTh>
+              <SortableTh<UserSortField>
+                field="isActive"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3 px-4"
+              >
+                Estado
+              </SortableTh>
+              <SortableTh<UserSortField>
+                field="createdAt"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3 px-4 hidden md:table-cell"
+              >
+                Fecha de Alta
+              </SortableTh>
               <th className="py-3 px-4 text-right">Acciones</th>
             </tr>
           </thead>

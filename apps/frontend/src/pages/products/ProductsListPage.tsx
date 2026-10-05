@@ -11,8 +11,10 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { UserRole } from '@erp/shared-types';
+import { nextSort } from '@/lib/sorting';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
+import { usePriceReviewPendingCountQuery } from '@/features/price-reviews/hooks/use-price-reviews-query';
 import { ProductFilters } from '@/features/products/components/ProductFilters';
 import { ProductsTable } from '@/features/products/components/ProductsTable';
 import { ProductPagination } from '@/features/products/components/ProductPagination';
@@ -26,6 +28,7 @@ import {
 import { parseProductApiError } from '@/features/products/utils/products.errors';
 import type {
   ProductListItem,
+  ProductSortField,
   ProductSearchParams,
 } from '@/features/products/types/products.types';
 
@@ -34,6 +37,7 @@ export const ProductsListPage: React.FC = () => {
   const searchParams = useSearch({ strict: false }) as ProductSearchParams;
   const { user } = useAuthStore();
   const isAdmin = user?.role === UserRole.ADMINISTRADOR;
+  const { data: pendingPriceReviews } = usePriceReviewPendingCountQuery(isAdmin);
 
   // Modals & Mutation state
   const [deactivateModalProduct, setDeactivateModalProduct] = useState<ProductListItem | null>(
@@ -66,6 +70,8 @@ export const ProductsListPage: React.FC = () => {
             search: searchParams.search,
             category: searchParams.category,
             status: searchParams.status,
+            sortBy: searchParams.sortBy,
+            sortOrder: searchParams.sortOrder,
           }),
           replace: true,
         });
@@ -79,6 +85,8 @@ export const ProductsListPage: React.FC = () => {
     searchParams.search,
     searchParams.category,
     searchParams.status,
+    searchParams.sortBy,
+    searchParams.sortOrder,
     navigate,
   ]);
 
@@ -104,6 +112,8 @@ export const ProductsListPage: React.FC = () => {
           search: searchParams.search,
           category: searchParams.category,
           status: searchParams.status,
+          sortBy: searchParams.sortBy,
+          sortOrder: searchParams.sortOrder,
         }),
         replace: true,
       });
@@ -115,6 +125,8 @@ export const ProductsListPage: React.FC = () => {
     searchParams.search,
     searchParams.category,
     searchParams.status,
+    searchParams.sortBy,
+    searchParams.sortOrder,
     navigate,
   ]);
 
@@ -133,12 +145,18 @@ export const ProductsListPage: React.FC = () => {
           search: current.search,
           category: current.category,
           status: current.status,
+          sortBy: current.sortBy,
+          sortOrder: current.sortOrder,
           ...updater(current),
         };
         // Clean undefined properties
         if (!next.search) delete next.search;
         if (!next.category) delete next.category;
         if (!next.status) delete next.status;
+        if (!next.sortBy) {
+          delete next.sortBy;
+          delete next.sortOrder;
+        }
         return next;
       },
       replace: options?.replace ?? false,
@@ -165,6 +183,10 @@ export const ProductsListPage: React.FC = () => {
         limit: searchParams.limit || 10,
       }),
     });
+  };
+
+  const handleSort = (field: ProductSortField) => {
+    updateSearch((current) => ({ ...nextSort(current, field), page: 1 }));
   };
 
   const handlePageChange = (newPage: number) => {
@@ -239,6 +261,15 @@ export const ProductsListPage: React.FC = () => {
               }
             >
               <Tags className="mr-1.5 h-4 w-4" /> Revisión de precios
+              {pendingPriceReviews !== undefined && pendingPriceReviews.count > 0 && (
+                <span
+                  data-testid="price-reviews-pending-badge"
+                  aria-label={`${pendingPriceReviews.count} revisiones de precio pendientes`}
+                  className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700"
+                >
+                  {pendingPriceReviews.count}
+                </span>
+              )}
             </Button>
             <Button
               type="button"
@@ -341,6 +372,9 @@ export const ProductsListPage: React.FC = () => {
           onDeactivate={handleOpenDeactivateModal}
           onReactivate={handleReactivate}
           mutatingProductId={mutatingProductId}
+          sortBy={searchParams.sortBy}
+          sortOrder={searchParams.sortOrder}
+          onSort={handleSort}
         />
 
         {data && data.meta && data.items.length > 0 && (

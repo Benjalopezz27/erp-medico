@@ -1,7 +1,9 @@
 import { Eye, Pencil, Power, PowerOff } from 'lucide-react';
-import { Link } from '@tanstack/react-router';
+import { ClickableRow } from '@/components/ui/clickable-row';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { SortableTh } from '@/components/ui/sortable-th';
 import { Button } from '@/components/ui/button';
-import type { ICustomer } from '../types/customers.types';
+import type { CustomerSortField, ICustomer } from '../types/customers.types';
 import { CustomerContactLinks } from './CustomerContactLinks';
 import {
   CustomerDocumentBadge,
@@ -18,6 +20,9 @@ export function CustomerTable({
   mutatingId,
   onEdit,
   onLifecycle,
+  sortBy,
+  sortOrder,
+  onSort,
 }: {
   customers: ICustomer[];
   isPending: boolean;
@@ -26,7 +31,11 @@ export function CustomerTable({
   mutatingId?: string | null;
   onEdit: (customer: ICustomer) => void;
   onLifecycle: (customer: ICustomer) => void;
+  sortBy?: CustomerSortField;
+  sortOrder?: 'ASC' | 'DESC';
+  onSort: (field: CustomerSortField) => void;
 }) {
+  const navigate = useNavigate();
   if (isPending) {
     return (
       <div aria-label="Cargando clientes" className="space-y-2 bg-white p-4 dark:bg-slate-900">
@@ -44,21 +53,46 @@ export function CustomerTable({
       <table className={`w-full min-w-[960px] text-left text-xs ${isFetching ? 'opacity-70' : ''}`}>
         <thead className="border-b border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
           <tr>
-            <th scope="col" className="px-4 py-3">
+            <SortableTh<CustomerSortField>
+              field="businessName"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="px-4 py-3"
+            >
               Cliente
-            </th>
-            <th scope="col" className="px-4 py-3">
+            </SortableTh>
+            <SortableTh<CustomerSortField>
+              field="cuitOrDni"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="px-4 py-3"
+            >
               Documento
-            </th>
-            <th scope="col" className="px-4 py-3">
+            </SortableTh>
+            <SortableTh<CustomerSortField>
+              field="taxCondition"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="px-4 py-3"
+            >
               Condición fiscal
-            </th>
+            </SortableTh>
             <th scope="col" className="px-4 py-3">
               Contacto
             </th>
-            <th scope="col" className="px-4 py-3 text-right">
+            <SortableTh<CustomerSortField>
+              field="creditLimit"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              right
+              className="px-4 py-3"
+            >
               Límite autorizado
-            </th>
+            </SortableTh>
             <th scope="col" className="px-4 py-3">
               Estado
             </th>
@@ -69,7 +103,11 @@ export function CustomerTable({
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
           {customers.map((customer) => (
-            <tr key={customer.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+            <ClickableRow
+              key={customer.id}
+              onActivate={() => navigate({ to: '/customers/$id', params: { id: customer.id } })}
+              className="hover:bg-slate-50 dark:hover:bg-slate-800/50"
+            >
               <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">
                 {customer.businessName}
               </td>
@@ -125,7 +163,7 @@ export function CustomerTable({
                   )}
                 </div>
               </td>
-            </tr>
+            </ClickableRow>
           ))}
         </tbody>
       </table>

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Pencil, Trash2, Tag, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { SortableTh } from '@/components/ui/sortable-th';
+import { useClientSort } from '@/lib/sorting';
 import type { ICategory } from '../types/categories.types';
 
 interface CategoriesTableProps {
@@ -34,6 +36,12 @@ export const CategoriesTable: React.FC<CategoriesTableProps> = ({
       return String(dateValue);
     }
   };
+
+  const { sorted, ...sort } = useClientSort(categories, {
+    name: (c) => c.name,
+    description: (c) => c.description,
+    createdAt: (c) => new Date(c.createdAt).getTime(),
+  });
 
   if (isLoading) {
     return (
@@ -92,14 +100,20 @@ export const CategoriesTable: React.FC<CategoriesTableProps> = ({
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              <th className="py-3 px-4">Nombre</th>
-              <th className="py-3 px-4">Descripción</th>
-              <th className="py-3 px-4">Fecha de Alta</th>
+              <SortableTh field="name" {...sort} className="py-3 px-4">
+                Nombre
+              </SortableTh>
+              <SortableTh field="description" {...sort} className="py-3 px-4">
+                Descripción
+              </SortableTh>
+              <SortableTh field="createdAt" {...sort} className="py-3 px-4">
+                Fecha de Alta
+              </SortableTh>
               {isAdmin && <th className="py-3 px-4 text-right">Acciones</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-            {categories.map((cat) => (
+            {sorted.map((cat) => (
               <tr key={cat.id} className="hover:bg-slate-50/50 transition-colors">
                 <td className="py-3 px-4 font-medium text-slate-900">
                   <div className="flex items-center gap-2">

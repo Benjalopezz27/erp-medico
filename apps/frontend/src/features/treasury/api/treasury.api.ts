@@ -1,4 +1,5 @@
 import type {
+  ISortParams,
   ICreateTreasuryMovementPayload,
   ITreasuryMovementListResponse,
   ITreasurySummary,
@@ -7,7 +8,10 @@ import type {
 } from '@erp/shared-types';
 import { apiClient } from '@/services/api.client';
 
-export interface TreasuryMovementParams {
+export type TreasurySortField =
+  'createdAt' | 'account' | 'movementType' | 'amount' | 'concept' | 'user';
+
+export interface TreasuryMovementParams extends ISortParams<TreasurySortField> {
   page: number;
   limit: number;
   accountType?: TreasuryAccountType;

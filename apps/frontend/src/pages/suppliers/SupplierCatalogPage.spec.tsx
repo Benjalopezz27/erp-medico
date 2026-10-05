@@ -229,14 +229,14 @@ describe('SupplierCatalogPage Integration Suite', () => {
     expect(within(tableHeader).queryByText(/Precio Venta/i)).not.toBeInTheDocument();
   });
 
-  it('navigates back to /suppliers on clicking Volver button', async () => {
+  it('navigates back to /suppliers on clicking Volver link', async () => {
     const { user } = renderSupplierCatalogPage();
 
     await waitFor(() => {
       expect(screen.getByText(/Catálogo: Droguería del Sol S.A./i)).toBeInTheDocument();
     });
 
-    const backBtn = screen.getByRole('button', { name: /volver al listado/i });
+    const backBtn = screen.getByRole('link', { name: /volver a proveedores/i });
     await user.click(backBtn);
 
     await waitFor(() => {

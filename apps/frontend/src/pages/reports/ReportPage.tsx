@@ -1,5 +1,6 @@
+import { BackLink } from '@/components/ui/back-link';
 import { useState } from 'react';
-import { Link, useParams } from '@tanstack/react-router';
+import { useParams } from '@tanstack/react-router';
 import { AlertCircle, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -41,9 +42,9 @@ export function ReportPage() {
   return (
     <div className="space-y-5">
       <div>
-        <Link to="/reports" className="text-xs text-slate-500 hover:underline">
-          Reportes
-        </Link>
+        <BackLink to="/reports" className="mb-3">
+          Volver a Reportes
+        </BackLink>
         <h1 className="text-2xl font-bold text-slate-900">{config.title}</h1>
         <p className="text-xs text-slate-500">{config.description}</p>
       </div>

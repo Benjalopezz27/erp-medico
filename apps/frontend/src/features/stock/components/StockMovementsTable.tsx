@@ -1,7 +1,12 @@
 import React from 'react';
 import { Inbox, RefreshCw, ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { SortableTh } from '@/components/ui/sortable-th';
 import { Button } from '@/components/ui/button';
-import { StockMovementType, type IStockMovementItem } from '../types/stock.types';
+import {
+  StockMovementType,
+  type IStockMovementItem,
+  type StockMovementSortField,
+} from '../types/stock.types';
 
 interface StockMovementsTableProps {
   items: IStockMovementItem[];
@@ -10,6 +15,9 @@ interface StockMovementsTableProps {
   isError: boolean;
   errorMessage?: string;
   onRetry: () => void;
+  sortBy?: StockMovementSortField;
+  sortOrder?: 'ASC' | 'DESC';
+  onSort: (field: StockMovementSortField) => void;
 }
 
 const formatDateTime = (isoString: string | Date) => {
@@ -95,6 +103,9 @@ export const StockMovementsTable: React.FC<StockMovementsTableProps> = ({
   isError,
   errorMessage,
   onRetry,
+  sortBy,
+  sortOrder,
+  onSort,
 }) => {
   if (isLoading) {
     return (
@@ -151,30 +162,69 @@ export const StockMovementsTable: React.FC<StockMovementsTableProps> = ({
         >
           <thead className="bg-muted/50 text-foreground font-semibold border-b border-border">
             <tr>
-              <th scope="col" className="py-3 px-4 w-40">
+              <SortableTh<StockMovementSortField>
+                field="createdAt"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3 px-4 w-40"
+              >
                 Fecha / Hora
-              </th>
-              <th scope="col" className="py-3 px-4">
+              </SortableTh>
+              <SortableTh<StockMovementSortField>
+                field="movementType"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3 px-4"
+              >
                 Tipo
-              </th>
-              <th scope="col" className="py-3 px-4 text-right">
+              </SortableTh>
+              <SortableTh<StockMovementSortField>
+                field="quantityBase"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                right
+                className="py-3 px-4"
+              >
                 Cantidad
-              </th>
-              <th scope="col" className="py-3 px-4 text-right">
+              </SortableTh>
+              <SortableTh<StockMovementSortField>
+                field="previousStock"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                right
+                className="py-3 px-4"
+              >
                 Saldo Anterior
-              </th>
-              <th scope="col" className="py-3 px-4 text-right">
+              </SortableTh>
+              <SortableTh<StockMovementSortField>
+                field="subsequentStock"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                right
+                className="py-3 px-4"
+              >
                 Saldo Resultante
-              </th>
+              </SortableTh>
               <th scope="col" className="py-3 px-4">
                 Motivo / Justificación
               </th>
               <th scope="col" className="py-3 px-4">
                 Doc. Ref.
               </th>
-              <th scope="col" className="py-3 px-4">
+              <SortableTh<StockMovementSortField>
+                field="user"
+                sortBy={sortBy}
+                sortOrder={sortOrder}
+                onSort={onSort}
+                className="py-3 px-4"
+              >
                 Usuario
-              </th>
+              </SortableTh>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">

@@ -11,6 +11,11 @@ vi.mock('@tanstack/react-router', () => ({
   useNavigate: vi.fn(),
   useParams: vi.fn(),
   useSearch: vi.fn(),
+  Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
+    <a href={to}>{children}</a>
+  ),
+  useRouter: () => ({ history: { back: vi.fn() } }),
+  useCanGoBack: () => false,
 }));
 
 vi.mock('@/features/stock/hooks/use-stock-movements-query', () => ({

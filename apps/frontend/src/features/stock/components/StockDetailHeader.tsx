@@ -1,5 +1,6 @@
 import React from 'react';
-import { ArrowLeft, AlertCircle, SlidersHorizontal } from 'lucide-react';
+import { BackLink } from '@/components/ui/back-link';
+import { AlertCircle, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StockStatusBadge } from './StockStatusBadge';
 import { ProductStatus, UserRole } from '@erp/shared-types';
@@ -8,13 +9,11 @@ import type { IStockDetailResponse } from '../types/stock.types';
 
 interface StockDetailHeaderProps {
   product: IStockDetailResponse['product'];
-  onBack: () => void;
   onOpenAdjustment?: () => void;
 }
 
 export const StockDetailHeader: React.FC<StockDetailHeaderProps> = ({
   product,
-  onBack,
   onOpenAdjustment,
 }) => {
   const { user } = useAuthStore();
@@ -28,16 +27,9 @@ export const StockDetailHeader: React.FC<StockDetailHeaderProps> = ({
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onBack}
-            className="h-9 px-3 text-xs"
-            aria-label="Volver al inventario de stock"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1.5" />
-            Volver
-          </Button>
+          <BackLink to="/stock" search={{ page: 1, limit: 10 }}>
+            Volver a Stock
+          </BackLink>
 
           <div>
             <div className="flex items-center gap-2 flex-wrap">

@@ -4,6 +4,10 @@ import { TreasuryAccountType, TreasuryMovementType } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { SortableTh } from '@/components/ui/sortable-th';
+import { nextSort, type SortState } from '@/lib/sorting';
+import type { TreasurySortField } from '@/features/treasury/api/treasury.api';
+import { TreasuryNavigationTabs } from '@/features/treasury/components/TreasuryNavigationTabs';
 import { NewMovementModal } from '@/features/treasury/components/NewMovementModal';
 import {
   useTreasuryMovementsQuery,
@@ -26,6 +30,7 @@ export function TreasuryPage() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<SortState<TreasurySortField>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const summary = useTreasurySummaryQuery();
@@ -36,11 +41,17 @@ export function TreasuryPage() {
     ...(movementType ? { movementType } : {}),
     ...(from ? { from } : {}),
     ...(to ? { to } : {}),
+    ...sort,
   });
   const filter = (apply: () => void) => {
     apply();
     setPage(1);
   };
+  const onSort = (field: TreasurySortField) => {
+    setSort(nextSort(sort, field));
+    setPage(1);
+  };
+  const sortProps = { ...sort, onSort };
   const meta = movements.data?.meta;
   const balances = new Map(summary.data?.accounts.map((a) => [a.accountType, a.balance]));
 
@@ -55,6 +66,8 @@ export function TreasuryPage() {
           <Plus className="mr-1.5 h-4 w-4" /> Movimiento manual
         </Button>
       </div>
+
+      <TreasuryNavigationTabs active="treasury" />
 
       {summary.isError && (
         <p role="alert" className="flex items-center gap-2 text-xs text-rose-700">
@@ -140,12 +153,24 @@ export function TreasuryPage() {
         <table className="w-full min-w-[720px] text-left text-xs">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
-              <th className="px-3 py-2">Fecha</th>
-              <th className="px-3 py-2">Cuenta</th>
-              <th className="px-3 py-2">Tipo</th>
-              <th className="px-3 py-2 text-right">Monto</th>
-              <th className="px-3 py-2">Concepto</th>
-              <th className="px-3 py-2">Usuario</th>
+              <SortableTh field="createdAt" {...sortProps} className="px-3 py-2">
+                Fecha
+              </SortableTh>
+              <SortableTh field="account" {...sortProps} className="px-3 py-2">
+                Cuenta
+              </SortableTh>
+              <SortableTh field="movementType" {...sortProps} className="px-3 py-2">
+                Tipo
+              </SortableTh>
+              <SortableTh field="amount" {...sortProps} right className="px-3 py-2">
+                Monto
+              </SortableTh>
+              <SortableTh field="concept" {...sortProps} className="px-3 py-2">
+                Concepto
+              </SortableTh>
+              <SortableTh field="user" {...sortProps} className="px-3 py-2">
+                Usuario
+              </SortableTh>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">

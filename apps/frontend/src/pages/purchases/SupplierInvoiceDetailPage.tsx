@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BackLink } from '@/components/ui/back-link';
 import Decimal from 'decimal.js';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
@@ -198,7 +199,7 @@ export function SupplierInvoiceDetailPage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <nav className="mb-1 text-xs text-slate-400">
-            <Link to="/purchases/supplier-invoices">Facturas de proveedores</Link> /{' '}
+            <BackLink to="/purchases/supplier-invoices">Volver al listado</BackLink> /{' '}
             {invoice.invoiceNumber}
           </nav>
           <div className="flex items-center gap-3">

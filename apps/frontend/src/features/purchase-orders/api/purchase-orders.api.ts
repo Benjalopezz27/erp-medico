@@ -43,6 +43,11 @@ export async function getPurchaseOrdersApi(
     queryParams.dateTo = params.dateTo;
   }
 
+  if (params.sortBy) {
+    queryParams.sortBy = params.sortBy;
+    queryParams.sortOrder = params.sortOrder ?? 'ASC';
+  }
+
   const response = await apiClient.get<PaginatedPurchaseOrdersResponse>('/purchase-orders', {
     params: queryParams,
     signal: options?.signal,

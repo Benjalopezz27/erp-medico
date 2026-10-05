@@ -1,15 +1,7 @@
 import { useState } from 'react';
-import {
-  AlertCircle,
-  ArrowLeft,
-  Clock3,
-  Pencil,
-  Power,
-  PowerOff,
-  RotateCcw,
-  UserRound,
-} from 'lucide-react';
-import { Link, useParams } from '@tanstack/react-router';
+import { BackLink } from '@/components/ui/back-link';
+import { AlertCircle, Clock3, Pencil, Power, PowerOff, RotateCcw, UserRound } from 'lucide-react';
+import { useParams } from '@tanstack/react-router';
 import { UserRole } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,12 +46,9 @@ export function CustomerDetailPage() {
         <h1 className="font-semibold">No se pudo cargar el cliente</h1>
         <p className="text-xs">{parseCustomerError(query.error).message}</p>
         <div className="flex justify-center gap-2">
-          <Link to="/customers" search={{ page: 1, limit: 10, isActive: true }}>
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="mr-1.5 h-4 w-4" />
-              Volver
-            </Button>
-          </Link>
+          <BackLink to="/customers" search={{ page: 1, limit: 10, isActive: true }}>
+            Volver a clientes
+          </BackLink>
           <Button size="sm" onClick={() => void query.refetch()}>
             <RotateCcw className="mr-1.5 h-4 w-4" />
             Reintentar
@@ -69,14 +58,9 @@ export function CustomerDetailPage() {
     );
   return (
     <main className="mx-auto max-w-5xl space-y-4 animate-in fade-in duration-200">
-      <Link
-        to="/customers"
-        search={{ page: 1, limit: 10, isActive: customer.isActive }}
-        className="inline-flex items-center text-xs font-medium text-blue-600 hover:underline"
-      >
-        <ArrowLeft className="mr-1 h-4 w-4" />
+      <BackLink to="/customers" search={{ page: 1, limit: 10, isActive: customer.isActive }}>
         Volver a clientes
-      </Link>
+      </BackLink>
       <header className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <div className="rounded-lg bg-blue-50 p-2.5 text-blue-700">

@@ -49,6 +49,7 @@ describe('PriceReviewsPage', () => {
       ),
     );
     renderPage();
+    expect(await screen.findByRole('link', { name: /volver a productos/i })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Revisión de precios' })).toBeInTheDocument();
     expect(await screen.findAllByText('Jeringa 10 ml')).not.toHaveLength(0);
     expect(screen.getByText(/nunca cambia precios automáticamente/i)).toBeInTheDocument();

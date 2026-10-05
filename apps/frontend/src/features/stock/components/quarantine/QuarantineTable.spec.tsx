@@ -116,4 +116,26 @@ describe('QuarantineTable Component', () => {
     expect(screen.queryByTestId('quarantine-resolve-btn-q2')).not.toBeInTheDocument();
     expect(screen.getByText('Destruido conforme protocolo')).toBeInTheDocument();
   });
+
+  it('sorts via header click and reflects aria-sort', () => {
+    const onSort = vi.fn();
+    render(
+      <QuarantineTable
+        items={[mockItemPending]}
+        isLoading={false}
+        isError={false}
+        onRetry={vi.fn()}
+        onOpenResolve={vi.fn()}
+        sortBy="quantity"
+        sortOrder="DESC"
+        onSort={onSort}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Producto/ }));
+    expect(onSort).toHaveBeenCalledWith('product');
+    expect(screen.getByRole('columnheader', { name: /Cantidad Retenida/ })).toHaveAttribute(
+      'aria-sort',
+      'descending',
+    );
+  });
 });

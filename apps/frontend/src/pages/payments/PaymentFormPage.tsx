@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate, useSearch } from '@tanstack/react-router';
-import { AlertCircle, ArrowLeft, Check, Loader2 } from 'lucide-react';
+import { BackLink } from '@/components/ui/back-link';
+import { useNavigate, useSearch } from '@tanstack/react-router';
+import { AlertCircle, Check, Loader2 } from 'lucide-react';
 import {
   PaymentAllocationType,
   PaymentMethod,
@@ -100,14 +101,14 @@ export function PaymentFormPage() {
   return (
     <div className="space-y-5">
       <div>
-        <Link
+        <BackLink
           to={customerId ? '/customers/$id' : '/receivables'}
           params={customerId ? { id: customerId } : undefined}
-          search={customerId ? undefined : ({ page: 1, limit: 20 } as never)}
-          className="mb-1 inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800"
+          search={customerId ? undefined : { page: 1, limit: 20 }}
+          className="mb-3"
         >
-          <ArrowLeft className="h-3.5 w-3.5" /> Volver
-        </Link>
+          {customerId ? 'Volver al cliente' : 'Volver a Cuentas corrientes'}
+        </BackLink>
         <h1 className="text-2xl font-bold text-slate-900">Registrar cobro</h1>
         <p className="text-xs text-slate-500">
           Aplicá el cobro a facturas específicas o por antigüedad. Se emite un recibo.

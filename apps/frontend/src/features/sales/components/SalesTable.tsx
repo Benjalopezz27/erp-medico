@@ -1,11 +1,26 @@
 import { Link, useNavigate } from '@tanstack/react-router';
+import { ClickableRow } from '@/components/ui/clickable-row';
 import type { ISale } from '@erp/shared-types';
 import { Eye } from 'lucide-react';
+import { SortableTh } from '@/components/ui/sortable-th';
 import { Badge } from '@/components/ui/badge';
 import { FiscalStatusBadge } from './FiscalStatusBadge';
+import type { SaleSortField } from '../types/sales.types';
 import { formatCurrency } from '@/features/products/utils/products.math';
 
-export function SalesTable({ sales, loading }: { sales: ISale[]; loading: boolean }) {
+export function SalesTable({
+  sales,
+  loading,
+  sortBy,
+  sortOrder,
+  onSort,
+}: {
+  sales: ISale[];
+  loading: boolean;
+  sortBy?: SaleSortField;
+  sortOrder?: 'ASC' | 'DESC';
+  onSort: (field: SaleSortField) => void;
+}) {
   const navigate = useNavigate();
   if (loading)
     return (
@@ -26,23 +41,71 @@ export function SalesTable({ sales, loading }: { sales: ISale[]; loading: boolea
       <table className="w-full min-w-[850px] text-left text-xs">
         <thead className="bg-slate-50 text-slate-600">
           <tr>
-            <th className="px-4 py-3">N° Venta</th>
-            <th className="px-4 py-3">Fecha</th>
-            <th className="px-4 py-3">Cliente</th>
+            <SortableTh<SaleSortField>
+              field="saleNumber"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="px-4 py-3"
+            >
+              N° Venta
+            </SortableTh>
+            <SortableTh<SaleSortField>
+              field="createdAt"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="px-4 py-3"
+            >
+              Fecha
+            </SortableTh>
+            <SortableTh<SaleSortField>
+              field="customer"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="px-4 py-3"
+            >
+              Cliente
+            </SortableTh>
             <th className="px-4 py-3">Ítems</th>
-            <th className="px-4 py-3">Medio</th>
-            <th className="px-4 py-3">Estado</th>
+            <SortableTh<SaleSortField>
+              field="paymentMethod"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="px-4 py-3"
+            >
+              Medio
+            </SortableTh>
+            <SortableTh<SaleSortField>
+              field="status"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              className="px-4 py-3"
+            >
+              Estado
+            </SortableTh>
             <th className="px-4 py-3">Factura</th>
-            <th className="px-4 py-3 text-right">Total</th>
+            <SortableTh<SaleSortField>
+              field="totalGross"
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSort={onSort}
+              right
+              className="px-4 py-3"
+            >
+              Total
+            </SortableTh>
             <th className="px-4 py-3" />
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
           {sales.map((sale) => (
-            <tr
+            <ClickableRow
               key={sale.id}
-              className="cursor-pointer hover:bg-slate-50"
-              onClick={() => navigate({ to: '/sales/$id', params: { id: sale.id } })}
+              onActivate={() => navigate({ to: '/sales/$id', params: { id: sale.id } })}
             >
               <td className="px-4 py-3 font-mono font-bold text-blue-700">{sale.saleNumber}</td>
               <td className="px-4 py-3">
@@ -75,7 +138,7 @@ export function SalesTable({ sales, loading }: { sales: ISale[]; loading: boolea
                   <Eye className="h-4 w-4" />
                 </Link>
               </td>
-            </tr>
+            </ClickableRow>
           ))}
         </tbody>
       </table>
