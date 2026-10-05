@@ -25,6 +25,10 @@ export const ProfileCard: React.FC = () => {
   });
 
   const onSubmit = async ({ name }: ProfileFormValues) => {
+    if (name === user?.name) {
+      toast.info('No hay cambios para guardar');
+      return;
+    }
     try {
       const updated = await mutation.mutateAsync({ name });
       useAuthStore.setState((s) => ({ user: s.user ? { ...s.user, name: updated.name } : s.user }));

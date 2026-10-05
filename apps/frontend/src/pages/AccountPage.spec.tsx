@@ -65,6 +65,24 @@ describe('AccountPage', () => {
     expect(body).toEqual({ name: 'Carlos G.' });
   });
 
+  it('does not call the API when the name is unchanged', async () => {
+    const request = vi.fn();
+    server.use(
+      http.patch(DEFAULT_API_URL + '/users/me', () => {
+        request();
+        return HttpResponse.json(sessionUser);
+      }),
+    );
+    const { user } = renderAccount();
+
+    await user.click(await screen.findByRole('button', { name: 'Guardar cambios' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeEnabled(),
+    );
+    expect(request).not.toHaveBeenCalled();
+  });
+
   it('rejects an empty name without calling the API', async () => {
     const request = vi.fn();
     server.use(
