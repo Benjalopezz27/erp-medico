@@ -1,5 +1,8 @@
+import { useState } from 'react';
+import { UserPlus } from 'lucide-react';
 import { PaymentMethod, type ICustomer } from '@erp/shared-types';
 import { CustomerSearchInput } from '@/features/customers/components/CustomerSearchInput';
+import { CustomerFormModal } from '@/features/customers/components/CustomerFormModal';
 import { Select } from '@/components/ui/select';
 
 const cashMethods = [
@@ -34,11 +37,29 @@ export function PosCommercialConditions({
   onInvoiceChange: (checked: boolean) => void;
   onPaymentMethodChange: (method: PaymentMethod) => void;
 }) {
+  const [isNewCustomerOpen, setIsNewCustomerOpen] = useState(false);
+  const newCustomerButton = (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => setIsNewCustomerOpen(true)}
+      className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 hover:underline disabled:opacity-50"
+    >
+      <UserPlus className="h-3.5 w-3.5" /> Nuevo cliente
+    </button>
+  );
+
   return (
     <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div>
         <label className="mb-1.5 block text-xs font-semibold text-slate-700">Cliente</label>
-        <CustomerSearchInput value={customer} onSelect={onCustomerChange} disabled={disabled} />
+        <CustomerSearchInput
+          value={customer}
+          onSelect={onCustomerChange}
+          disabled={disabled}
+          emptyAction={newCustomerButton}
+        />
+        {!customer && <div className="mt-1.5">{newCustomerButton}</div>}
         {!customer && !isCreditSale && (
           <p className="mt-1 text-[10px] text-slate-500">
             Sin cliente se registra como consumidor final.
@@ -102,6 +123,16 @@ export function PosCommercialConditions({
           Venta a crédito
         </label>
       </fieldset>
+      <CustomerFormModal
+        isOpen={isNewCustomerOpen}
+        mode="create"
+        customer={null}
+        onClose={() => setIsNewCustomerOpen(false)}
+        onSuccess={(created) => {
+          setIsNewCustomerOpen(false);
+          onCustomerChange(created);
+        }}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AlertCircle, Loader2, Search, UserRound, X } from 'lucide-react';
 import type { ICustomer } from '../types/customers.types';
 import { useCustomersQuery } from '../hooks/use-customers-query';
@@ -10,6 +10,8 @@ export interface CustomerSearchInputProps {
   allowAnonymous?: boolean;
   placeholder?: string;
   ariaLabel?: string;
+  /** Extra action rendered in the "no results" state (e.g. create a new customer). */
+  emptyAction?: ReactNode;
 }
 
 export function CustomerSearchInput({
@@ -19,6 +21,7 @@ export function CustomerSearchInput({
   allowAnonymous = true,
   placeholder = 'Buscar cliente por nombre o documento…',
   ariaLabel = 'Buscar cliente',
+  emptyAction,
 }: CustomerSearchInputProps) {
   const [term, setTerm] = useState(value?.businessName ?? '');
   const [debounced, setDebounced] = useState('');
@@ -147,6 +150,7 @@ export function CustomerSearchInput({
           {!query.isFetching && !query.isError && results.length === 0 && (
             <div className="p-3 text-center text-xs text-slate-500">
               No se encontraron clientes activos.
+              {emptyAction && <div className="mt-2">{emptyAction}</div>}
             </div>
           )}
           {results.map((customer, index) => (
