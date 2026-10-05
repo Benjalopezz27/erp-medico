@@ -231,6 +231,17 @@ export class ProductBulkLoadService {
       });
     }
 
+    // Same file already applied: its rows now exist, so validation would fail first
+    const confirmedFile = await this.batchRepository.findOne({
+      where: { fileChecksum: parsed.fileChecksum },
+    });
+    if (confirmedFile) {
+      throw new ConflictException({
+        code: ProductBulkFileErrorCode.BULK_LOAD_ALREADY_CONFIRMED,
+        message: 'Este lote de productos ya fue aplicado previamente.',
+      });
+    }
+
     // 3. Pre-transaction business validation
     const validation = await this.validator.validate(parsed.rawRows);
 

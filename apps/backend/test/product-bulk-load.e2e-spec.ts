@@ -218,7 +218,7 @@ describe('Product Bulk Load API (E2E)', () => {
         .expect(400);
 
       expect(res.body.code).toBe(
-        ProductBulkFileErrorCode.BULK_LOAD_MISSING_HEADERS,
+        ProductBulkFileErrorCode.BULK_LOAD_INVALID_FILE,
       );
     });
 
@@ -275,7 +275,7 @@ describe('Product Bulk Load API (E2E)', () => {
         .post('/api/v1/products/bulk-load/confirm')
         .set('Authorization', `Bearer ${adminToken}`)
         .attach('file', buffer, 'mismatch.csv')
-        .field('previewFileChecksum', 'tampered_or_wrong_checksum_value')
+        .field('previewFileChecksum', '0'.repeat(64))
         .expect(409);
 
       expect(res.body.code).toBe(
