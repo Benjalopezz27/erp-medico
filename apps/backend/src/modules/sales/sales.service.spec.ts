@@ -12,6 +12,9 @@ import {
   ProductTaxTreatment,
   TaxCondition,
 } from '@erp/shared-types';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { QuerySalesDto } from './dto';
 import { AuditService } from '../audit/audit.service';
 import { CustomerPricingService } from '../customers/special-prices/services/customer-pricing.service';
 import { AccountReceivable } from '../receivables/entities/account-receivable.entity';
@@ -295,6 +298,46 @@ describe('SalesService', () => {
       ProductTaxTreatment.EXENTO,
       ProductTaxTreatment.NO_GRAVADO,
     ]);
+  });
+
+  describe('findAll sorting', () => {
+    let qb: Record<string, jest.Mock>;
+    beforeEach(() => {
+      qb = {
+        andWhere: jest.fn().mockReturnThis(),
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+      };
+      dataSource.getRepository = jest.fn(() => ({
+        createQueryBuilder: () => qb,
+      }));
+    });
+
+    it('sorts by whitelisted column with id tie-break and joins customer', async () => {
+      await service.findAll({ sortBy: 'customer', sortOrder: 'desc' });
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith(
+        'sale.customer',
+        'customer',
+      );
+      expect(qb.orderBy).toHaveBeenCalledWith('customer.businessName', 'DESC');
+      expect(qb.addOrderBy).toHaveBeenCalledWith('sale.id', 'DESC');
+    });
+
+    it('keeps createdAt DESC default without sortBy', async () => {
+      await service.findAll({});
+      expect(qb.orderBy).toHaveBeenCalledWith('sale.createdAt', 'DESC');
+      expect(qb.addOrderBy).toHaveBeenCalledWith('sale.id', 'DESC');
+      expect(qb.leftJoinAndSelect).not.toHaveBeenCalled();
+    });
+
+    it('rejects invalid sortBy at DTO level', async () => {
+      const dto = plainToInstance(QuerySalesDto, { sortBy: 'nope' });
+      expect((await validate(dto)).map((e) => e.property)).toContain('sortBy');
+    });
   });
 
   describe('treasury movement', () => {

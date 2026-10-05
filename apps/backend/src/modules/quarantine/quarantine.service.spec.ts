@@ -1,3 +1,6 @@
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { QueryQuarantineDto } from './dto/query-quarantine.dto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import {
@@ -217,6 +220,33 @@ describe('QuarantineService Unit Tests', () => {
       expect(result.items).toHaveLength(1);
       expect(result.meta.total).toBe(1);
       expect(result.items[0].product.internalCode).toBe('P0001');
+    });
+  });
+
+  describe('findAll sorting', () => {
+    it('sorts by whitelisted column with id tie-break', async () => {
+      const qb = (productRepo as any).createQueryBuilder();
+      await service.findAll({ sortBy: 'quantity', sortOrder: 'asc' });
+      expect(qb.orderBy).toHaveBeenLastCalledWith(
+        'quarantine.quantityBase',
+        'ASC',
+      );
+      expect(qb.addOrderBy).toHaveBeenLastCalledWith('quarantine.id', 'ASC');
+    });
+
+    it('keeps createdAt DESC default', async () => {
+      const qb = (productRepo as any).createQueryBuilder();
+      await service.findAll({});
+      expect(qb.orderBy).toHaveBeenLastCalledWith(
+        'quarantine.createdAt',
+        'DESC',
+      );
+      expect(qb.addOrderBy).toHaveBeenLastCalledWith('quarantine.id', 'DESC');
+    });
+
+    it('rejects invalid sortBy at DTO level', async () => {
+      const dto = plainToInstance(QueryQuarantineDto, { sortBy: 'nope' });
+      expect((await validate(dto)).map((e) => e.property)).toContain('sortBy');
     });
   });
 

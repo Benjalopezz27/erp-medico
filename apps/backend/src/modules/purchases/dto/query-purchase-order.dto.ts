@@ -13,7 +13,20 @@ import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { PurchaseOrderStatus } from '@erp/shared-types';
 
-export class QueryPurchaseOrderDto {
+import { SortableQuery } from '../../../common/sorting/sorting';
+
+export const PURCHASE_ORDER_SORT_FIELDS = [
+  'orderNumber',
+  'supplier',
+  'createdAt',
+  'emittedAt',
+  'status',
+  'totalNet',
+] as const;
+
+export class QueryPurchaseOrderDto extends SortableQuery(
+  PURCHASE_ORDER_SORT_FIELDS,
+) {
   @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsOptional()
   @Type(() => Number)

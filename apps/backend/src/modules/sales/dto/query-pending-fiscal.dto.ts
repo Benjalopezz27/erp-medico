@@ -12,7 +12,23 @@ import {
   Min,
 } from 'class-validator';
 
-export class QueryPendingFiscalDto {
+import { SortableQuery } from '../../../common/sorting/sorting';
+
+export const PENDING_FISCAL_SORT_FIELDS = [
+  'saleNumber',
+  'customer',
+  'createdAt',
+  'type',
+  'status',
+  'amount',
+  'attempts',
+  'lastAttemptAt',
+  'nextAttemptAt',
+] as const;
+
+export class QueryPendingFiscalDto extends SortableQuery(
+  PENDING_FISCAL_SORT_FIELDS,
+) {
   @ApiPropertyOptional({ default: 1, minimum: 1 })
   @IsOptional()
   @Type(() => Number)

@@ -1,3 +1,6 @@
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { QueryChecksDto } from './dto/query-checks.dto';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import {
   AuditAction,
@@ -265,6 +268,51 @@ describe('ChecksService transitions', () => {
       expect(saved).toHaveLength(0);
       expect(paymentUpdate).not.toHaveBeenCalled();
       expect(audit.record).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('list sorting', () => {
+    const makeQb = () => {
+      const qb: any = {};
+      for (const m of [
+        'leftJoinAndSelect',
+        'andWhere',
+        'where',
+        'orderBy',
+        'addOrderBy',
+        'skip',
+        'take',
+      ]) {
+        qb[m] = jest.fn().mockReturnValue(qb);
+      }
+      qb.getManyAndCount = jest.fn().mockResolvedValue([[], 0]);
+      qb.getCount = jest.fn().mockResolvedValue(0);
+      return qb;
+    };
+    const listWith = async (query: any) => {
+      const qb = makeQb();
+      (dataSource as any).getRepository = jest.fn(() => ({
+        createQueryBuilder: () => qb,
+      })) as any;
+      await service.list(query);
+      return qb;
+    };
+
+    it('sorts by customer name with id tie-break', async () => {
+      const qb = await listWith({ sortBy: 'customer', sortOrder: 'desc' });
+      expect(qb.orderBy).toHaveBeenCalledWith('customer.businessName', 'DESC');
+      expect(qb.addOrderBy).toHaveBeenCalledWith('c.id', 'DESC');
+    });
+
+    it('keeps dueDate ASC default without sortBy', async () => {
+      const qb = await listWith({});
+      expect(qb.orderBy).toHaveBeenCalledWith('c.dueDate', 'ASC');
+      expect(qb.addOrderBy).toHaveBeenCalledWith('c.id', 'ASC');
+    });
+
+    it('rejects invalid sortBy at DTO level', async () => {
+      const dto = plainToInstance(QueryChecksDto, { sortBy: 'x' });
+      expect((await validate(dto)).map((e) => e.property)).toContain('sortBy');
     });
   });
 });

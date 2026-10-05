@@ -4,6 +4,9 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { ArcaStatus, AuditAction } from '@erp/shared-types';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { QueryPendingFiscalDto } from '../dto/query-pending-fiscal.dto';
 import { PendingFiscalService } from './pending-fiscal.service';
 
 describe('PendingFiscalService', () => {
@@ -47,6 +50,7 @@ describe('PendingFiscalService', () => {
     qb = {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       andWhere: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       addOrderBy: jest.fn().mockReturnThis(),
       skip: jest.fn().mockReturnThis(),
@@ -109,6 +113,33 @@ describe('PendingFiscalService', () => {
       hasActiveRetryJob: false,
       isRetryable: true,
     });
+  });
+
+  it('findAll ordena por columna permitida con desempate por id', async () => {
+    await service.findAll({ sortBy: 'attempts', sortOrder: 'desc' } as any);
+    expect(qb.orderBy).toHaveBeenCalledWith('doc.attemptCount', 'DESC');
+    expect(qb.addOrderBy).toHaveBeenCalledWith('doc.id', 'DESC');
+  });
+
+  it('findAll ordena por monto con expresión seleccionada', async () => {
+    await service.findAll({ sortBy: 'amount' } as any);
+    expect(qb.addSelect).toHaveBeenCalledWith(
+      expect.stringContaining('saleReturn.totalGross'),
+      'sort_amount',
+    );
+    expect(qb.orderBy).toHaveBeenCalledWith('sort_amount', 'ASC');
+  });
+
+  it('findAll mantiene el orden por defecto sin sortBy', async () => {
+    await service.findAll({} as any);
+    expect(qb.orderBy).toHaveBeenCalledWith('doc.createdAt', 'ASC');
+    expect(qb.addOrderBy).toHaveBeenCalledWith('doc.id', 'ASC');
+    expect(qb.addSelect).not.toHaveBeenCalled();
+  });
+
+  it('rechaza sortBy inválido en el DTO', async () => {
+    const dto = plainToInstance(QueryPendingFiscalDto, { sortBy: 'nope' });
+    expect((await validate(dto)).map((e) => e.property)).toContain('sortBy');
   });
 
   it('findAll aplica el filtro explícito de status', async () => {

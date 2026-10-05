@@ -13,9 +13,20 @@ import {
   Length,
   Matches,
 } from 'class-validator';
-import { QueryLedgerDto } from '../../receivables/dto/query-account.dto';
+import { SortableLedgerQuery } from '../../receivables/dto/query-account.dto';
 
-export class QueryTreasuryMovementsDto extends QueryLedgerDto {
+export const TREASURY_MOVEMENT_SORT_FIELDS = [
+  'createdAt',
+  'account',
+  'movementType',
+  'amount',
+  'concept',
+  'user',
+] as const;
+
+export class QueryTreasuryMovementsDto extends SortableLedgerQuery(
+  TREASURY_MOVEMENT_SORT_FIELDS,
+) {
   @ApiPropertyOptional({ enum: TreasuryAccountType })
   @IsOptional()
   @IsEnum(TreasuryAccountType)

@@ -1,3 +1,6 @@
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { QueryPurchaseOrderDto } from '../dto/query-purchase-order.dto';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, EntityManager, Repository } from 'typeorm';
@@ -614,6 +617,44 @@ describe('PurchaseOrdersService Unit Tests', () => {
         'po.createdAt < :dateToEndExclusive',
         expect.anything(),
       );
+    });
+
+    describe('sorting', () => {
+      const makeQb = () => ({
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
+      });
+
+      it('sorts by supplier name with id tie-break', async () => {
+        const qb = makeQb();
+        mockPoRepo.createQueryBuilder.mockReturnValue(qb as any);
+        await service.findAll({ sortBy: 'supplier', sortOrder: 'DESC' } as any);
+        expect(qb.orderBy).toHaveBeenCalledWith(
+          'supplier.businessName',
+          'DESC',
+        );
+        expect(qb.addOrderBy).toHaveBeenCalledWith('po.id', 'DESC');
+      });
+
+      it('keeps the default order without sortBy', async () => {
+        const qb = makeQb();
+        mockPoRepo.createQueryBuilder.mockReturnValue(qb as any);
+        await service.findAll({} as any);
+        expect(qb.orderBy).toHaveBeenCalledWith('po.createdAt', 'DESC');
+        expect(qb.addOrderBy).toHaveBeenCalledWith('po.orderNumber', 'DESC');
+      });
+
+      it('rejects invalid sortBy at DTO level', async () => {
+        const dto = plainToInstance(QueryPurchaseOrderDto, { sortBy: 'nope' });
+        expect((await validate(dto)).map((e) => e.property)).toContain(
+          'sortBy',
+        );
+      });
     });
 
     it('throws NotFoundException when findOne does not match', async () => {

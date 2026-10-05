@@ -9,8 +9,12 @@ import {
   Min,
 } from 'class-validator';
 import { StockMovementType } from '@erp/shared-types';
+import { SortableQuery } from '../../../common/sorting/sorting';
+import { MOVEMENT_SORT_FIELDS } from '../utils/stock-sort';
 
-export class QueryStockMovementsDto {
+export class QueryStockMovementsDto extends SortableQuery(
+  MOVEMENT_SORT_FIELDS,
+) {
   @ApiPropertyOptional({
     description: 'Page number for pagination',
     default: 1,

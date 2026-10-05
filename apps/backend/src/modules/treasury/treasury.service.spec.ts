@@ -1,3 +1,6 @@
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { QueryTreasuryMovementsDto } from './dto/treasury.dto';
 import { BadRequestException } from '@nestjs/common';
 import {
   PaymentMethod,
@@ -149,6 +152,26 @@ describe('TreasuryService', () => {
       dataSource.getRepository.mockReturnValue({
         createQueryBuilder: jest.fn(() => qb),
       });
+    });
+
+    it('sorts by whitelisted column with id tie-break', async () => {
+      await service.listMovements({
+        sortBy: 'user',
+        sortOrder: 'desc',
+      } as any);
+      expect(qb.orderBy).toHaveBeenCalledWith('user.name', 'DESC');
+      expect(qb.addOrderBy).toHaveBeenCalledWith('m.id', 'DESC');
+    });
+
+    it('keeps createdAt DESC default without sortBy', async () => {
+      await service.listMovements({} as any);
+      expect(qb.orderBy).toHaveBeenCalledWith('m.createdAt', 'DESC');
+      expect(qb.addOrderBy).toHaveBeenCalledWith('m.id', 'DESC');
+    });
+
+    it('rejects invalid sortBy at DTO level', async () => {
+      const dto = plainToInstance(QueryTreasuryMovementsDto, { sortBy: 'x' });
+      expect((await validate(dto)).map((e) => e.property)).toContain('sortBy');
     });
 
     it('applies only the provided filters and paginates', async () => {

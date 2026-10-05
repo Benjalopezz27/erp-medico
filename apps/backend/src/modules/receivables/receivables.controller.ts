@@ -43,6 +43,8 @@ export class ReceivablesController {
     return this.queryService.listDebtors({
       search: query.search,
       status: query.status,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
       page: query.page ?? 1,
       limit: query.limit ?? 50,
     });

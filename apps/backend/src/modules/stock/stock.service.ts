@@ -10,6 +10,8 @@ import { Repository, DataSource, EntityManager } from 'typeorm';
 import Decimal from 'decimal.js';
 import { ProductStatus, StockStatus } from '@erp/shared-types';
 import { InsufficientStockException } from './exceptions';
+import { resolveSort } from '../../common/sorting/sorting';
+import { applyStockSort, MOVEMENT_SORT_COLUMNS } from './utils/stock-sort';
 import { Stock } from './entities/stock.entity';
 import { StockMovement } from './entities/stock-movement.entity';
 import { Product } from '../products/entities/product.entity';
@@ -155,7 +157,7 @@ export class StockService {
     const offset = (page - 1) * limit;
 
     const qb = this.buildStockBaseQuery(query);
-    qb.orderBy('product.name', 'ASC').addOrderBy('product.id', 'ASC');
+    applyStockSort(qb, query);
     qb.skip(offset).take(limit);
 
     const [products, total] = await qb.getManyAndCount();
@@ -189,7 +191,7 @@ export class StockService {
     const offset = (page - 1) * limit;
 
     const qb = this.buildStockBaseQuery({ ...query, alertsOnly: true });
-    qb.orderBy('product.name', 'ASC').addOrderBy('product.id', 'ASC');
+    applyStockSort(qb, query);
     qb.skip(offset).take(limit);
 
     const [products, total] = await qb.getManyAndCount();
@@ -292,7 +294,22 @@ export class StockService {
       qb.andWhere('movement.createdAt <= :to', { to: query.to });
     }
 
-    qb.orderBy('movement.createdAt', 'DESC').addOrderBy('movement.id', 'DESC');
+    const sort = resolveSort(
+      MOVEMENT_SORT_COLUMNS,
+      query.sortBy,
+      query.sortOrder,
+    );
+    if (sort) {
+      qb.orderBy(sort.column, sort.direction).addOrderBy(
+        'movement.id',
+        sort.direction,
+      );
+    } else {
+      qb.orderBy('movement.createdAt', 'DESC').addOrderBy(
+        'movement.id',
+        'DESC',
+      );
+    }
     qb.skip(offset).take(limit);
 
     const [movements, total] = await qb.getManyAndCount();

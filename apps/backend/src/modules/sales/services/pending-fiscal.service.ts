@@ -9,7 +9,11 @@ import { ArcaStatus, AuditAction } from '@erp/shared-types';
 import { AuditService } from '../../audit/audit.service';
 import { FiscalInvoiceQueueService } from '../../queue/services/fiscal-invoice.queue';
 import { FiscalDocument } from '../entities/fiscal-document.entity';
-import { QueryPendingFiscalDto } from '../dto/query-pending-fiscal.dto';
+import {
+  PENDING_FISCAL_SORT_FIELDS,
+  QueryPendingFiscalDto,
+} from '../dto/query-pending-fiscal.dto';
+import { resolveSort } from '../../../common/sorting/sorting';
 import {
   FiscalQueueMetricsResponseDto,
   PaginatedPendingFiscalResponseDto,
@@ -21,6 +25,28 @@ const RETRYABLE_STATUSES = [
   ArcaStatus.PENDIENTE_FACTURACION,
   ArcaStatus.RECHAZADO,
 ];
+
+// Values starting with `sort_` are aliases of the SQL expressions in SORT_EXPR,
+// selected on demand so skip/take pagination keeps working.
+const SORT_COLUMNS: Record<
+  (typeof PENDING_FISCAL_SORT_FIELDS)[number],
+  string
+> = {
+  saleNumber: 'sale.saleNumber',
+  customer: 'sort_customer',
+  createdAt: 'doc.createdAt',
+  type: 'doc.documentType',
+  status: 'doc.arcaStatus',
+  amount: 'sort_amount',
+  attempts: 'doc.attemptCount',
+  lastAttemptAt: 'doc.lastAttemptAt',
+  nextAttemptAt: 'doc.nextAttemptAt',
+};
+const SORT_EXPR: Record<string, string> = {
+  sort_customer: "COALESCE(customer.businessName, 'Consumidor Final')",
+  sort_amount:
+    'CASE WHEN doc.saleReturnId IS NOT NULL THEN COALESCE(saleReturn.totalGross, sale.totalGross) ELSE sale.totalGross END',
+};
 
 /**
  * Visibilidad y control administrativo sobre documentos fiscales pendientes
@@ -70,7 +96,17 @@ export class PendingFiscalService {
       );
     }
 
-    qb.orderBy('doc.createdAt', 'ASC').addOrderBy('doc.id', 'ASC');
+    const sort = resolveSort(SORT_COLUMNS, query.sortBy, query.sortOrder);
+    if (sort) {
+      const expr = SORT_EXPR[sort.column];
+      if (expr) qb.addSelect(expr, sort.column);
+      qb.orderBy(sort.column, sort.direction).addOrderBy(
+        'doc.id',
+        sort.direction,
+      );
+    } else {
+      qb.orderBy('doc.createdAt', 'ASC').addOrderBy('doc.id', 'ASC');
+    }
     qb.skip((page - 1) * limit).take(limit);
 
     const [documents, total] = await qb.getManyAndCount();
