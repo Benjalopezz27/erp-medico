@@ -7,11 +7,11 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { StockImportBatchResult } from '@erp/shared-types';
+import { ProductImportBatchResult } from '@erp/shared-types';
 import { User } from '../../users/entities/user.entity';
 
-@Entity('stock_import_batches')
-export class StockImportBatch {
+@Entity('product_import_batches')
+export class ProductImportBatch {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -59,9 +59,9 @@ export class StockImportBatch {
     type: 'varchar',
     length: 20,
     nullable: false,
-    default: StockImportBatchResult.COMPLETED,
+    default: ProductImportBatchResult.COMPLETED,
   })
-  result: StockImportBatchResult;
+  result: ProductImportBatchResult;
 
   @CreateDateColumn({
     name: 'created_at',

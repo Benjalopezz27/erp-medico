@@ -12,3 +12,4 @@ export * from './treasury.model';
 export * from './arca.model';
 export * from './importer.model';
 export * from './api-error.model';
+export * from './product-bulk.model';

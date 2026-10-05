@@ -1,14 +1,14 @@
 import React from 'react';
 import { UploadCloud, CheckCircle2, ShieldCheck } from 'lucide-react';
 
-export type BulkLoadStep = 'UPLOAD' | 'PREVIEW' | 'CONFIRM' | 'SUCCESS';
+export type ProductBulkLoadStep = 'UPLOAD' | 'PREVIEW' | 'CONFIRM' | 'SUCCESS';
 
-interface BulkLoadStepIndicatorProps {
-  currentStep: BulkLoadStep;
+interface ProductBulkLoadStepIndicatorProps {
+  currentStep: ProductBulkLoadStep;
 }
 
 interface StepDef {
-  key: BulkLoadStep;
+  key: ProductBulkLoadStep;
   label: string;
   number: number;
   icon: React.ComponentType<{ className?: string }>;
@@ -20,12 +20,14 @@ const STEPS: StepDef[] = [
   { key: 'CONFIRM', label: 'Confirmación', number: 3, icon: ShieldCheck },
 ];
 
-export const BulkLoadStepIndicator: React.FC<BulkLoadStepIndicatorProps> = ({ currentStep }) => {
-  const getStepStatus = (stepKey: BulkLoadStep, stepNumber: number) => {
+export const ProductBulkLoadStepIndicator: React.FC<ProductBulkLoadStepIndicatorProps> = ({
+  currentStep,
+}) => {
+  const getStepStatus = (stepKey: ProductBulkLoadStep, stepNumber: number) => {
     if (currentStep === 'SUCCESS') return 'completed';
     if (currentStep === stepKey) return 'active';
 
-    const stepOrder: Record<BulkLoadStep, number> = {
+    const stepOrder: Record<ProductBulkLoadStep, number> = {
       UPLOAD: 1,
       PREVIEW: 2,
       CONFIRM: 3,
@@ -40,7 +42,7 @@ export const BulkLoadStepIndicator: React.FC<BulkLoadStepIndicatorProps> = ({ cu
 
   return (
     <nav
-      aria-label="Progreso de carga masiva"
+      aria-label="Progreso de carga masiva de productos"
       className="w-full bg-card border border-border rounded-xl p-4 shadow-sm"
     >
       <ol className="flex items-center justify-between gap-2 max-w-2xl mx-auto">

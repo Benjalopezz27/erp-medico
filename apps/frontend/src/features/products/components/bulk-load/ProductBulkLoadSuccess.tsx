@@ -1,18 +1,18 @@
 import React from 'react';
 import { CheckCircle2, Package, ArrowRight, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { IStockBulkLoadConfirmResponse } from '../../types/stock.types';
+import type { IProductBulkLoadConfirmResponse } from '@erp/shared-types';
 
-interface BulkLoadSuccessProps {
-  result: IStockBulkLoadConfirmResponse;
+interface ProductBulkLoadSuccessProps {
+  result: IProductBulkLoadConfirmResponse;
   onReset: () => void;
-  onGoToOverview: () => void;
+  onGoToProducts: () => void;
 }
 
-export const BulkLoadSuccess: React.FC<BulkLoadSuccessProps> = ({
+export const ProductBulkLoadSuccess: React.FC<ProductBulkLoadSuccessProps> = ({
   result,
   onReset,
-  onGoToOverview,
+  onGoToProducts,
 }) => {
   return (
     <div className="max-w-2xl mx-auto bg-card border border-border rounded-xl p-8 shadow-sm text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
@@ -22,10 +22,11 @@ export const BulkLoadSuccess: React.FC<BulkLoadSuccessProps> = ({
 
       <div className="space-y-2">
         <h2 className="text-xl font-bold text-foreground">
-          ¡Carga Inicial de Inventario Completada!
+          ¡Carga Masiva de Productos Completada!
         </h2>
         <p className="text-xs text-muted-foreground max-w-md mx-auto">
-          El lote fue aplicado de forma atómica e inmutable en el libro mayor de stock.
+          Los productos fueron creados e integrados atómicamente en el catálogo y libro mayor de
+          inventario.
         </p>
       </div>
 
@@ -38,7 +39,11 @@ export const BulkLoadSuccess: React.FC<BulkLoadSuccessProps> = ({
           </span>
         </div>
         <div className="flex items-center justify-between border-b border-border/60 pb-2">
-          <span className="text-muted-foreground">Movimientos Registrados:</span>
+          <span className="text-muted-foreground">Productos Creados:</span>
+          <span className="font-semibold text-foreground">{result.rowCount} productos</span>
+        </div>
+        <div className="flex items-center justify-between border-b border-border/60 pb-2">
+          <span className="text-muted-foreground">Movimientos de Stock Inicial:</span>
           <span className="font-semibold text-foreground">
             {result.movementCount} (Tipo: AJUSTE_ENTRADA)
           </span>
@@ -76,11 +81,11 @@ export const BulkLoadSuccess: React.FC<BulkLoadSuccessProps> = ({
           type="button"
           variant="default"
           size="sm"
-          onClick={onGoToOverview}
+          onClick={onGoToProducts}
           className="w-full sm:w-auto text-xs gap-1.5"
         >
           <Package className="w-3.5 h-3.5" />
-          Ir al Control de Stock
+          Ir al Catálogo de Productos
           <ArrowRight className="w-3.5 h-3.5" />
         </Button>
       </div>

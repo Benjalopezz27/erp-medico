@@ -47,7 +47,7 @@ describe('StockOverviewPage Component', () => {
     });
   });
 
-  it('renders overview header, table with items, and Carga Inicial Masiva button for Admin', () => {
+  it('renders overview header and table with items for Admin', () => {
     vi.mocked(stockHook.useStockQuery).mockReturnValue({
       data: {
         items: [
@@ -83,33 +83,6 @@ describe('StockOverviewPage Component', () => {
     expect(screen.getByText('P0001')).toBeInTheDocument();
     expect(screen.getByText('Catéter IV 20G')).toBeInTheDocument();
     expect(screen.getByText('Crítico')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /carga inicial masiva/i })).toBeInTheDocument();
-  });
-
-  it('navigates to /stock/bulk-load when clicking Carga Inicial Masiva button', () => {
-    vi.mocked(stockHook.useStockQuery).mockReturnValue({
-      data: {
-        items: [],
-        meta: {
-          total: 0,
-          page: 1,
-          limit: 10,
-          totalPages: 1,
-          hasNextPage: false,
-          hasPreviousPage: false,
-        },
-      },
-      isLoading: false,
-      isError: false,
-      refetch: vi.fn(),
-    } as any);
-
-    renderWithProviders(<StockOverviewPage />);
-
-    const bulkBtn = screen.getByRole('button', { name: /carga inicial masiva/i });
-    fireEvent.click(bulkBtn);
-
-    expect(mockNavigate).toHaveBeenCalledWith({ to: '/stock/bulk-load' });
   });
 
   it('navigates to /stock/quarantine when clicking Cuarentena button', () => {
@@ -138,7 +111,7 @@ describe('StockOverviewPage Component', () => {
     expect(mockNavigate).toHaveBeenCalledWith({ to: '/stock/quarantine' });
   });
 
-  it('hides Carga Inicial Masiva button when user is VENDEDOR', () => {
+  it('hides admin action buttons when user is VENDEDOR', () => {
     useAuthStore.setState({
       user: {
         id: 'seller-uuid',
@@ -170,7 +143,7 @@ describe('StockOverviewPage Component', () => {
 
     renderWithProviders(<StockOverviewPage />);
 
-    expect(screen.queryByRole('button', { name: /carga inicial masiva/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('go-to-quarantine-btn')).not.toBeInTheDocument();
   });
 
   it('navigates to product ledger detail on button click', () => {

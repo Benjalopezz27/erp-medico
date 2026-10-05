@@ -38,7 +38,7 @@ describe('User Persistence & Seed Engine (E2E)', () => {
       'product_internal_code_seq',
       'stocks',
       'stock_movements',
-      'stock_import_batches',
+      'product_import_batches',
       'quarantine_stocks',
       'suppliers',
       'supplier_products',

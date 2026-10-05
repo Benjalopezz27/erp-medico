@@ -27,6 +27,7 @@ export interface SecureParserOptions {
   maxZipEntries?: number;
   formulaPolicy?: SpreadsheetFormulaPolicy;
   cellErrorPolicy?: SpreadsheetCellErrorPolicy;
+  targetSheetName?: string;
 }
 
 export interface ParsedRawRow {
@@ -57,6 +58,7 @@ interface ResolvedParserOptions {
   maxZipEntries: number;
   formulaPolicy: SpreadsheetFormulaPolicy;
   cellErrorPolicy: SpreadsheetCellErrorPolicy;
+  targetSheetName?: string;
 }
 
 interface ParsedSheetData {
@@ -164,6 +166,7 @@ export class SecureSpreadsheetParser {
         options.maxZipEntries ?? SECURE_SPREADSHEET_MAX_ZIP_ENTRIES,
       formulaPolicy: options.formulaPolicy ?? 'reject',
       cellErrorPolicy: options.cellErrorPolicy ?? 'reject',
+      targetSheetName: options.targetSheetName,
     };
   }
 
@@ -370,14 +373,25 @@ export class SecureSpreadsheetParser {
 
     if (sheetsWithContent.length === 0)
       this.throwCorrupt('El archivo XLSX no contiene hojas con datos.');
-    if (sheetsWithContent.length > 1) {
+
+    let selectedEntry = sheetsWithContent[0];
+    if (options.targetSheetName) {
+      const match = sheetsWithContent.find(
+        (entry) =>
+          entry.worksheet.name.trim().toLowerCase() ===
+          options.targetSheetName!.trim().toLowerCase(),
+      );
+      if (match) {
+        selectedEntry = match;
+      }
+    } else if (sheetsWithContent.length > 1) {
       throw new BadRequestException({
         code: ImporterErrorCode.IMPORTER_MULTIPLE_SHEETS,
         message: 'El archivo Excel contiene más de una hoja con datos.',
       });
     }
 
-    const { worksheet, bounds } = sheetsWithContent[0];
+    const { worksheet, bounds } = selectedEntry;
     const headerRow = worksheet.getRow(1);
     const totalColumns = this.findLastContentCellIndex(headerRow);
     if (totalColumns > options.maxColumns)

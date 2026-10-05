@@ -1,9 +1,9 @@
-import { StockBulkFileErrorCode } from '@erp/shared-types';
+import { ProductBulkFileErrorCode } from '@erp/shared-types';
 
 /**
- * Maps API errors from bulk load preview/confirm endpoints into clear Spanish user messages.
+ * Maps API errors from product bulk load preview/confirm endpoints into clear Spanish user messages.
  */
-export function parseBulkLoadApiError(error: unknown): string {
+export function parseProductBulkLoadApiError(error: unknown): string {
   if (!error) {
     return 'Ocurrió un error inesperado al procesar el archivo.';
   }
@@ -25,33 +25,31 @@ export function parseBulkLoadApiError(error: unknown): string {
 
   if (errorCode) {
     switch (errorCode) {
-      case StockBulkFileErrorCode.BULK_LOAD_MISSING_FILE:
+      case ProductBulkFileErrorCode.BULK_LOAD_MISSING_FILE:
         return 'No se ha seleccionado ningún archivo para cargar.';
-      case StockBulkFileErrorCode.BULK_LOAD_INVALID_FILE:
+      case ProductBulkFileErrorCode.BULK_LOAD_INVALID_FILE:
         return 'El archivo seleccionado está vacío, corrupto, contiene fórmulas o celdas no permitidas.';
-      case StockBulkFileErrorCode.BULK_LOAD_UNSUPPORTED_TYPE:
+      case ProductBulkFileErrorCode.BULK_LOAD_UNSUPPORTED_TYPE:
         return 'Formato de archivo no soportado. Sólo se admiten archivos .csv y .xlsx.';
-      case StockBulkFileErrorCode.BULK_LOAD_FILE_TOO_LARGE:
+      case ProductBulkFileErrorCode.BULK_LOAD_FILE_TOO_LARGE:
         return 'El archivo supera el tamaño máximo permitido de 2 MiB.';
-      case StockBulkFileErrorCode.BULK_LOAD_ROW_LIMIT_EXCEEDED:
+      case ProductBulkFileErrorCode.BULK_LOAD_ROW_LIMIT_EXCEEDED:
         return 'El archivo supera el límite máximo de 1000 filas de datos.';
-      case StockBulkFileErrorCode.BULK_LOAD_TEMPLATE_ROW_LIMIT_EXCEEDED:
-        return 'El catálogo de productos activos supera el límite de 1000 productos para la descarga de la plantilla.';
-      case StockBulkFileErrorCode.BULK_LOAD_NO_INCLUDED_ROWS:
-        return 'Debes ingresar la cantidad de al menos un producto para confirmar la carga.';
-      case StockBulkFileErrorCode.BULK_LOAD_MISSING_HEADERS:
-        return 'El archivo no contiene los encabezados obligatorios (internalCode, quantityBase) o contiene columnas vacías.';
-      case StockBulkFileErrorCode.BULK_LOAD_DUPLICATE_HEADER:
+      case ProductBulkFileErrorCode.BULK_LOAD_NO_VALID_ROWS:
+        return 'El archivo no contiene filas con datos de productos para cargar.';
+      case ProductBulkFileErrorCode.BULK_LOAD_MISSING_HEADERS:
+        return 'El archivo no contiene los encabezados obligatorios (name, category, baseUnit, costNet, activePriceNet).';
+      case ProductBulkFileErrorCode.BULK_LOAD_DUPLICATE_HEADER:
         return 'El archivo contiene encabezados duplicados.';
-      case StockBulkFileErrorCode.BULK_LOAD_UNKNOWN_HEADER:
-        return 'Los encabezados del archivo son inválidos. Encabezados permitidos: internalCode, quantityBase, productName, baseUnit.';
-      case StockBulkFileErrorCode.BULK_LOAD_MULTIPLE_SHEETS:
-        return 'El archivo Excel contiene más de una hoja con datos. Debe contener exactamente una hoja.';
-      case StockBulkFileErrorCode.BULK_LOAD_PREVIEW_MISMATCH:
+      case ProductBulkFileErrorCode.BULK_LOAD_UNKNOWN_HEADER:
+        return 'Los encabezados del archivo son inválidos. Revisa las columnas requeridas en la plantilla oficial.';
+      case ProductBulkFileErrorCode.BULK_LOAD_MULTIPLE_SHEETS:
+        return 'El archivo Excel contiene hojas adicionales desconocidas. Debe usar la hoja "Productos" de la plantilla.';
+      case ProductBulkFileErrorCode.BULK_LOAD_PREVIEW_MISMATCH:
         return 'El archivo enviado para confirmar no coincide con la previsualización autorizada.';
-      case StockBulkFileErrorCode.BULK_LOAD_ALREADY_CONFIRMED:
-        return 'Este lote de stock ya fue aplicado previamente (operación duplicada).';
-      case StockBulkFileErrorCode.BULK_LOAD_VALIDATION_FAILED:
+      case ProductBulkFileErrorCode.BULK_LOAD_ALREADY_CONFIRMED:
+        return 'Este lote de productos ya fue aplicado previamente (operación duplicada).';
+      case ProductBulkFileErrorCode.BULK_LOAD_VALIDATION_FAILED:
         return 'El archivo contiene errores de validación en sus filas y no puede ser aplicado.';
       default:
         break;
@@ -75,7 +73,7 @@ export function parseBulkLoadApiError(error: unknown): string {
   }
 
   if (status === 403) {
-    return 'No tienes permisos suficientes para realizar cargas masivas de inventario.';
+    return 'No tienes permisos suficientes para realizar cargas masivas de productos.';
   }
 
   if (status === 409) {

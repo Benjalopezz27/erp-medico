@@ -44,7 +44,7 @@ describe('Stock Quarantine API (E2E)', () => {
     const qr = ds.createQueryRunner();
     await qr.connect();
     await qr.query(
-      'TRUNCATE TABLE quarantine_stocks, stock_import_batches, audit_logs, stock_movements, stocks, product_unit_conversions, products, categories, units, users CASCADE;',
+      'TRUNCATE TABLE quarantine_stocks, product_import_batches, audit_logs, stock_movements, stocks, product_unit_conversions, products, categories, units, users CASCADE;',
     );
     await qr.release();
 

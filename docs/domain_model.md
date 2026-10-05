@@ -11,6 +11,7 @@
 ```mermaid
 erDiagram
     USER ||--o{ STOCK_MOVEMENT : registers
+    USER ||--o{ PRODUCT_IMPORT_BATCH : executes
     USER ||--o{ AUDIT_LOG : executes
 
     CATEGORY ||--o{ PRODUCT : categorizes
@@ -186,6 +187,7 @@ export enum CashRegisterStatus {
 - **`Stock`**: `id`, `productId` (unique), `currentBaseStock` (integer/decimal, $\ge 0$), `minStock`, `updatedAt`.
 - **`StockMovement`**: `id`, `productId`, `movementType` (`StockMovementType`), `quantityBaseUnits`, `previousStock`, `newStock`, `reason`, `referenceType`, `referenceId`, `userId`, `createdAt`.
 - **`QuarantineStock`**: `id`, `productId`, `quantityBaseUnits`, `reason`, `status` (`QuarantineStatus`), `resolutionNotes`, `userId`, `createdAt`, `resolvedAt`.
+- **`ProductImportBatch`**: `id`, `contentChecksum` (unique SHA-256), `fileChecksum`, `actorId`, `rowCount`, `movementCount`, `totalQuantityBase`, `result` (`COMPLETED`), `createdAt`. Registro inmutable append-only protegido por trigger PostgreSQL para auditoría e idempotencia en la carga masiva de catálogo e inventario.
 
 ### 3.3 Proveedores e Importador
 
