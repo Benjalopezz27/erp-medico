@@ -270,10 +270,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Navigation */}
-        <nav
-          aria-label="Navegación principal"
-          className="flex-1 space-y-3 px-3 py-3"
-        >
+        <nav aria-label="Navegación principal" className="flex-1 space-y-3 px-3 py-3">
           {visibleSections.map((section) => (
             <div key={section.label}>
               <div
