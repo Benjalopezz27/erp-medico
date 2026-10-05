@@ -27,6 +27,7 @@ import { ReceivablesModule } from './modules/receivables/receivables.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { ChecksModule } from './modules/checks/checks.module';
 import { TreasuryModule } from './modules/treasury/treasury.module';
+import { CashRegisterModule } from './modules/cash-register/cash-register.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { SystemConfigModule } from './modules/config/system-config.module';
 import { HealthModule } from './modules/health/health.module';
@@ -66,6 +67,7 @@ import { QueueProducerModule } from './modules/queue/queue-producer.module';
     PaymentsModule,
     ChecksModule,
     TreasuryModule,
+    CashRegisterModule,
     ReportsModule,
     SystemConfigModule,
     HealthModule,

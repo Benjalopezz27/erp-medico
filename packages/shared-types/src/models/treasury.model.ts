@@ -43,3 +43,31 @@ export interface ICreateTreasuryMovementPayload {
   amount: string;
   concept: string;
 }
+
+export interface ICashRegisterSession {
+  id: string;
+  openedAt: string;
+  openingBalance: string;
+  closedAt: string | null;
+  expectedBalance: string | null;
+  actualBalance: string | null;
+  difference: string | null;
+  observation: string | null;
+}
+
+export interface ICashRegisterState {
+  /** Turno abierto, o null si la caja está cerrada. */
+  open: (ICashRegisterSession & { expectedBalance: string }) | null;
+  /** Movimientos de efectivo del turno abierto (más nuevo primero). */
+  movements: ITreasuryMovement[];
+  lastClosed: ICashRegisterSession | null;
+}
+
+export interface IOpenCashRegisterPayload {
+  openingBalance: string;
+}
+
+export interface ICloseCashRegisterPayload {
+  actualBalance: string;
+  observation?: string;
+}

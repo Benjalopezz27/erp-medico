@@ -2,12 +2,12 @@
 
 ## 1. Shared types y migración
 
-- [ ] 1.1 Tipos `ICashRegisterSession`, `ICashRegisterState`, payloads de apertura y cierre en `shared-types`. Verificar con build.
-- [ ] 1.2 Migración `1700000000035-CreateCashRegisters` con CHECKs e índice único parcial; `db:migrate`/`db:revert` solo en base local.
+- [x] 1.1 Tipos `ICashRegisterSession`, `ICashRegisterState`, payloads de apertura y cierre en `shared-types`. Verificar con build.
+- [x] 1.2 Migración `1700000000035-CreateCashRegisters` con CHECKs e índice único parcial; `db:migrate`/`db:revert` solo en base local.
 
 ## 2. Backend
 
-- [ ] 2.1 Tests que fallan primero: apertura (ok y 409), estado (esperado, cerrada), cierre (sin diferencia, faltante con y sin observación, sobrante, sin caja abierta). Implementar `TreasuryService.listCashMovementsSince`, entidad, `CashRegisterService`, controller ADMIN y módulo. Verificar que pasan.
+- [x] 2.1 Tests que fallan primero: apertura (ok y 409), estado (esperado, cerrada), cierre (sin diferencia, faltante con y sin observación, sobrante, sin caja abierta). Implementar `TreasuryService.listCashMovementsSince`, entidad, `CashRegisterService`, controller ADMIN y módulo. Verificar que pasan.
 
 ## 3. Frontend
 

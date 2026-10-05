@@ -132,6 +132,26 @@ export class TreasuryService {
     };
   }
 
+  /** Movimientos de EFECTIVO desde `since` (más nuevo primero), para el turno de caja. */
+  async listCashMovementsSince(
+    manager: EntityManager,
+    since: Date,
+  ): Promise<ITreasuryMovement[]> {
+    const rows = await manager
+      .getRepository(TreasuryMovement)
+      .createQueryBuilder('m')
+      .innerJoinAndSelect('m.account', 'account')
+      .leftJoinAndSelect('m.user', 'user')
+      .where('account.accountType = :type', {
+        type: TreasuryAccountType.EFECTIVO,
+      })
+      .andWhere('m.createdAt >= :since', { since })
+      .orderBy('m.createdAt', 'DESC')
+      .addOrderBy('m.id', 'DESC')
+      .getMany();
+    return rows.map(toMovement);
+  }
+
   private parseAmount(raw: string): string {
     let amount: Decimal;
     try {
