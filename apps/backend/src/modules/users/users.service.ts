@@ -14,6 +14,8 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateMeDto } from './dto/update-me.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { UserQueryDto } from './dto/user-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
 import { PaginatedUsersResponseDto } from './dto/paginated-users-response.dto';
@@ -361,5 +363,84 @@ export class UsersService {
     }
 
     return this.auditService.findEntityAuditLogs('User', id, query);
+  }
+
+  // --------------------------------------------------------------------------
+  // Self-service account (Issue #280) — always scoped to the JWT user
+  // --------------------------------------------------------------------------
+  async getMe(actor: AuthenticatedUser): Promise<UserResponseDto> {
+    return this.getByIdOrFail(actor.id);
+  }
+
+  async updateMe(
+    actor: AuthenticatedUser,
+    dto: UpdateMeDto,
+  ): Promise<UserResponseDto> {
+    return this.dataSource.transaction(async (manager: EntityManager) => {
+      const user = await manager
+        .getRepository(User)
+        .findOne({ where: { id: actor.id } });
+      if (!user) {
+        throw new NotFoundException(`User with ID "${actor.id}" not found`);
+      }
+      if (dto.name === user.name) {
+        throw new BadRequestException('No effective changes detected');
+      }
+
+      const previous = toPublicUserSnapshot(user);
+      user.name = dto.name;
+      const saved = await manager.getRepository(User).save(user);
+
+      await this.auditService.record(manager, {
+        actorId: actor.id,
+        action: AuditAction.UPDATE,
+        entityName: 'User',
+        entityId: saved.id,
+        previousValues: previous,
+        newValues: toPublicUserSnapshot(saved),
+      });
+      return toUserResponseDto(saved);
+    });
+  }
+
+  async changePassword(
+    actor: AuthenticatedUser,
+    dto: ChangePasswordDto,
+  ): Promise<void> {
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.id = :id', { id: actor.id })
+      .getOne();
+    if (!user) {
+      throw new NotFoundException(`User with ID "${actor.id}" not found`);
+    }
+
+    if (!(await bcrypt.compare(dto.currentPassword, user.passwordHash))) {
+      // 400, not 401: the frontend client treats any 401 as an expired session and logs out.
+      throw new BadRequestException('Current password is incorrect');
+    }
+    if (dto.newPassword === dto.currentPassword) {
+      throw new BadRequestException(
+        'New password must be different from the current one',
+      );
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 12);
+    await this.dataSource.transaction(async (manager: EntityManager) => {
+      await manager
+        .getRepository(User)
+        .update({ id: user.id }, { passwordHash });
+      // audit_logs.action is DB-constrained (no password-specific action), so record an UPDATE
+      // flag: the trail says the password changed, never the hash.
+      await this.auditService.record(manager, {
+        actorId: actor.id,
+        action: AuditAction.UPDATE,
+        entityName: 'User',
+        entityId: user.id,
+        previousValues: null,
+        newValues: { passwordChanged: true },
+      });
+    });
   }
 }

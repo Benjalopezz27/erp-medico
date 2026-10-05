@@ -5,6 +5,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { Repository, DataSource, EntityManager } from 'typeorm';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
@@ -407,6 +408,91 @@ describe('UsersService', () => {
           action: AuditAction.DEACTIVATE,
         }),
       );
+    });
+  });
+
+  describe('self-service account (#280)', () => {
+    const self: AuthenticatedUser = {
+      ...mockAdminActor,
+      id: mockTargetUser.id,
+      role: UserRole.VENDEDOR,
+    };
+
+    it('getMe reads only the JWT user', async () => {
+      repo.findOne.mockResolvedValue({ ...mockTargetUser } as User);
+      const result = await service.getMe(self);
+      expect(repo.findOne).toHaveBeenCalledWith({ where: { id: self.id } });
+      expect(result).not.toHaveProperty('passwordHash');
+    });
+
+    it('updateMe changes only the name and audits it', async () => {
+      repo.findOne.mockResolvedValue({ ...mockTargetUser } as User);
+      const result = await service.updateMe(self, { name: 'Nuevo Nombre' });
+      expect(result.name).toBe('Nuevo Nombre');
+      expect(result.role).toBe(mockTargetUser.role);
+      expect(auditService.record).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          action: AuditAction.UPDATE,
+          actorId: self.id,
+        }),
+      );
+    });
+
+    it('updateMe rejects a no-op name', async () => {
+      repo.findOne.mockResolvedValue({ ...mockTargetUser } as User);
+      await expect(
+        service.updateMe(self, { name: mockTargetUser.name }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    describe('changePassword', () => {
+      let update: jest.Mock;
+      beforeEach(async () => {
+        update = jest.fn().mockResolvedValue({});
+        (repo as any).update = update;
+        mockQueryBuilder.getOne.mockResolvedValue({
+          ...mockTargetUser,
+          passwordHash: await bcrypt.hash('OldPassword1!', 4),
+        });
+      });
+
+      it('hashes the new password and audits without secrets', async () => {
+        await service.changePassword(self, {
+          currentPassword: 'OldPassword1!',
+          newPassword: 'NewPassword2!',
+        });
+        const [, { passwordHash }] = update.mock.calls[0];
+        expect(await bcrypt.compare('NewPassword2!', passwordHash)).toBe(true);
+        expect(auditService.record).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            action: AuditAction.UPDATE,
+            previousValues: null,
+            newValues: { passwordChanged: true },
+          }),
+        );
+      });
+
+      it('rejects a wrong current password', async () => {
+        await expect(
+          service.changePassword(self, {
+            currentPassword: 'Wrong1234!',
+            newPassword: 'NewPassword2!',
+          }),
+        ).rejects.toThrow('Current password is incorrect');
+        expect(update).not.toHaveBeenCalled();
+      });
+
+      it('rejects a new password equal to the current one', async () => {
+        await expect(
+          service.changePassword(self, {
+            currentPassword: 'OldPassword1!',
+            newPassword: 'OldPassword1!',
+          }),
+        ).rejects.toThrow(BadRequestException);
+        expect(update).not.toHaveBeenCalled();
+      });
     });
   });
 

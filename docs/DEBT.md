@@ -115,3 +115,13 @@ Branch not protected` — a diferencia de un plan que lo bloquea (403 Upgrade), 
 - **Trigger para resolver:** cuando el cliente use endosos en producción o al implementar
   tesorería/cuentas a pagar (Sprint 10); agregar la transición `ENDOSADO → RECHAZADO` con nota de
   alerta para el proveedor.
+
+## D-10 · Cambiar la contraseña no invalida los JWT ya emitidos
+
+- **Qué hay:** `POST /users/me/change-password` (#280) guarda el hash nuevo, pero el JWT es
+  stateless (`JwtStrategy.validate` solo revisa `isActive`, rol y email): no hay revocación ni
+  versión de token, así que las sesiones abiertas siguen válidas hasta que expiran.
+- **Por qué importa:** quien robó un token conserva acceso después de que la víctima cambia su
+  contraseña.
+- **Trigger para resolver:** al agregar refresh tokens o un campo `token_version`/`password_changed_at`
+  comparado contra `iat` en `JwtStrategy`; o ante un incidente de cuenta comprometida.
