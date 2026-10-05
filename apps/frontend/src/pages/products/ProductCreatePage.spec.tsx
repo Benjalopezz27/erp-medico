@@ -79,7 +79,7 @@ describe('ProductCreatePage', () => {
     await user.clear(screen.getByLabelText(/Stock Inicial/i));
     await user.type(screen.getByLabelText(/Stock Inicial/i), '25');
     await user.type(screen.getByLabelText(/Costo Neto/i), '1500');
-    await user.type(screen.getByLabelText(/Precio Activo/i), '2000');
+    await user.type(screen.getByLabelText(/Precio final con IVA/i), '2420');
 
     const submitBtn = screen.getByRole('button', { name: /Guardar Producto/i });
     await user.click(submitBtn);
@@ -87,7 +87,7 @@ describe('ProductCreatePage', () => {
     await waitFor(() => {
       expect(productsApi.createProductApi).toHaveBeenCalled();
       expect(productsApi.createProductApi).toHaveBeenCalledWith(
-        expect.objectContaining({ initialStock: 25 }),
+        expect.objectContaining({ initialStock: 25, activePriceNet: 2000 }),
       );
       expect(mockNavigate).toHaveBeenCalledWith(expect.objectContaining({ to: '/products' }));
     });
