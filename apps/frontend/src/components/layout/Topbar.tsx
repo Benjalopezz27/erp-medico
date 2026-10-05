@@ -21,6 +21,7 @@ const routeTitles: Record<string, string> = {
   '/importer': 'Importador de Proveedores',
   '/receivables': 'Cuentas Corrientes',
   '/treasury': 'Tesorería y Caja',
+  '/treasury/cash-register': 'Caja Diaria',
   '/treasury/checks': 'Gestión de Cheques',
   '/reports': 'Reportes Operativos',
   '/settings': 'Configuración del Sistema',

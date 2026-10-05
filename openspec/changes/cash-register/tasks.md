@@ -11,9 +11,9 @@
 
 ## 3. Frontend
 
-- [ ] 3.1 `features/cash-register/` (api, hooks, validación) y tests. Verificar con vitest.
-- [ ] 3.2 Página `/treasury/cash-register`, ruta, permiso y enlace desde `/treasury`. Tests de apertura, diferencia en vivo y cierre. Verificar con vitest.
+- [x] 3.1 `features/cash-register/` (api, hooks, validación) y tests. Verificar con vitest.
+- [x] 3.2 Página `/treasury/cash-register`, ruta, permiso y enlace desde `/treasury`. Tests de apertura, diferencia en vivo y cierre. Verificar con vitest.
 
 ## 4. Cierre
 
-- [ ] 4.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en verde.
+- [x] 4.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en verde.

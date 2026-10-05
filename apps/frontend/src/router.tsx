@@ -179,6 +179,7 @@ import { PaymentFormPage } from '@/pages/payments/PaymentFormPage';
 import { ReceiptPage } from '@/pages/payments/ReceiptPage';
 import { ChecksPage } from '@/pages/treasury/ChecksPage';
 import { TreasuryPage } from '@/pages/treasury/TreasuryPage';
+import { CashRegisterPage } from '@/pages/treasury/CashRegisterPage';
 import { validateReceivablesSearchParams } from '@/features/receivables/schemas/receivables.schema';
 import { validateFiscalAlertsSearchParams } from '@/features/fiscal-alerts/schemas/fiscal-alerts.schema';
 export { validateFiscalAlertsSearchParams };
@@ -791,6 +792,13 @@ const treasuryChecksRoute = createRoute({
   component: () => <ChecksPage />,
 });
 
+const treasuryCashRegisterRoute = createRoute({
+  getParentRoute: () => appShellRoute,
+  path: '/treasury/cash-register',
+  beforeLoad: () => requireRoutePermission('/treasury/cash-register'),
+  component: () => <CashRegisterPage />,
+});
+
 const reportsRoute = createRoute({
   getParentRoute: () => appShellRoute,
   path: '/reports',
@@ -877,6 +885,7 @@ const routeTree = rootRoute.addChildren([
     receiptRoute,
     treasuryRoute,
     treasuryChecksRoute,
+    treasuryCashRegisterRoute,
     reportsRoute,
     settingsRoute,
     adminUsersRoute,
