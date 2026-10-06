@@ -19,8 +19,8 @@ import {
   MOVEMENT_TYPE_LABELS,
   formatDateTime,
 } from '@/features/treasury/utils/treasury.labels';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { parseApiError } from '@/lib/errors/parse-api-error';
+import { formatCurrency } from '@/lib/money';
 
 const LIMIT = 20;
 

@@ -4,8 +4,8 @@ import { ReceiptText } from 'lucide-react';
 import { SortableTh } from '@/components/ui/sortable-th';
 import type { SortOrder, SupplierInvoiceSortField } from '@erp/shared-types';
 import type { ISupplierInvoiceSummary } from '../types/supplier-invoices.types';
-import { formatMoneyAr } from '../utils/supplier-invoices.math';
 import { SupplierInvoiceStatusBadge } from './SupplierInvoiceStatusBadge';
+import { formatCurrency } from '@/lib/money';
 
 const date = (value: string) =>
   new Intl.DateTimeFormat('es-AR', { timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`));
@@ -116,10 +116,10 @@ export function SupplierInvoicesTable({
               <td className="px-4 py-3">
                 <SupplierInvoiceStatusBadge status={invoice.status} />
               </td>
-              <td className="px-4 py-3 text-right font-mono">{formatMoneyAr(invoice.netTotal)}</td>
-              <td className="px-4 py-3 text-right font-mono">{formatMoneyAr(invoice.taxTotal)}</td>
+              <td className="px-4 py-3 text-right font-mono">{formatCurrency(invoice.netTotal)}</td>
+              <td className="px-4 py-3 text-right font-mono">{formatCurrency(invoice.taxTotal)}</td>
               <td className="px-4 py-3 text-right font-mono font-bold">
-                {formatMoneyAr(invoice.totalAmount)}
+                {formatCurrency(invoice.totalAmount)}
               </td>
             </ClickableRow>
           ))}

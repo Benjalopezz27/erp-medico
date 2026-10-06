@@ -37,13 +37,11 @@ import {
   type ISupplierInvoiceItemDetail,
 } from '@/features/supplier-invoices/types/supplier-invoices.types';
 import { parseSupplierInvoiceError } from '@/features/supplier-invoices/utils/supplier-invoices.errors';
-import {
-  formatDecimalAr,
-  formatMoneyAr,
-} from '@/features/supplier-invoices/utils/supplier-invoices.math';
+import { formatDecimalAr } from '@/features/supplier-invoices/utils/supplier-invoices.math';
 import { productKeys } from '@/features/products/hooks/use-products-query';
 import { stockKeys } from '@/features/stock/hooks/stock-keys';
 import { priceReviewKeys } from '@/features/price-reviews/hooks/price-review-keys';
+import { formatCurrency } from '@/lib/money';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const calendarDate = (value: string) =>
@@ -329,12 +327,12 @@ export function SupplierInvoiceDetailPage() {
       />
 
       <section className="ml-auto grid max-w-md gap-2 rounded-xl border bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
-        <Row label="Neto" value={formatMoneyAr(invoice.netTotal)} />
+        <Row label="Neto" value={formatCurrency(invoice.netTotal)} />
         <Row
           label="IVA"
           value={adjustmentLabel(invoice.taxTotal, invoice.taxMode, invoice.taxPercentage)}
         />
-        <Row label="Total" value={formatMoneyAr(invoice.totalAmount)} strong />
+        <Row label="Total" value={formatCurrency(invoice.totalAmount)} strong />
       </section>
 
       {invoice.confirmation && (
@@ -490,10 +488,10 @@ function InvoiceComparisonTable({
                 </td>
               ))}
               <td className="px-3 py-3 text-right font-mono">
-                {formatMoneyAr(item.provisionalCostUnitNet)}
+                {formatCurrency(item.provisionalCostUnitNet)}
               </td>
               <td className="px-3 py-3 text-right font-mono font-semibold">
-                {formatMoneyAr(item.realCostUnitNet)}
+                {formatCurrency(item.realCostUnitNet)}
               </td>
               <td
                 className={`px-3 py-3 text-right font-mono ${costDirectionClass(
@@ -529,7 +527,7 @@ function InvoiceComparisonTable({
                 {adjustmentLabel(item.surchargeNet, item.surchargeMode, item.surchargePercentage)}
               </td>
               <td className="px-3 py-3 text-right font-mono font-bold">
-                {formatMoneyAr(item.lineNetTotal)}
+                {formatCurrency(item.lineNetTotal)}
               </td>
             </tr>
           ))}
@@ -550,9 +548,9 @@ function observationDescription(
       item.availableQtyBefore,
     )} disponibles y el exceso es ${formatDecimalAr(item.quantityExcess)}.`;
   }
-  return `Costo: provisional ${formatMoneyAr(
+  return `Costo: provisional ${formatCurrency(
     item.provisionalCostUnitNet,
-  )}, real ${formatMoneyAr(item.realCostUnitNet)}, diferencia ${signedMoney(
+  )}, real ${formatCurrency(item.realCostUnitNet)}, diferencia ${signedMoney(
     item.costDifferenceUnitNet,
   )} (${costVariationLabel(item)}).`;
 }
@@ -568,8 +566,8 @@ function costVariationLabel(item: ISupplierInvoiceItemDetail): string {
 
 function signedMoney(value: string): string {
   const decimal = new Decimal(value);
-  if (decimal.gt(0)) return `+${formatMoneyAr(decimal.toFixed(4))}`;
-  return formatMoneyAr(decimal.toFixed(4));
+  if (decimal.gt(0)) return `+${formatCurrency(decimal.toFixed(4))}`;
+  return formatCurrency(decimal.toFixed(4));
 }
 
 function costDirectionClass(value: string): string {
@@ -585,8 +583,8 @@ function adjustmentLabel(
   percentage: string | null,
 ): string {
   return mode === SupplierInvoiceAdjustmentMode.PERCENTAGE && percentage
-    ? `${formatMoneyAr(amount)} (${formatDecimalAr(percentage)}%)`
-    : formatMoneyAr(amount);
+    ? `${formatCurrency(amount)} (${formatDecimalAr(percentage)}%)`
+    : formatCurrency(amount);
 }
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {

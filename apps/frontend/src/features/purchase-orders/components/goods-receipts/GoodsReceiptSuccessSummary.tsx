@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { PurchaseOrderStatusBadge } from '../PurchaseOrderStatusBadge';
 import type { ICreateGoodsReceiptResponse } from '../../types/purchase-orders.types';
 import { PurchaseOrderStatus } from '../../types/purchase-orders.types';
-import { formatCurrency, formatQuantity } from '../../utils/purchase-orders.math';
+import { formatQuantity } from '../../utils/purchase-orders.math';
+import { formatCurrency } from '@/lib/money';
 
 interface GoodsReceiptSuccessSummaryProps {
   response: ICreateGoodsReceiptResponse;

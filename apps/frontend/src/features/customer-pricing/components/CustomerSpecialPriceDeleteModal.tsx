@@ -3,9 +3,9 @@ import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import { CustomerPricingRuleApplied, type ICustomerSpecialPrice } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { useDeleteCustomerSpecialPriceMutation } from '../hooks/use-customer-pricing-mutations';
 import { parseCustomerPricingError } from '../utils/customer-pricing.errors';
+import { formatCurrency } from '@/lib/money';
 
 const fallbackLabel = {
   [CustomerPricingRuleApplied.GENERAL_DISCOUNT]: 'descuento general',

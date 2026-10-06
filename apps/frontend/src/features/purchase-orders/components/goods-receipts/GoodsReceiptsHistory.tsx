@@ -3,7 +3,8 @@ import { AlertCircle, ChevronLeft, ChevronRight, History, PackageOpen } from 'lu
 import { Button } from '@/components/ui/button';
 import { useGoodsReceiptsQuery } from '../../hooks/use-goods-receipts-query';
 import { parseGoodsReceiptApiError } from '../../utils/goods-receipt.errors';
-import { formatCurrency, formatQuantity } from '../../utils/purchase-orders.math';
+import { formatQuantity } from '../../utils/purchase-orders.math';
+import { formatCurrency } from '@/lib/money';
 
 interface GoodsReceiptsHistoryProps {
   purchaseOrderId: string;

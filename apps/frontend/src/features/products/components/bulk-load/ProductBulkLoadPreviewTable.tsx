@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatCurrency } from '@/lib/money';
 import { CheckCircle2, XCircle, Filter, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProductBulkLoadRowStatus, type IProductBulkLoadValidatedRow } from '@erp/shared-types';
@@ -161,11 +162,11 @@ export const ProductBulkLoadPreviewTable: React.FC<ProductBulkLoadPreviewTablePr
                     </td>
 
                     <td className="py-3 px-4 text-right font-mono font-medium text-foreground">
-                      {p?.costNet !== undefined ? `$${p.costNet.toFixed(2)}` : '—'}
+                      {p?.costNet !== undefined ? formatCurrency(p.costNet, { decimals: 4 }) : '—'}
                     </td>
 
                     <td className="py-3 px-4 text-right font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                      {p?.activePriceNet !== undefined ? `$${p.activePriceNet.toFixed(2)}` : '—'}
+                      {p?.activePriceNet !== undefined ? formatCurrency(p.activePriceNet) : '—'}
                     </td>
 
                     <td className="py-3 px-4 text-right font-mono font-semibold text-primary">

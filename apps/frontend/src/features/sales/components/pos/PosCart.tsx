@@ -2,8 +2,8 @@ import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { CustomerPricingRuleApplied, ProductTaxTreatment } from '@erp/shared-types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import type { PosPreviewLine, StockErrorDetails } from '../../types/sales.types';
+import { formatCurrency } from '@/lib/money';
 
 const pricingLabels: Record<CustomerPricingRuleApplied, string> = {
   [CustomerPricingRuleApplied.FIXED_PRICE]: 'Precio fijo especial',

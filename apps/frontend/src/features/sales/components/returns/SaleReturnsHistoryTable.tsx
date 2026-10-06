@@ -4,9 +4,10 @@ import { CheckCircle2, ExternalLink, Loader2, RotateCcw, ShieldAlert } from 'luc
 import { SaleReturnItemQuality, UserRole, type ISale, type ISaleReturn } from '@erp/shared-types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatCurrency, formatDecimal } from '@/features/products/utils/products.math';
+import { formatDecimal } from '@/features/products/utils/products.math';
 import { useAuthStore } from '@/stores/authStore';
 import { FiscalDocumentActions } from '../FiscalDocumentActions';
+import { formatCurrency } from '@/lib/money';
 
 interface SaleReturnsHistoryTableProps {
   sale: ISale;

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import Decimal from 'decimal.js';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Loader2 } from 'lucide-react';
 import {
   CustomerDocumentType,
@@ -11,6 +11,7 @@ import {
 } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
 import { Modal } from '@/components/ui/modal';
 import { Select } from '@/components/ui/select';
 import { useAuthStore } from '@/stores/authStore';
@@ -51,6 +52,7 @@ export function CustomerFormModal({
   const pending = createMutation.isPending || updateMutation.isPending;
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
@@ -195,12 +197,20 @@ export function CustomerFormModal({
                 id="customer-credit-limit"
                 error={errors.creditLimit?.message}
               >
-                <Input
-                  id="customer-credit-limit"
-                  inputMode="decimal"
-                  {...register('creditLimit')}
-                  disabled={pending}
-                  aria-invalid={Boolean(errors.creditLimit)}
+                <Controller
+                  name="creditLimit"
+                  control={control}
+                  render={({ field }) => (
+                    <MoneyInput
+                      id="customer-credit-limit"
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      onBlur={field.onBlur}
+                      ref={field.ref}
+                      disabled={pending}
+                      aria-invalid={Boolean(errors.creditLimit)}
+                    />
+                  )}
                 />
               </Field>
             )}

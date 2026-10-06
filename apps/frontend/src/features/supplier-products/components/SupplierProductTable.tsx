@@ -3,8 +3,8 @@ import { Edit2, Trash2, Layers } from 'lucide-react';
 import { SortableTh } from '@/components/ui/sortable-th';
 import { Button } from '@/components/ui/button';
 import { PrimarySupplierBadge } from './PrimarySupplierBadge';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import type { ISupplierProduct, SupplierProductSortField } from '../types/supplier-products.types';
+import { formatCurrency } from '@/lib/money';
 
 interface SupplierProductTableProps {
   items: ISupplierProduct[];

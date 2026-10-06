@@ -5,9 +5,9 @@ import { TreasuryMovementType } from '@erp/shared-types';
 import { CloseCashForm } from '@/features/cash-register/components/CloseCashForm';
 import { OpenCashForm } from '@/features/cash-register/components/OpenCashForm';
 import { useCashRegisterQuery } from '@/features/cash-register/hooks/use-cash-register';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { MOVEMENT_TYPE_LABELS, formatDateTime } from '@/features/treasury/utils/treasury.labels';
 import { parseApiError } from '@/lib/errors/parse-api-error';
+import { formatCurrency } from '@/lib/money';
 
 export function CashRegisterPage() {
   const { data, isError, error, isLoading } = useCashRegisterQuery();

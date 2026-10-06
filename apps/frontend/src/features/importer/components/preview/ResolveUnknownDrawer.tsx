@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { formatCurrency } from '@/lib/money';
+import { MoneyInput } from '@/components/ui/money-input';
 import {
   X,
   Link as LinkIcon,
@@ -171,11 +173,7 @@ export const ResolveUnknownDrawer: React.FC<ResolveUnknownDrawerProps> = ({
               <div>
                 <span className="text-xs text-slate-400 block">Costo Neto en Archivo:</span>
                 <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                  $
-                  {Number(row.usualCostNet).toLocaleString('es-AR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
+                  {formatCurrency(row.usualCostNet, { decimals: 4 })}
                 </span>
               </div>
               {row.supplierDescription && (
@@ -316,14 +314,13 @@ export const ResolveUnknownDrawer: React.FC<ResolveUnknownDrawerProps> = ({
                 <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
                   Costo Habitual del Proveedor ($)
                 </label>
-                <input
-                  type="number"
-                  step="any"
-                  min="0"
+                <MoneyInput
+                  decimals={4}
+                  max="99999999.9999"
                   value={usualCostNet}
-                  onChange={(e) => setUsualCostNet(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 font-mono focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  onValueChange={setUsualCostNet}
+                  placeholder="0,00"
+                  className="font-mono"
                 />
                 <span className="text-[11px] text-slate-400 mt-1 block">
                   Se guardará como costo habitual del proveedor. No modifica el costo base del

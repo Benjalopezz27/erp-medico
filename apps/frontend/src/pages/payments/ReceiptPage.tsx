@@ -3,10 +3,10 @@ import { BackLink } from '@/components/ui/back-link';
 import { AlertCircle, Download, Printer } from 'lucide-react';
 import { PaymentMethod, PaymentStatus } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { useDownloadReceiptPdf, useReceiptQuery } from '@/features/payments/hooks/use-payments';
 import { formatDate } from '@/features/receivables/utils/receivables.format';
 import { parseApiError } from '@/lib/errors/parse-api-error';
+import { formatCurrency } from '@/lib/money';
 
 const METHOD_LABELS: Partial<Record<PaymentMethod, string>> = {
   [PaymentMethod.EFECTIVO]: 'Efectivo',

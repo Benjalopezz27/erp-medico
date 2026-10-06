@@ -1,9 +1,7 @@
-import Decimal from 'decimal.js';
 import {
   calculateItemSubtotal,
   calculateItemBaseQty,
   calculateOrderTotalNet,
-  formatCurrency,
   formatQuantity,
 } from './purchase-orders.math';
 
@@ -55,20 +53,6 @@ describe('Purchase Orders Math Utilities', () => {
 
     it('returns zero for empty or null item list', () => {
       expect(calculateOrderTotalNet([]).toString()).toBe('0');
-    });
-  });
-
-  describe('formatCurrency', () => {
-    it('formats numbers into Argentine currency string', () => {
-      const formatted = formatCurrency(1250.5);
-      // es-AR formatting contains $ and comma for decimals
-      expect(formatted).toContain('1.250,50');
-    });
-
-    it('handles Decimal instances and zero correctly', () => {
-      expect(formatCurrency(new Decimal(0))).toContain('0,00');
-      expect(formatCurrency(null)).toContain('0,00');
-      expect(formatCurrency(undefined)).toContain('0,00');
     });
   });
 

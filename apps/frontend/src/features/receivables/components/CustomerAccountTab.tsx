@@ -4,13 +4,13 @@ import { Badge } from '@/components/ui/badge';
 import { Link } from '@tanstack/react-router';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { parseApiError } from '@/lib/errors/parse-api-error';
 import {
   useCustomerAccountQuery,
   useDownloadAccountStatement,
 } from '../hooks/use-receivables-query';
 import { MOVEMENT_LABELS, formatDate } from '../utils/receivables.format';
+import { formatCurrency } from '@/lib/money';
 
 const LEDGER_PAGE_SIZE = 25;
 

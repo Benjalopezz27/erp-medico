@@ -6,7 +6,7 @@ import {
   type IPriceReviewDetail,
 } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
 import { Modal } from '@/components/ui/modal';
 import {
   useApprovePriceReviewMutation,
@@ -14,8 +14,9 @@ import {
   useRejectPriceReviewMutation,
   useReopenPriceReviewMutation,
 } from '../hooks/use-price-review-mutations';
-import { formatPriceReviewMoney, normalizeCustomPrice } from '../utils/price-reviews.math';
+import { normalizeCustomPrice } from '../utils/price-reviews.math';
 import { parsePriceReviewError } from '../utils/price-reviews.errors';
+import { formatCurrency } from '@/lib/money';
 
 const copy: Record<
   PriceReviewDecisionAction,
@@ -150,9 +151,9 @@ export function PriceReviewDecisionModal({
   const impactMessage =
     action === PriceReviewDecisionAction.APPROVE_CUSTOM
       ? customValidation.success
-        ? `Esta acción cambiará el precio activo a ${formatPriceReviewMoney(customValidation.value)}.`
+        ? `Esta acción cambiará el precio activo a ${formatCurrency(customValidation.value)}.`
         : 'Esta acción cambiará el precio activo al precio personalizado válido que ingrese.'
-      : `Esta acción cambiará el precio activo a ${formatPriceReviewMoney(review.suggestedPriceNet)}.`;
+      : `Esta acción cambiará el precio activo a ${formatCurrency(review.suggestedPriceNet)}.`;
 
   return (
     <Modal
@@ -167,13 +168,13 @@ export function PriceReviewDecisionModal({
           <div>
             <span className="block text-slate-500">Precio activo actual</span>
             <strong className="font-mono text-sm">
-              {formatPriceReviewMoney(review.product.activePriceNet)}
+              {formatCurrency(review.product.activePriceNet)}
             </strong>
           </div>
           <div>
             <span className="block text-slate-500">Sugerido histórico</span>
             <strong className="font-mono text-sm">
-              {formatPriceReviewMoney(review.suggestedPriceNet)}
+              {formatCurrency(review.suggestedPriceNet)}
             </strong>
           </div>
         </div>
@@ -186,14 +187,14 @@ export function PriceReviewDecisionModal({
             >
               Nuevo precio neto activo
             </label>
-            <Input
+            <MoneyInput
               id="price-review-custom-price"
+              max="9999999999.99"
               value={customPrice}
-              onChange={(event) => {
-                setCustomPrice(event.target.value);
+              onValueChange={(raw) => {
+                setCustomPrice(raw);
                 setError(undefined);
               }}
-              inputMode="decimal"
               placeholder="Ej.: 165,50"
               disabled={isPending}
               aria-invalid={customPrice.length > 0 && !customValidation.success}

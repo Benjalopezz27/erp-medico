@@ -9,19 +9,6 @@ function parseDecimal(value: string | null | undefined): Decimal | null {
   }
 }
 
-function groupInteger(value: string): string {
-  const sign = value.startsWith('-') ? '-' : '';
-  const digits = sign ? value.slice(1) : value;
-  return `${sign}${digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')}`;
-}
-
-export function formatPriceReviewMoney(value: string | null | undefined): string {
-  const parsed = parseDecimal(value);
-  if (!parsed) return '—';
-  const [integer, decimals] = parsed.toFixed(2, Decimal.ROUND_HALF_UP).split('.');
-  return `$ ${groupInteger(integer)},${decimals}`;
-}
-
 export function formatPriceReviewPercentage(value: string | null | undefined): string {
   const parsed = parseDecimal(value);
   if (!parsed) return '—';

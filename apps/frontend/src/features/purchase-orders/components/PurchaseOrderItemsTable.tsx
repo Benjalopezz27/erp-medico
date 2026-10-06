@@ -6,10 +6,10 @@ import {
   calculateItemSubtotal,
   calculateItemBaseQty,
   calculateOrderTotalNet,
-  formatCurrency,
 } from '../utils/purchase-orders.math';
 import type { IPurchaseOrderFormItem } from '../types/purchase-orders.types';
 import type { UseFieldArrayRemove, UseFormRegister, FieldErrors } from 'react-hook-form';
+import { formatCurrency } from '@/lib/money';
 
 export interface PurchaseOrderItemsTableProps {
   fields: Array<IPurchaseOrderFormItem & { id: string }>;

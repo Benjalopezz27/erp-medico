@@ -4,17 +4,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Lock, Loader2, DollarSign, Package, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
 import { Select } from '@/components/ui/select';
 import { productFormSchema, type ProductFormSchemaValues } from '../schemas/product.schema';
 import {
   calculateFinalFromNet,
   calculateNetFromFinal,
   calculateSuggestedPrice,
-  formatCurrency,
 } from '../utils/products.math';
 import { ProductConversionsGrid, type ConversionRowItem } from './ProductConversionsGrid';
 import type { ICategory, IProduct, IUnit, ProductFormValues } from '../types/products.types';
 import { PRODUCT_IVA_RATES, ProductTaxTreatment } from '@erp/shared-types';
+import { formatCurrency } from '@/lib/money';
 
 interface ProductFormProps {
   mode: 'create' | 'edit';
@@ -374,16 +375,26 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <label htmlFor="costNet" className="block text-xs font-semibold text-slate-700 mb-1">
               Costo Neto ($) *
             </label>
-            <Input
-              id="costNet"
-              type="number"
-              step="any"
-              min="0"
-              {...register('costNet')}
-              disabled={isSubmitting}
-              placeholder="0.00"
-              aria-invalid={Boolean(errors.costNet)}
-              className="text-xs font-mono"
+            <Controller
+              name="costNet"
+              control={control}
+              render={({ field }) => (
+                <MoneyInput
+                  id="costNet"
+                  decimals={4}
+                  max="99999999.9999"
+                  value={
+                    field.value === undefined || field.value === null ? '' : String(field.value)
+                  }
+                  onValueChange={field.onChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  disabled={isSubmitting}
+                  placeholder="0,00"
+                  aria-invalid={Boolean(errors.costNet)}
+                  className="text-xs font-mono"
+                />
+              )}
             />
             {errors.costNet && (
               <p className="text-[11px] text-red-600 mt-1">{errors.costNet.message}</p>
@@ -433,15 +444,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <label htmlFor="finalPrice" className="block text-xs font-semibold text-slate-700 mb-1">
               Precio final con IVA ($) *
             </label>
-            <Input
+            <MoneyInput
               id="finalPrice"
-              type="number"
-              step="any"
-              min="0"
+              max="99999999999.99"
               value={finalPrice}
-              onChange={(event) => setFinalPrice(event.target.value)}
+              onValueChange={setFinalPrice}
               disabled={isSubmitting}
-              placeholder="0.00"
+              placeholder="0,00"
               aria-invalid={Boolean(errors.activePriceNet)}
               className="text-xs font-mono font-semibold text-slate-900 border-blue-300"
             />

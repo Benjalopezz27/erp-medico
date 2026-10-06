@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router';
 import type { ISale } from '@erp/shared-types';
 import { Modal } from '@/components/ui/modal';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { formatCurrency } from '@/features/products/utils/products.math';
+import { formatCurrency } from '@/lib/money';
 
 export function PosSuccessModal({
   sale,

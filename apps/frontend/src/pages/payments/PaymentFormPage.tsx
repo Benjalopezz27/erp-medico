@@ -10,14 +10,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
 import { Select } from '@/components/ui/select';
 import { CustomerSearchInput } from '@/features/customers/components/CustomerSearchInput';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { useRegisterPaymentMutation } from '@/features/payments/hooks/use-payments';
 import { MONEY_PATTERN, allocateByAge, sumAmounts } from '@/features/payments/utils/allocation';
 import { useCustomerAccountQuery } from '@/features/receivables/hooks/use-receivables-query';
 import { formatDate } from '@/features/receivables/utils/receivables.format';
 import { parseApiError } from '@/lib/errors/parse-api-error';
+import { formatCurrency } from '@/lib/money';
 
 type Method = PaymentMethod.EFECTIVO | PaymentMethod.TRANSFERENCIA | PaymentMethod.CHEQUE;
 
@@ -194,18 +195,15 @@ export function PaymentFormPage() {
                             {formatCurrency(invoice.currentBalance)}
                           </td>
                           <td className="py-2 text-right">
-                            <Input
+                            <MoneyInput
                               aria-label={`Monto a aplicar ${invoice.documentReference}`}
-                              className="ml-auto h-8 w-32 text-right"
-                              inputMode="decimal"
-                              placeholder="0.00"
+                              className="ml-auto h-8 w-40"
+                              placeholder="0,00"
                               readOnly={byAge}
+                              showMagnitude={false}
                               value={applied[invoice.id] ?? ''}
-                              onChange={(event) =>
-                                setManual((previous) => ({
-                                  ...previous,
-                                  [invoice.id]: event.target.value,
-                                }))
+                              onValueChange={(raw) =>
+                                setManual((previous) => ({ ...previous, [invoice.id]: raw }))
                               }
                             />
                           </td>
@@ -240,12 +238,11 @@ export function PaymentFormPage() {
               </label>
               <label className="space-y-1 text-xs">
                 Total cobrado
-                <Input
+                <MoneyInput
                   aria-label="Total cobrado"
-                  inputMode="decimal"
-                  placeholder="0.00"
+                  placeholder="0,00"
                   value={collected}
-                  onChange={(event) => setCollected(event.target.value)}
+                  onValueChange={setCollected}
                 />
               </label>
               <label className="space-y-1 text-xs">

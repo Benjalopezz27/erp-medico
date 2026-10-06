@@ -6,7 +6,7 @@ import { SortableTh } from '@/components/ui/sortable-th';
 import { Badge } from '@/components/ui/badge';
 import { FiscalStatusBadge } from './FiscalStatusBadge';
 import type { SaleSortField } from '../types/sales.types';
-import { formatCurrency } from '@/features/products/utils/products.math';
+import { formatCurrency } from '@/lib/money';
 
 export function SalesTable({
   sales,

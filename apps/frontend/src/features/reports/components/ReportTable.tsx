@@ -1,7 +1,8 @@
-import { formatCurrency, formatDecimal } from '@/features/products/utils/products.math';
+import { formatDecimal } from '@/features/products/utils/products.math';
 import { SortableTh } from '@/components/ui/sortable-th';
 import { useClientSort } from '@/lib/sorting';
 import type { ReportColumn, ReportResult } from '../api/get-report';
+import { formatCurrency } from '@/lib/money';
 
 const isRight = (c: ReportColumn) => c.type === 'money' || c.type === 'number';
 

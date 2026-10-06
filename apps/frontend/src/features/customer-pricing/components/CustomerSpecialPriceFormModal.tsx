@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { CustomerSpecialPriceMode, type ICustomerSpecialPrice } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
 import { Modal } from '@/components/ui/modal';
 import { ProductSearchInput } from '@/features/products/components/ProductSearchInput';
 import type { IProductSummary } from '@/features/products/types/products.types';
@@ -48,6 +49,7 @@ export function CustomerSpecialPriceFormModal({
   const [expectedVersion, setExpectedVersion] = useState(1);
   const {
     register,
+    control,
     handleSubmit,
     reset,
     watch,
@@ -193,14 +195,34 @@ export function CustomerSpecialPriceFormModal({
           >
             {mode === CustomerSpecialPriceMode.FIXED_PRICE ? 'Precio neto fijo' : 'Descuento (%)'} *
           </label>
-          <Input
-            id="customer-pricing-value"
-            inputMode="decimal"
-            {...register('value')}
-            disabled={pending}
-            aria-invalid={Boolean(errors.value)}
-            aria-describedby={errors.value ? 'customer-pricing-value-error' : undefined}
-          />
+          {mode === CustomerSpecialPriceMode.FIXED_PRICE ? (
+            <Controller
+              name="value"
+              control={control}
+              render={({ field }) => (
+                <MoneyInput
+                  id="customer-pricing-value"
+                  max="9999999999.99"
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  onBlur={field.onBlur}
+                  ref={field.ref}
+                  disabled={pending}
+                  aria-invalid={Boolean(errors.value)}
+                  aria-describedby={errors.value ? 'customer-pricing-value-error' : undefined}
+                />
+              )}
+            />
+          ) : (
+            <Input
+              id="customer-pricing-value"
+              inputMode="decimal"
+              {...register('value')}
+              disabled={pending}
+              aria-invalid={Boolean(errors.value)}
+              aria-describedby={errors.value ? 'customer-pricing-value-error' : undefined}
+            />
+          )}
           {errors.value?.message && (
             <p id="customer-pricing-value-error" role="alert" className="mt-1 text-xs text-red-600">
               {errors.value.message}

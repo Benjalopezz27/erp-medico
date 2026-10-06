@@ -3,10 +3,11 @@ import { AlertCircle } from 'lucide-react';
 import Decimal from 'decimal.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { formatCurrency } from '@/features/products/utils/products.math';
+import { MoneyInput } from '@/components/ui/money-input';
 import { parseApiError } from '@/lib/errors/parse-api-error';
 import { useCloseCashRegisterMutation } from '../hooks/use-cash-register';
 import { cashDifference, isValidBalance, normalizeBalance } from '../utils/cash-register.math';
+import { formatCurrency } from '@/lib/money';
 
 export function CloseCashForm({ expectedBalance }: { expectedBalance: string }) {
   const [actual, setActual] = useState('');
@@ -41,12 +42,11 @@ export function CloseCashForm({ expectedBalance }: { expectedBalance: string }) 
       </p>
       <label className="block space-y-1 text-xs font-semibold">
         Saldo contado
-        <Input
+        <MoneyInput
           aria-label="Saldo contado"
-          inputMode="decimal"
           className="font-mono"
           value={actual}
-          onChange={(e) => setActual(e.target.value)}
+          onValueChange={setActual}
         />
       </label>
       <p className="text-xs">

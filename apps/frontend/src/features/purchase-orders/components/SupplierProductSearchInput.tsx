@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef, useId } from 'react';
 import { Search, X, Loader2, Package, AlertCircle } from 'lucide-react';
 import { useSupplierProductsInfiniteQuery } from '../hooks/use-purchase-orders-query';
-import { formatCurrency } from '../utils/purchase-orders.math';
 import type { ISupplierProduct } from '@/features/supplier-products/types/supplier-products.types';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/money';
 
 export interface SupplierProductSearchInputProps {
   supplierId: string;

@@ -3,7 +3,6 @@ import {
   calculateFinalFromNet,
   calculateNetFromFinal,
   calculateSuggestedPrice,
-  formatCurrency,
   formatDecimal,
 } from './products.math';
 
@@ -72,20 +71,6 @@ describe('products.math', () => {
     it('round trip final -> net (2 dec) -> final may differ by one cent', () => {
       // 100 / 1.21 = 82.64 -> 82.64 * 1.21 = 99.99: why the form keeps the typed final.
       expect(calculateFinalFromNet(calculateNetFromFinal(100, 21), 21)).toBe(99.99);
-    });
-  });
-
-  describe('formatCurrency', () => {
-    it('formats numeric values as ARS currency string', () => {
-      const formatted = formatCurrency(1500.5);
-      // es-AR currency format contains $ and 1.500,50
-      expect(formatted).toContain('1.500,50');
-    });
-
-    it('returns em-dash on null or undefined or invalid', () => {
-      expect(formatCurrency(null)).toBe('—');
-      expect(formatCurrency(undefined)).toBe('—');
-      expect(formatCurrency('invalid')).toBe('—');
     });
   });
 
