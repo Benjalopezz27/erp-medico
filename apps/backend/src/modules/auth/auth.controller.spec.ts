@@ -1,10 +1,12 @@
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { PasswordRecoveryService } from './password-recovery.service';
 import { UserRole } from '@erp/shared-types';
 
 describe('AuthController', () => {
   let controller: AuthController;
   let authService: jest.Mocked<Partial<AuthService>>;
+  let recovery: jest.Mocked<Partial<PasswordRecoveryService>>;
 
   beforeEach(() => {
     authService = {
@@ -15,7 +17,15 @@ describe('AuthController', () => {
       register: jest.fn(),
     };
 
-    controller = new AuthController(authService as unknown as AuthService);
+    recovery = {
+      forgotPassword: jest.fn().mockResolvedValue({ message: 'sent' }),
+      resetPassword: jest.fn().mockResolvedValue({ message: 'done' }),
+    };
+
+    controller = new AuthController(
+      authService as unknown as AuthService,
+      recovery as unknown as PasswordRecoveryService,
+    );
   });
 
   it('should return status from authService', () => {
@@ -23,6 +33,18 @@ describe('AuthController', () => {
       module: 'auth',
       status: 'initialized',
     });
+  });
+
+  it('delegates forgot-password and reset-password to PasswordRecoveryService', async () => {
+    await expect(
+      controller.forgotPassword({ email: 'a@erp.com' }),
+    ).resolves.toEqual({ message: 'sent' });
+    expect(recovery.forgotPassword).toHaveBeenCalledWith('a@erp.com');
+
+    await expect(
+      controller.resetPassword({ token: 't', newPassword: 'Valid123!' }),
+    ).resolves.toEqual({ message: 'done' });
+    expect(recovery.resetPassword).toHaveBeenCalledWith('t', 'Valid123!');
   });
 
   it('should call authService.register and return result', async () => {

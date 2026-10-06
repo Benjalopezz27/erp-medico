@@ -44,3 +44,19 @@ export const signupSchema = z
   });
 
 export type SignupFormValues = z.infer<typeof signupSchema>;
+
+export const forgotPasswordSchema = z.object({ email: loginSchema.shape.email });
+
+export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
+
+export const resetPasswordSchema = z
+  .object({
+    newPassword: passwordRules,
+    confirmPassword: z.string().min(1, 'Confirme la contraseña'),
+  })
+  .refine((v) => v.newPassword === v.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'Las contraseñas no coinciden',
+  });
+
+export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;

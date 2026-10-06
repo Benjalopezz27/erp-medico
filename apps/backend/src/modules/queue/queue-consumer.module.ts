@@ -7,6 +7,8 @@ import { PdfGenerateQueueService } from './services/pdf-generate.queue';
 import { FiscalInvoiceQueueService } from './services/fiscal-invoice.queue';
 import { FiscalContingencyOrchestrator } from './services/fiscal-contingency-orchestrator.service';
 import { FiscalReconciliationSweepService } from './services/fiscal-reconciliation-sweep.service';
+import { MailSendProcessor } from './processors/mail-send.processor';
+import { MailModule } from '../mail/mail.module';
 import { ArcaModule } from '../arca/arca.module';
 import { SystemConfigModule } from '../config/system-config.module';
 import { FiscalNumberingService } from '../sales/services/fiscal-numbering.service';
@@ -20,7 +22,7 @@ import { FiscalPdfTemplateService } from '../sales/services/fiscal-pdf-template.
   // DataSource with full entity metadata (see DatabaseModule's `entities`
   // glob, imported by WorkerModule) and ArcaModule for ARCA_SERVICE /
   // InvoiceTypeResolverService.
-  imports: [ArcaModule, SystemConfigModule],
+  imports: [ArcaModule, SystemConfigModule, MailModule],
   providers: [
     redisConnectionProvider,
     OpsProbeProcessor,
@@ -38,6 +40,7 @@ import { FiscalPdfTemplateService } from '../sales/services/fiscal-pdf-template.
     FiscalInvoiceProcessor,
     FiscalReconciliationSweepService,
     PdfGenerateProcessor,
+    MailSendProcessor,
   ],
   exports: [
     redisConnectionProvider,

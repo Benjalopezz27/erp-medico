@@ -8,6 +8,10 @@ import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { QueueModule } from '../queue/queue.module';
+import { PasswordRecoveryService } from './password-recovery.service';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { getJwtModuleOptions } from './config/jwt.config';
 
 @Module({
@@ -20,9 +24,17 @@ import { getJwtModuleOptions } from './config/jwt.config';
         getJwtModuleOptions(configService),
     }),
     UsersModule,
+    QueueModule,
+    TypeOrmModule.forFeature([PasswordResetToken]),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard, RolesGuard],
+  providers: [
+    AuthService,
+    PasswordRecoveryService,
+    JwtStrategy,
+    JwtAuthGuard,
+    RolesGuard,
+  ],
   exports: [AuthService, JwtAuthGuard, RolesGuard, JwtModule, PassportModule],
 })
 export class AuthModule {}

@@ -37,3 +37,23 @@ export function getSignupErrorMessage(error: unknown): string {
   }
   return 'No se pudo crear la cuenta. Intente nuevamente.';
 }
+
+export function getForgotPasswordErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    if (!error.response) return NETWORK;
+    if (error.response.status === 429) return RATE_LIMIT;
+  }
+  return 'No se pudo procesar la solicitud. Intente nuevamente.';
+}
+
+export const INVALID_RESET_TOKEN = 'invalid-token';
+
+/** 400 on reset-password is ambiguous (weak password vs bad token): the schema already blocks weak passwords client-side, so 400 means token. */
+export function getResetPasswordErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    if (!error.response) return NETWORK;
+    if (error.response.status === 400) return INVALID_RESET_TOKEN;
+    if (error.response.status === 429) return RATE_LIMIT;
+  }
+  return 'No se pudo actualizar la contraseña. Intente nuevamente.';
+}
