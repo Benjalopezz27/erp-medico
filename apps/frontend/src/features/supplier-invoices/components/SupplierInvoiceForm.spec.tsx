@@ -22,7 +22,7 @@ describe('SupplierInvoiceForm', () => {
         onReceiptUpdated={vi.fn()}
       />,
     );
-    expect(screen.getByLabelText('unitPriceNet Producto médico')).toHaveValue('100.0000');
+    expect(screen.getByLabelText('unitPriceNet Producto médico')).toHaveValue('100,0000');
     await user.type(screen.getByLabelText('Número de comprobante'), 'A-1');
     await user.clear(screen.getByLabelText('invoicedQtyPurchaseUnit Producto médico'));
     await user.type(screen.getByLabelText('invoicedQtyPurchaseUnit Producto médico'), '6');

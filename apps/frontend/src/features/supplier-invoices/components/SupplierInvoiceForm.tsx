@@ -1,9 +1,18 @@
 import { useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, useWatch, type Resolver } from 'react-hook-form';
+import {
+  Controller,
+  useForm,
+  useWatch,
+  type Control,
+  type FieldPath,
+  type Resolver,
+  type UseFormRegister,
+} from 'react-hook-form';
 import { AlertTriangle, ReceiptText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
 import {
   buildSupplierInvoiceDefaults,
   createSupplierInvoiceSchema,
@@ -203,11 +212,13 @@ export function SupplierInvoiceForm({
                 <option value={SupplierInvoiceAdjustmentMode.AMOUNT}>Importe</option>
                 <option value={SupplierInvoiceAdjustmentMode.PERCENTAGE}>Porcentaje</option>
               </select>
-              <Input
+              <FormValueInput
                 aria-label="Valor de IVA"
-                inputMode="decimal"
+                name="taxTotal"
+                money={values.taxMode === SupplierInvoiceAdjustmentMode.AMOUNT}
+                control={control}
+                register={register}
                 disabled={mutation.isPending}
-                {...register('taxTotal')}
               />
             </div>
           </Field>
@@ -299,12 +310,19 @@ export function SupplierInvoiceForm({
                                 </option>
                               </select>
                             )}
-                            <Input
-                              inputMode="decimal"
+                            <FormValueInput
                               className="w-28 font-mono"
                               aria-label={`${field} ${item.productName}`}
+                              name={`items.${index}.${field}`}
+                              money={
+                                field === 'unitPriceNet' ||
+                                (modeField !== null &&
+                                  values.items?.[index]?.[modeField] ===
+                                    SupplierInvoiceAdjustmentMode.AMOUNT)
+                              }
+                              control={control}
+                              register={register}
                               disabled={mutation.isPending}
-                              {...register(`items.${index}.${field}`)}
                             />
                             {errors.items?.[index]?.[field]?.message && (
                               <p className="mt-1 w-28 text-[10px] text-rose-600">
@@ -457,5 +475,37 @@ function Total({ label, value, strong }: { label: string; value: string; strong?
       <span>{label}</span>
       <span className="font-mono">{value}</span>
     </div>
+  );
+}
+
+type FormValueInputProps = Omit<
+  React.ComponentProps<typeof Input>,
+  'name' | 'value' | 'onChange'
+> & {
+  name: FieldPath<SupplierInvoiceFormData>;
+  /** Money amounts use MoneyInput; percentages keep a plain decimal input. */
+  money: boolean;
+  control: Control<SupplierInvoiceFormData>;
+  register: UseFormRegister<SupplierInvoiceFormData>;
+};
+
+function FormValueInput({ name, money, control, register, ...props }: FormValueInputProps) {
+  if (!money) return <Input inputMode="decimal" {...props} {...register(name)} />;
+  return (
+    <Controller
+      name={name}
+      control={control}
+      render={({ field }) => (
+        <MoneyInput
+          {...props}
+          decimals={4}
+          max="99999999.9999"
+          value={String(field.value ?? '')}
+          onValueChange={field.onChange}
+          onBlur={field.onBlur}
+          ref={field.ref}
+        />
+      )}
+    />
   );
 }
