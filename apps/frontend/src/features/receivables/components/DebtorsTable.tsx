@@ -3,9 +3,9 @@ import { ClickableRow } from '@/components/ui/clickable-row';
 import type { IReceivableDebtorRow, SortOrder } from '@erp/shared-types';
 import { SortableTh } from '@/components/ui/sortable-th';
 import type { DebtorSortField } from '../api/receivables.api';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { formatDate } from '../utils/receivables.format';
 import { DebtorStatusBadge } from './DebtorStatusBadge';
+import { formatCurrency } from '@/lib/money';
 
 export function DebtorsTable({
   rows,

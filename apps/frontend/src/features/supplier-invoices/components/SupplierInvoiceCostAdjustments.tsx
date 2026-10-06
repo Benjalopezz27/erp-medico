@@ -4,12 +4,8 @@ import {
   PriceReviewStatus,
   type ISupplierInvoiceConfirmation,
 } from '../types/supplier-invoices.types';
-import {
-  formatDecimalAr,
-  formatMoneyAr,
-  formatSignedMoneyAr,
-  safeDecimal,
-} from '../utils/supplier-invoices.math';
+import { formatDecimalAr, safeDecimal } from '../utils/supplier-invoices.math';
+import { formatCurrency } from '@/lib/money';
 
 const dateTime = (value: string) =>
   new Intl.DateTimeFormat('es-AR', {
@@ -180,15 +176,18 @@ export function SupplierInvoiceCostAdjustments({
                 </span>
               </div>
               <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                <ReviewValue label="Costo anterior" value={formatMoneyAr(review.previousCostNet)} />
-                <ReviewValue label="Costo nuevo" value={formatMoneyAr(review.newCostNet)} strong />
+                <ReviewValue
+                  label="Costo anterior"
+                  value={formatCurrency(review.previousCostNet)}
+                />
+                <ReviewValue label="Costo nuevo" value={formatCurrency(review.newCostNet)} strong />
                 <ReviewValue
                   label="Sugerido anterior"
-                  value={formatMoneyAr(review.previousSuggestedPriceNet)}
+                  value={formatCurrency(review.previousSuggestedPriceNet)}
                 />
                 <ReviewValue
                   label="Sugerido nuevo"
-                  value={formatMoneyAr(review.suggestedPriceNet)}
+                  value={formatCurrency(review.suggestedPriceNet)}
                   strong
                 />
                 <ReviewValue
@@ -201,7 +200,7 @@ export function SupplierInvoiceCostAdjustments({
                 />
                 <ReviewValue
                   label="Precio activo sin cambios"
-                  value={formatMoneyAr(review.activePriceNetSnapshot)}
+                  value={formatCurrency(review.activePriceNetSnapshot)}
                 />
               </dl>
             </article>
@@ -228,7 +227,7 @@ function ImpactCard({
       <div className="flex items-center text-xs font-semibold uppercase">
         <Icon className="mr-2 h-4 w-4" aria-hidden={true} /> {title}
       </div>
-      <p className="mt-2 font-mono text-2xl font-bold">{formatSignedMoneyAr(value)}</p>
+      <p className="mt-2 font-mono text-2xl font-bold">{formatCurrency(value, { signed: true })}</p>
     </article>
   );
 }
@@ -244,7 +243,7 @@ function Money({
 }) {
   return (
     <td className={cn('px-3 py-3 text-right font-mono', strong && 'font-bold', className)}>
-      {formatMoneyAr(value)}
+      {formatCurrency(value)}
     </td>
   );
 }
@@ -264,7 +263,7 @@ function SignedMoney({ value, className }: { value: string; className?: string }
       <span className="inline-flex items-center gap-1">
         {decimal.gt(0) && <ArrowUp className="h-3 w-3" aria-label="Aumento" />}
         {decimal.lt(0) && <ArrowDown className="h-3 w-3" aria-label="Disminución" />}
-        {formatSignedMoneyAr(decimal)}
+        {formatCurrency(decimal, { signed: true })}
       </span>
     </td>
   );

@@ -2,9 +2,9 @@ import { Link } from '@tanstack/react-router';
 import { AlertTriangle, FileWarning, Landmark, TrendingUp, Wallet } from 'lucide-react';
 import { SupplierInvoiceStatus } from '@erp/shared-types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { parseApiError } from '@/lib/errors/parse-api-error';
 import { useDashboardKpisQuery } from '../hooks/use-dashboard-kpis';
+import { formatCurrency } from '@/lib/money';
 
 function KpiCard({
   title,

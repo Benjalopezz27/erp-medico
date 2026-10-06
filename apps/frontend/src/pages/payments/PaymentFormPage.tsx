@@ -12,12 +12,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { CustomerSearchInput } from '@/features/customers/components/CustomerSearchInput';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { useRegisterPaymentMutation } from '@/features/payments/hooks/use-payments';
 import { MONEY_PATTERN, allocateByAge, sumAmounts } from '@/features/payments/utils/allocation';
 import { useCustomerAccountQuery } from '@/features/receivables/hooks/use-receivables-query';
 import { formatDate } from '@/features/receivables/utils/receivables.format';
 import { parseApiError } from '@/lib/errors/parse-api-error';
+import { formatCurrency } from '@/lib/money';
 
 type Method = PaymentMethod.EFECTIVO | PaymentMethod.TRANSFERENCIA | PaymentMethod.CHEQUE;
 

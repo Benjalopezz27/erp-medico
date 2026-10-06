@@ -16,10 +16,10 @@ import { CustomerFormModal } from '@/features/customers/components/CustomerFormM
 import { CustomerLifecycleModal } from '@/features/customers/components/CustomerLifecycleModal';
 import { useCustomerDetailQuery } from '@/features/customers/hooks/use-customers-query';
 import { parseCustomerError } from '@/features/customers/utils/customers.errors';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { useAuthStore } from '@/stores/authStore';
 import { CustomerAccountTab } from '@/features/receivables/components/CustomerAccountTab';
 import { CustomerPricingPanel } from '@/features/customer-pricing/components/CustomerPricingPanel';
+import { formatCurrency } from '@/lib/money';
 
 export function CustomerDetailPage() {
   const { id } = useParams({ strict: false }) as { id: string };

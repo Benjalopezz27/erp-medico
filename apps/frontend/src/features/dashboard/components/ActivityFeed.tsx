@@ -13,9 +13,9 @@ import {
 import { DashboardActivityType, type IDashboardActivityItem } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { parseApiError } from '@/lib/errors/parse-api-error';
 import { useDashboardActivityQuery } from '../hooks/use-dashboard-activity';
+import { formatCurrency } from '@/lib/money';
 
 const ICONS: Record<DashboardActivityType, { icon: ElementType; className: string }> = {
   [DashboardActivityType.SALE_CONFIRMED]: {

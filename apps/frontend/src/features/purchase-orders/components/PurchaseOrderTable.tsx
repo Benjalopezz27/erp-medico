@@ -5,8 +5,8 @@ import { Eye, Edit3, PackageX, FileText } from 'lucide-react';
 import { SortableTh } from '@/components/ui/sortable-th';
 import type { PurchaseOrderSortField, SortOrder } from '@erp/shared-types';
 import { PurchaseOrderStatusBadge } from './PurchaseOrderStatusBadge';
-import { formatCurrency } from '../utils/purchase-orders.math';
 import { type IPurchaseOrderSummary, PurchaseOrderStatus } from '../types/purchase-orders.types';
+import { formatCurrency } from '@/lib/money';
 
 export interface PurchaseOrderTableProps {
   orders: IPurchaseOrderSummary[];

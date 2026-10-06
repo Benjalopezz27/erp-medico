@@ -28,15 +28,13 @@ import {
   mapFormToUpdatePayload,
   mapDetailToFormData,
 } from '@/features/purchase-orders/schemas/purchase-order.schema';
-import {
-  formatCurrency,
-  formatQuantity,
-} from '@/features/purchase-orders/utils/purchase-orders.math';
+import { formatQuantity } from '@/features/purchase-orders/utils/purchase-orders.math';
 import { getPurchaseOrderErrorMessage } from '@/features/purchase-orders/utils/purchase-orders.errors';
 import {
   PurchaseOrderStatus,
   type IPurchaseOrderFormData,
 } from '@/features/purchase-orders/types/purchase-orders.types';
+import { formatCurrency } from '@/lib/money';
 
 export const PurchaseOrderDetailPage: React.FC = () => {
   const { id } = useParams({ from: '/app/purchases/orders/$id' });

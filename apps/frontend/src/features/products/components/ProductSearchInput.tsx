@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useId, useMemo } from 'react';
 import { Search, X, Loader2, Package, AlertCircle } from 'lucide-react';
 import { useProductSearchQuery } from '../hooks/use-product-search-query';
-import { formatCurrency } from '../utils/products.math';
 import type { IProductSummary } from '../types/products.types';
+import { formatCurrency } from '@/lib/money';
 
 export interface ProductSearchInputProps {
   /** Emits the selected product, or null when the selection is cleared or edited. */

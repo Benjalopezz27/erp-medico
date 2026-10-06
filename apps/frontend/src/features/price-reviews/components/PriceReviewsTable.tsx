@@ -12,11 +12,11 @@ import { Button } from '@/components/ui/button';
 import {
   calculateCostVariation,
   formatPriceReviewDate,
-  formatPriceReviewMoney,
   formatPriceReviewPercentage,
   formatReviewAge,
 } from '../utils/price-reviews.math';
 import { PriceReviewStaleAlert } from './PriceReviewStaleAlert';
+import { formatCurrency } from '@/lib/money';
 
 const statusLabels: Record<PriceReviewStatus, string> = {
   [PriceReviewStatus.PENDIENTE]: 'Pendiente',
@@ -80,20 +80,20 @@ function PriceSummary({ review }: { review: IPriceReviewDetail }) {
     <div className="space-y-1 font-mono text-[11px]">
       <p>
         <span className="font-sans text-slate-500">Activo al crear:</span>{' '}
-        {formatPriceReviewMoney(review.activePriceNetSnapshot)}
+        {formatCurrency(review.activePriceNetSnapshot)}
       </p>
       <p className={activeChanged ? 'font-semibold text-amber-700' : ''}>
         <span className="font-sans text-slate-500">Activo actual:</span>{' '}
-        {formatPriceReviewMoney(review.product.activePriceNet)}
+        {formatCurrency(review.product.activePriceNet)}
       </p>
       <p className="font-semibold text-blue-700">
         <span className="font-sans text-slate-500">Sugerido:</span>{' '}
-        {formatPriceReviewMoney(review.suggestedPriceNet)}
+        {formatCurrency(review.suggestedPriceNet)}
       </p>
       {review.approvedPriceNet && (
         <p className="font-semibold text-emerald-700">
           <span className="font-sans text-slate-500">Aprobado:</span>{' '}
-          {formatPriceReviewMoney(review.approvedPriceNet)}
+          {formatCurrency(review.approvedPriceNet)}
         </p>
       )}
     </div>
@@ -203,9 +203,9 @@ export function PriceReviewsTable({
                   </td>
                   <td className="px-3 py-3 font-mono">
                     <span className="block text-slate-500">
-                      {formatPriceReviewMoney(review.previousCostNet)}
+                      {formatCurrency(review.previousCostNet)}
                     </span>
-                    <strong className="block">→ {formatPriceReviewMoney(review.newCostNet)}</strong>
+                    <strong className="block">→ {formatCurrency(review.newCostNet)}</strong>
                     <span
                       className={`mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] ${variation.direction === 'up' ? 'bg-amber-100 text-amber-800' : variation.direction === 'down' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}
                     >
@@ -305,8 +305,8 @@ export function PriceReviewsTable({
               <div className="grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-3 text-xs">
                 <div>
                   <span className="block text-slate-500">Costo</span>
-                  {formatPriceReviewMoney(review.previousCostNet)} →{' '}
-                  <strong>{formatPriceReviewMoney(review.newCostNet)}</strong>
+                  {formatCurrency(review.previousCostNet)} →{' '}
+                  <strong>{formatCurrency(review.newCostNet)}</strong>
                   <span className="block text-amber-700">{variation.label}</span>
                 </div>
                 <PriceSummary review={review} />

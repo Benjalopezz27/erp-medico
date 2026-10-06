@@ -14,8 +14,9 @@ import {
   useRejectPriceReviewMutation,
   useReopenPriceReviewMutation,
 } from '../hooks/use-price-review-mutations';
-import { formatPriceReviewMoney, normalizeCustomPrice } from '../utils/price-reviews.math';
+import { normalizeCustomPrice } from '../utils/price-reviews.math';
 import { parsePriceReviewError } from '../utils/price-reviews.errors';
+import { formatCurrency } from '@/lib/money';
 
 const copy: Record<
   PriceReviewDecisionAction,
@@ -150,9 +151,9 @@ export function PriceReviewDecisionModal({
   const impactMessage =
     action === PriceReviewDecisionAction.APPROVE_CUSTOM
       ? customValidation.success
-        ? `Esta acción cambiará el precio activo a ${formatPriceReviewMoney(customValidation.value)}.`
+        ? `Esta acción cambiará el precio activo a ${formatCurrency(customValidation.value)}.`
         : 'Esta acción cambiará el precio activo al precio personalizado válido que ingrese.'
-      : `Esta acción cambiará el precio activo a ${formatPriceReviewMoney(review.suggestedPriceNet)}.`;
+      : `Esta acción cambiará el precio activo a ${formatCurrency(review.suggestedPriceNet)}.`;
 
   return (
     <Modal
@@ -167,13 +168,13 @@ export function PriceReviewDecisionModal({
           <div>
             <span className="block text-slate-500">Precio activo actual</span>
             <strong className="font-mono text-sm">
-              {formatPriceReviewMoney(review.product.activePriceNet)}
+              {formatCurrency(review.product.activePriceNet)}
             </strong>
           </div>
           <div>
             <span className="block text-slate-500">Sugerido histórico</span>
             <strong className="font-mono text-sm">
-              {formatPriceReviewMoney(review.suggestedPriceNet)}
+              {formatCurrency(review.suggestedPriceNet)}
             </strong>
           </div>
         </div>

@@ -7,8 +7,9 @@ import type {
   IPurchaseOrderDetail,
 } from '../../types/purchase-orders.types';
 import { PurchaseOrderStatus } from '../../types/purchase-orders.types';
-import { formatCurrency, formatQuantity } from '../../utils/purchase-orders.math';
+import { formatQuantity } from '../../utils/purchase-orders.math';
 import { calculateGoodsReceiptSubtotal } from '../../utils/goods-receipt.math';
+import { formatCurrency } from '@/lib/money';
 
 interface GoodsReceiptConfirmationDialogProps {
   isOpen: boolean;

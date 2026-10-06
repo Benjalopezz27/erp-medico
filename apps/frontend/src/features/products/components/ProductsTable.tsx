@@ -7,12 +7,13 @@ import { Button } from '@/components/ui/button';
 import { SortableTh } from '@/components/ui/sortable-th';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/ui/empty-state';
-import { formatCurrency, formatDecimal } from '../utils/products.math';
+import { formatDecimal } from '../utils/products.math';
 import {
   isProductAdminView,
   type ProductListItem,
   type ProductSortField,
 } from '../types/products.types';
+import { formatCurrency } from '@/lib/money';
 
 interface ProductsTableProps {
   products: ProductListItem[];

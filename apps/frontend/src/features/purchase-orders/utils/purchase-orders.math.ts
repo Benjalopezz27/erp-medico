@@ -56,25 +56,6 @@ export function calculateOrderTotalNet(
 }
 
 /**
- * Formats monetary amounts in Argentine format ($ 1.250,50).
- */
-export function formatCurrency(value: string | number | Decimal | null | undefined): string {
-  if (value === null || value === undefined || value === '') return '$ 0,00';
-  try {
-    const num = value instanceof Decimal ? value.toNumber() : Number(value);
-    if (isNaN(num)) return '$ 0,00';
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(num);
-  } catch {
-    return '$ 0,00';
-  }
-}
-
-/**
  * Formats quantity values cleanly removing trailing zeroes up to 4 decimal places.
  */
 export function formatQuantity(value: string | number | Decimal | null | undefined): string {

@@ -4,9 +4,9 @@ import type { ICheckListItem } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { parseApiError } from '@/lib/errors/parse-api-error';
 import { useCheckActionMutation, useCheckDetailQuery } from '../hooks/use-checks';
+import { formatCurrency } from '@/lib/money';
 
 interface Props {
   check: ICheckListItem | null;

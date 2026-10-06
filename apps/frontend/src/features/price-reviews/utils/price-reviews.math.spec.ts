@@ -2,16 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   calculateCostVariation,
   formatPriceReviewDate,
-  formatPriceReviewMoney,
   normalizeCustomPrice,
 } from './price-reviews.math';
 
 describe('price review math', () => {
-  it('formats authoritative decimal strings for Argentina', () => {
-    expect(formatPriceReviewMoney('1250.5')).toBe('$ 1.250,50');
-    expect(formatPriceReviewMoney('invalid')).toBe('—');
-  });
-
   it('calculates positive, negative and zero-base variations without floating point errors', () => {
     expect(calculateCostVariation('100', '112')).toEqual({
       label: '+12,00 %',

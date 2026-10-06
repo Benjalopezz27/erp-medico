@@ -10,11 +10,11 @@ import {
   calculateFinalFromNet,
   calculateNetFromFinal,
   calculateSuggestedPrice,
-  formatCurrency,
 } from '../utils/products.math';
 import { ProductConversionsGrid, type ConversionRowItem } from './ProductConversionsGrid';
 import type { ICategory, IProduct, IUnit, ProductFormValues } from '../types/products.types';
 import { PRODUCT_IVA_RATES, ProductTaxTreatment } from '@erp/shared-types';
+import { formatCurrency } from '@/lib/money';
 
 interface ProductFormProps {
   mode: 'create' | 'edit';

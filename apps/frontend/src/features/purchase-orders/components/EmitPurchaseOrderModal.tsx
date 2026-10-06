@@ -2,8 +2,8 @@ import React from 'react';
 import { Send, AlertCircle, Loader2 } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
-import { formatCurrency } from '../utils/purchase-orders.math';
 import type { IPurchaseOrderDetail } from '../types/purchase-orders.types';
+import { formatCurrency } from '@/lib/money';
 
 export interface EmitPurchaseOrderModalProps {
   isOpen: boolean;

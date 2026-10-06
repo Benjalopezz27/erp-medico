@@ -75,17 +75,6 @@ export function formatDecimalAr(value: string | Decimal, places = 4): string {
   return decimals ? `${grouped},${decimals}` : grouped;
 }
 
-export function formatMoneyAr(value: string | Decimal): string {
-  return `$ ${formatDecimalAr(value, 2)}`;
-}
-
-export function formatSignedMoneyAr(value: string | Decimal): string {
-  const decimal = value instanceof Decimal ? value : safeDecimal(value);
-  if (decimal.gt(0)) return `+$ ${formatDecimalAr(decimal, 2)}`;
-  if (decimal.lt(0)) return `-$ ${formatDecimalAr(decimal.abs(), 2)}`;
-  return formatMoneyAr(decimal);
-}
-
 export function argentinaToday(): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Argentina/Buenos_Aires',

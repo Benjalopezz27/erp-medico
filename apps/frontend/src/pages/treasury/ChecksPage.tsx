@@ -22,9 +22,9 @@ import {
   CHECK_STATUS_LABELS,
   allowedCheckActions,
 } from '@/features/checks/utils/check-actions';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { formatDate } from '@/features/receivables/utils/receivables.format';
 import { parseApiError } from '@/lib/errors/parse-api-error';
+import { formatCurrency } from '@/lib/money';
 
 const LIMIT = 20;
 

@@ -23,9 +23,9 @@ import {
   calculateInvoiceLine,
   calculateInvoiceTotals,
   formatDecimalAr,
-  formatMoneyAr,
 } from '../utils/supplier-invoices.math';
 import { parseSupplierInvoiceError } from '../utils/supplier-invoices.errors';
+import { formatCurrency } from '@/lib/money';
 
 export function SupplierInvoiceForm({
   receipt,
@@ -315,7 +315,7 @@ export function SupplierInvoiceForm({
                         );
                       })}
                       <td className="px-3 py-3 text-right font-mono font-bold">
-                        {selected ? formatMoneyAr(calculation.net) : '—'}
+                        {selected ? formatCurrency(calculation.net) : '—'}
                       </td>
                       <td className="px-3 py-3">
                         {selected ? (
@@ -345,9 +345,9 @@ export function SupplierInvoiceForm({
           )}
         </section>
         <section className="ml-auto grid max-w-xl gap-2 rounded-xl border bg-slate-50 p-4 text-sm dark:border-slate-800 dark:bg-slate-900">
-          <Total label="Neto" value={formatMoneyAr(totals.netTotal)} />
-          <Total label="IVA" value={formatMoneyAr(totals.taxTotal)} />
-          <Total label="Total" value={formatMoneyAr(totals.totalAmount)} strong />
+          <Total label="Neto" value={formatCurrency(totals.netTotal)} />
+          <Total label="IVA" value={formatCurrency(totals.taxTotal)} />
+          <Total label="Total" value={formatCurrency(totals.totalAmount)} strong />
           {hasExcess && (
             <p className="mt-2 flex gap-2 rounded-lg bg-amber-100 p-3 text-xs text-amber-900">
               <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -392,12 +392,12 @@ export function SupplierInvoiceForm({
               <dt>Líneas</dt>
               <dd className="text-right">{prepared.items.length}</dd>
               <dt>Neto</dt>
-              <dd className="text-right font-mono">{formatMoneyAr(totals.netTotal)}</dd>
+              <dd className="text-right font-mono">{formatCurrency(totals.netTotal)}</dd>
               <dt>IVA</dt>
-              <dd className="text-right font-mono">{formatMoneyAr(totals.taxTotal)}</dd>
+              <dd className="text-right font-mono">{formatCurrency(totals.taxTotal)}</dd>
               <dt className="font-bold">Total</dt>
               <dd className="text-right font-mono font-bold">
-                {formatMoneyAr(totals.totalAmount)}
+                {formatCurrency(totals.totalAmount)}
               </dd>
             </dl>
             {hasExcess && (

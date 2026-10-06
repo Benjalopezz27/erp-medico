@@ -10,7 +10,7 @@ import {
   CustomerStatusBadge,
   CustomerTaxConditionBadge,
 } from './CustomerBadges';
-import { formatCurrency } from '@/features/products/utils/products.math';
+import { formatCurrency } from '@/lib/money';
 
 export function CustomerTable({
   customers,

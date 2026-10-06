@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import type { ICustomer } from '@/features/customers/types/customers.types';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import {
   useCustomerSpecialPriceProductIdsQuery,
   useCustomerSpecialPricesQuery,
@@ -25,6 +24,7 @@ import { parseCustomerPricingError } from '../utils/customer-pricing.errors';
 import { CustomerGeneralDiscountModal } from './CustomerGeneralDiscountModal';
 import { CustomerSpecialPriceDeleteModal } from './CustomerSpecialPriceDeleteModal';
 import { CustomerSpecialPriceFormModal } from './CustomerSpecialPriceFormModal';
+import { formatCurrency } from '@/lib/money';
 
 export function CustomerPricingPanel({
   customer,

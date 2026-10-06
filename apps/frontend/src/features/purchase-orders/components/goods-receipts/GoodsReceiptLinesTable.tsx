@@ -10,7 +10,8 @@ import {
   calculateGoodsReceiptBaseMovement,
   calculateGoodsReceiptSubtotal,
 } from '../../utils/goods-receipt.math';
-import { formatCurrency, formatQuantity } from '../../utils/purchase-orders.math';
+import { formatQuantity } from '../../utils/purchase-orders.math';
+import { formatCurrency } from '@/lib/money';
 
 interface GoodsReceiptLinesTableProps {
   orderItems: IPurchaseOrderItemDetail[];

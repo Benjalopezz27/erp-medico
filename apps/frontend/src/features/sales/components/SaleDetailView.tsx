@@ -3,9 +3,10 @@ import type { ReactNode } from 'react';
 import { Calendar, UserRound } from 'lucide-react';
 import { CustomerPricingRuleApplied, ProductTaxTreatment, type ISale } from '@erp/shared-types';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatDecimal } from '@/features/products/utils/products.math';
+import { formatDecimal } from '@/features/products/utils/products.math';
 import { FiscalStatusBadge } from './FiscalStatusBadge';
 import { FiscalDocumentActions } from './FiscalDocumentActions';
+import { formatCurrency } from '@/lib/money';
 
 const ruleLabels: Record<CustomerPricingRuleApplied, string> = {
   FIXED_PRICE: 'Precio fijo',

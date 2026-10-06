@@ -2,11 +2,8 @@ import { AlertTriangle, Boxes, Calculator, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import type { ISupplierInvoiceDetail } from '../types/supplier-invoices.types';
-import {
-  formatDecimalAr,
-  formatMoneyAr,
-  formatSignedMoneyAr,
-} from '../utils/supplier-invoices.math';
+import { formatDecimalAr } from '../utils/supplier-invoices.math';
+import { formatCurrency } from '@/lib/money';
 
 export function SupplierInvoiceConfirmationModal({
   invoice,
@@ -86,13 +83,13 @@ export function SupplierInvoiceConfirmationModal({
                     {formatDecimalAr(item.allocatedReceivedQtyBase, 2)} u. base
                   </td>
                   <td className="px-3 py-3 text-right font-mono">
-                    {formatMoneyAr(item.provisionalCostUnitNet)} / {item.purchaseUnitSymbol}
+                    {formatCurrency(item.provisionalCostUnitNet)} / {item.purchaseUnitSymbol}
                   </td>
                   <td className="px-3 py-3 text-right font-mono">
-                    {formatMoneyAr(item.realCostUnitNet)} / {item.purchaseUnitSymbol}
+                    {formatCurrency(item.realCostUnitNet)} / {item.purchaseUnitSymbol}
                   </td>
                   <td className="px-3 py-3 text-right font-mono">
-                    {formatSignedMoneyAr(item.costDifferenceUnitNet)}
+                    {formatCurrency(item.costDifferenceUnitNet, { signed: true })}
                   </td>
                 </tr>
               ))}

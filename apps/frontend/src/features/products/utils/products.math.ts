@@ -89,27 +89,6 @@ export function calculateFinalFromNet(
 }
 
 /**
- * Formats a numeric value as ARS currency ($ 1.234,56).
- */
-export function formatCurrency(value?: number | string | null): string {
-  if (value === null || value === undefined || value === '') {
-    return '—';
-  }
-
-  const num = typeof value === 'string' ? parseFloat(value) : value;
-  if (isNaN(num)) {
-    return '—';
-  }
-
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num);
-}
-
-/**
  * Formats a general decimal number with specified decimal places.
  */
 export function formatDecimal(value?: number | string | null, decimals = 2): string {

@@ -4,10 +4,10 @@ import { ArcaStatus, PdfArtifactStatus, type IFiscalDocument } from '@erp/shared
 import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FiscalStatusBadge } from '@/features/sales/components/FiscalStatusBadge';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { SortableTh } from '@/components/ui/sortable-th';
 import type { SortOrder } from '@erp/shared-types';
 import type { FiscalAlertSortField, IFiscalAlertRow } from '../types/fiscal-alerts.types';
+import { formatCurrency } from '@/lib/money';
 
 function formatDateTime(value: string | null): string {
   if (!value) return '—';

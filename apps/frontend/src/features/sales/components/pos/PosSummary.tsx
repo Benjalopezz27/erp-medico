@@ -1,8 +1,8 @@
 import { AlertCircle, Loader2, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from '@tanstack/react-router';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import type { ParsedSalesError, PosPreviewTotals } from '../../types/sales.types';
+import { formatCurrency } from '@/lib/money';
 
 export function PosSummary({
   totals,

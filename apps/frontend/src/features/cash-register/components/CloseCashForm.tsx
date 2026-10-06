@@ -3,10 +3,10 @@ import { AlertCircle } from 'lucide-react';
 import Decimal from 'decimal.js';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { formatCurrency } from '@/features/products/utils/products.math';
 import { parseApiError } from '@/lib/errors/parse-api-error';
 import { useCloseCashRegisterMutation } from '../hooks/use-cash-register';
 import { cashDifference, isValidBalance, normalizeBalance } from '../utils/cash-register.math';
+import { formatCurrency } from '@/lib/money';
 
 export function CloseCashForm({ expectedBalance }: { expectedBalance: string }) {
   const [actual, setActual] = useState('');
