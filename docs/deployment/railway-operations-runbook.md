@@ -10,7 +10,8 @@ This runbook starts after the repository owner provisions Railway. It provides o
 2. Confirm backend, frontend, and PostgreSQL belong to the `staging` environment.
 3. Confirm only frontend has public networking.
 4. Review staged Railway configuration and variables without exposing values.
-5. Deploy PostgreSQL, then backend, then frontend.
+5. Deploy PostgreSQL, then backend, then frontend. After CI passes on `dev` (staging) or `main` (production), the `Deploy Railway` workflow does this in order: backend, worker, frontend. Each step waits for a `SUCCESS` deployment (build, pre-deploy migration, healthcheck) before the next starts.
+   - One-time setup: disable GitHub auto-deploy on `backend`, `worker` and `frontend` in both environments (otherwise Railway deploys them in parallel). Create a Railway project token per environment and store it as `RAILWAY_TOKEN` in the matching GitHub Environment (`staging`, `production`).
 6. Confirm the backend pre-deploy migration exits successfully.
 7. Confirm both application health checks pass (`/api/v1/health/ready` or `/api/v1/health`).
 8. Run the `Verify Railway Staging` GitHub workflow with the exact commit SHA.
@@ -92,6 +93,8 @@ The API enforces in-memory rate limiting via `@nestjs/throttler`:
 - Before a risky migration (drops, renames, type changes, backfills) take a
   `backup.sh --label pre-migration` backup — see [backup-restore-runbook.md](backup-restore-runbook.md) §5.
 - A failed migration must leave the new backend deployment inactive. Inspect the pre-deploy logs and fix the migration; never bypass it by starting the API manually.
+- If the backend step of `Deploy Railway` fails (migration or health check), the workflow stops: worker and frontend are not deployed and keep serving the previous version, which is compatible with the previous backend. Fix forward and push again, or re-run the failed workflow.
+- Ordering does not cover a backend rollback while the frontend is new: backend changes must stay expand-only (see §6).
 - A failed health check must leave the prior healthy deployment serving traffic. Review `PORT`, database references, application logs, and the health response.
 - A frontend `502` for `/api/v1` usually means `BACKEND_HOST` is incorrect or the backend is unhealthy inside the same Railway environment.
 
