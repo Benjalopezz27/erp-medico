@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Deploy one Railway service and block until it is healthy (SUCCESS) or fails.
-# Usage: deploy-service.sh <service> <environment> <commit-sha>
-# Needs RAILWAY_TOKEN (project token of the target environment), railway CLI, curl, jq.
-# Status is read via the GraphQL API: project tokens are not accepted by every CLI query.
+# Usage: deploy-service.sh <service> <commit-sha>
+# Needs RAILWAY_TOKEN (project token of the target environment), curl, jq.
+# Uses the GraphQL API only: the railway CLI rejects project tokens on some commands.
 set -euo pipefail
 
-service=$1 environment=$2 sha=$3
+service=$1 sha=$2
 timeout_s=${DEPLOY_TIMEOUT_S:-900}
 api=https://backboard.railway.com/graphql/v2
 
@@ -36,7 +36,9 @@ latest() { # prints "<id> <status>" of the newest deployment
 }
 
 read -r before _ <<<"$(latest)"
-railway up --detach --service "$service" --environment "$environment" --message "$sha"
+# Deploys the exact commit from the GitHub repo connected to the service.
+gql 'mutation($s:String!,$e:String!,$c:String!){ serviceInstanceDeployV2(serviceId:$s, environmentId:$e, commitSha:$c) }' \
+  "$(jq -n --arg s "$service_id" --arg e "$environment_id" --arg c "$sha" '{s:$s,e:$e,c:$c}')" >/dev/null
 
 deadline=$((SECONDS + timeout_s))
 while ((SECONDS < deadline)); do

@@ -28,7 +28,6 @@ jobs:
     environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
     env:
       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-      RAILWAY_ENV: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
       HEAD_SHA: ${{ github.sha }}
     steps:
       - name: Checkout pushed SHA
@@ -48,14 +47,11 @@ jobs:
           [ -n "$run_id" ] || { echo "::error::CI run not found for $HEAD_SHA"; exit 1; }
           gh run watch "$run_id" --exit-status
 
-      - name: Install Railway CLI
-        run: npm install --global @railway/cli@5.63.3
-
       - name: Deploy backend (migrations + healthcheck)
-        run: ops/railway/deploy-service.sh backend "$RAILWAY_ENV" "$HEAD_SHA"
+        run: ops/railway/deploy-service.sh backend "$HEAD_SHA"
 
       - name: Deploy worker
-        run: ops/railway/deploy-service.sh worker "$RAILWAY_ENV" "$HEAD_SHA"
+        run: ops/railway/deploy-service.sh worker "$HEAD_SHA"
 
       - name: Deploy frontend
-        run: ops/railway/deploy-service.sh frontend "$RAILWAY_ENV" "$HEAD_SHA"
+        run: ops/railway/deploy-service.sh frontend "$HEAD_SHA"
