@@ -9,9 +9,9 @@
 
 ## 2. Vistas: un solo `formatCurrency`
 
-- [ ] 2.1 Reemplazar usos de `formatCurrency` (products, purchase-orders) y borrar sus definiciones; verificar con tests de esos features y typecheck
-- [ ] 2.2 Reemplazar `formatMoneyAr`/`formatSignedMoneyAr` (supplier-invoices) y `formatPriceReviewMoney` (price-reviews); verificar tests y typecheck
-- [ ] 2.3 Reemplazar `toLocaleString`/`Intl.NumberFormat` de montos (importer `usualCostNet`, reports, dashboard, sales, cash-register, treasury, receivables, checks, payments); verificar con tests de cada feature
+- [x] 2.1 Reemplazar usos de `formatCurrency` (products, purchase-orders) y borrar sus definiciones; verificar con tests de esos features y typecheck
+- [x] 2.2 Reemplazar `formatMoneyAr`/`formatSignedMoneyAr` (supplier-invoices) y `formatPriceReviewMoney` (price-reviews); verificar tests y typecheck
+- [x] 2.3 Reemplazar `toLocaleString`/`Intl.NumberFormat` de montos (importer `usualCostNet`, reports, dashboard, sales, cash-register, treasury, receivables, checks, payments); verificar con tests de cada feature
 
 ## 3. Inputs: migrar a `MoneyInput` por feature
 

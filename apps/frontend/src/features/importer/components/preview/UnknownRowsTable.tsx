@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatCurrency } from '@/lib/money';
 import { HelpCircle, Link as LinkIcon, CheckCircle2 } from 'lucide-react';
 import type { IImporterUnknownRow } from '../../types/importer.types';
 
@@ -69,11 +70,7 @@ export const UnknownRowsTable: React.FC<UnknownRowsTableProps> = ({ rows, onReso
                   {row.supplierDescription || <span className="text-slate-400 italic">-</span>}
                 </td>
                 <td className="py-3 px-4 text-right font-mono font-semibold text-slate-900 dark:text-slate-100">
-                  $
-                  {Number(row.usualCostNet).toLocaleString('es-AR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
+                  {formatCurrency(row.usualCostNet, { decimals: 4 })}
                 </td>
                 <td className="py-3 px-4 text-center font-mono text-xs text-slate-600 dark:text-slate-400">
                   {row.rawQuantity || <span className="text-slate-400 italic">-</span>}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatCurrency } from '@/lib/money';
 import {
   X,
   Link as LinkIcon,
@@ -171,11 +172,7 @@ export const ResolveUnknownDrawer: React.FC<ResolveUnknownDrawerProps> = ({
               <div>
                 <span className="text-xs text-slate-400 block">Costo Neto en Archivo:</span>
                 <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                  $
-                  {Number(row.usualCostNet).toLocaleString('es-AR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 4,
-                  })}
+                  {formatCurrency(row.usualCostNet, { decimals: 4 })}
                 </span>
               </div>
               {row.supplierDescription && (
