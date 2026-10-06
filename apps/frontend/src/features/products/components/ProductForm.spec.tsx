@@ -195,7 +195,7 @@ describe('ProductForm', () => {
 
     await user.selectOptions(screen.getByLabelText(/Alícuota de IVA/i), '10.5');
     await waitFor(() => expect(screen.getByTestId('active-price-net')).toHaveTextContent(/109,50/));
-    expect(final).toHaveValue(121);
+    expect(final).toHaveValue('121');
 
     await user.selectOptions(
       screen.getByLabelText(/Tratamiento de IVA/i),
@@ -227,7 +227,7 @@ describe('ProductForm', () => {
     );
 
     // 1355 * 1.21 = 1639.55
-    expect(screen.getByLabelText(/Precio final con IVA/i)).toHaveValue(1639.55);
+    expect(screen.getByLabelText(/Precio final con IVA/i)).toHaveValue('1.639,55');
     expect(screen.getByTestId('active-price-net')).toHaveTextContent(/1\.355,00/);
 
     await user.click(screen.getByRole('button', { name: /Guardar Cambios/i }));

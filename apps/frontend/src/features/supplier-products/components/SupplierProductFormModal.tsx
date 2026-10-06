@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
 import { AlertTriangle, Info, Loader2, Package } from 'lucide-react';
 import { ProductSearchInput } from '@/features/products/components/ProductSearchInput';
 import { useUnitsQuery } from '@/features/units/hooks/use-units-query';
@@ -341,22 +342,23 @@ export const SupplierProductFormModal: React.FC<SupplierProductFormModalProps> =
           >
             Costo Neto Habitual (Opcional)
           </label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">
-              $
-            </span>
-            <Input
-              id="usualCostNet"
-              type="number"
-              step="0.0001"
-              placeholder="ej: 1500.50"
-              className="pl-7"
-              disabled={isLoading}
-              {...register('usualCostNet', {
-                setValueAs: (v) => (v === '' || v === null || v === undefined ? null : Number(v)),
-              })}
-            />
-          </div>
+          <Controller
+            name="usualCostNet"
+            control={control}
+            render={({ field }) => (
+              <MoneyInput
+                id="usualCostNet"
+                decimals={4}
+                max="99999999.9999"
+                placeholder="ej: 1.500,50"
+                disabled={isLoading}
+                value={field.value === null || field.value === undefined ? '' : String(field.value)}
+                onValueChange={(raw) => field.onChange(raw === '' ? null : Number(raw))}
+                onBlur={field.onBlur}
+                ref={field.ref}
+              />
+            )}
+          />
           {errors.usualCostNet && (
             <p className="text-xs text-rose-500">{errors.usualCostNet.message}</p>
           )}
