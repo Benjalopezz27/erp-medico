@@ -6,7 +6,7 @@ import {
   type IPriceReviewDetail,
 } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
 import { Modal } from '@/components/ui/modal';
 import {
   useApprovePriceReviewMutation,
@@ -187,14 +187,14 @@ export function PriceReviewDecisionModal({
             >
               Nuevo precio neto activo
             </label>
-            <Input
+            <MoneyInput
               id="price-review-custom-price"
+              max="9999999999.99"
               value={customPrice}
-              onChange={(event) => {
-                setCustomPrice(event.target.value);
+              onValueChange={(raw) => {
+                setCustomPrice(raw);
                 setError(undefined);
               }}
-              inputMode="decimal"
               placeholder="Ej.: 165,50"
               disabled={isPending}
               aria-invalid={customPrice.length > 0 && !customValidation.success}

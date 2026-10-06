@@ -110,7 +110,7 @@ describe('GoodsReceiptForm', () => {
 
     expect(await screen.findByText(/saldos fueron actualizados/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Cantidad a recibir de Curitas/i)).toHaveValue('');
-    expect(screen.getByLabelText(/Costo provisional de Curitas/i)).toHaveValue('120.0000');
+    expect(screen.getByLabelText(/Costo provisional de Curitas/i)).toHaveValue('120,0000');
     expect(screen.getByLabelText(/Número de remito/i)).toHaveValue('0001-00001234');
   });
 });

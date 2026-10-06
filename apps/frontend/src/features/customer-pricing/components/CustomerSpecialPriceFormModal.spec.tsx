@@ -41,7 +41,7 @@ describe('CustomerSpecialPriceFormModal', () => {
     create.mockResolvedValue({});
     const { user } = renderWithProviders(<CustomerSpecialPriceFormModal {...common} rule={null} />);
     await user.click(screen.getByRole('button', { name: /seleccionar producto \(product-old\)/i }));
-    await user.type(screen.getByLabelText(/precio neto fijo/i), '125.5');
+    await user.type(screen.getByLabelText(/precio neto fijo/i), '125,5');
     await user.click(screen.getByRole('button', { name: /guardar excepción/i }));
     expect(create).toHaveBeenCalledWith({
       productId: 'product-new',

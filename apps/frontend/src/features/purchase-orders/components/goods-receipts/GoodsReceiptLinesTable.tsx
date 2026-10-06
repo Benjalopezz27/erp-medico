@@ -1,7 +1,14 @@
 import React from 'react';
-import { useWatch, type Control, type FieldErrors, type UseFormRegister } from 'react-hook-form';
+import {
+  Controller,
+  useWatch,
+  type Control,
+  type FieldErrors,
+  type UseFormRegister,
+} from 'react-hook-form';
 import Decimal from 'decimal.js';
 import { AlertCircle } from 'lucide-react';
+import { MoneyInput } from '@/components/ui/money-input';
 import type {
   IGoodsReceiptFormData,
   IPurchaseOrderItemDetail,
@@ -132,16 +139,25 @@ export const GoodsReceiptLinesTable: React.FC<GoodsReceiptLinesTableProps> = ({
                   <label htmlFor={`receipt-cost-${item.id}`} className="sr-only">
                     Costo provisional de {item.productName}
                   </label>
-                  <input
-                    id={`receipt-cost-${item.id}`}
-                    type="text"
-                    inputMode="decimal"
-                    autoComplete="off"
-                    disabled={disabled || quantity === ''}
-                    aria-invalid={Boolean(costError)}
-                    aria-describedby={costError ? `receipt-cost-error-${item.id}` : undefined}
-                    className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-2 font-mono text-right text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-100 disabled:opacity-70 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:disabled:bg-slate-800"
-                    {...register(`items.${index}.provisionalCostUnitNet`)}
+                  <Controller
+                    name={`items.${index}.provisionalCostUnitNet`}
+                    control={control}
+                    render={({ field }) => (
+                      <MoneyInput
+                        id={`receipt-cost-${item.id}`}
+                        decimals={4}
+                        max="99999999.9999"
+                        showMagnitude={false}
+                        disabled={disabled || quantity === ''}
+                        aria-invalid={Boolean(costError)}
+                        aria-describedby={costError ? `receipt-cost-error-${item.id}` : undefined}
+                        className="h-9 font-mono"
+                        value={field.value}
+                        onValueChange={field.onChange}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                      />
+                    )}
                   />
                   {costError && (
                     <p

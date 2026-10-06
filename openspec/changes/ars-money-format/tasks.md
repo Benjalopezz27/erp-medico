@@ -15,11 +15,11 @@
 
 ## 3. Inputs: migrar a `MoneyInput` por feature
 
-- [ ] 3.1 products (ProductForm), supplier-products (SupplierProductFormModal), importer (ResolveUnknownDrawer, EditAssociationDrawer); costos con `decimals=4`; verificar tests de forms
-- [ ] 3.2 cash-register (OpenCashForm, CloseCashForm) y treasury (NewMovementModal); verificar tests
-- [ ] 3.3 payments (PaymentFormPage), supplier-invoices (SupplierInvoiceForm), purchase-orders (GoodsReceiptLinesTable si es monto); verificar tests
-- [ ] 3.4 customers (CustomerFormModal si es monto), customer-pricing, prices (MarkupFormModal solo si es monto), price-reviews (PriceReviewDecisionModal); verificar tests
-- [ ] 3.5 Confirmar que cantidad/stock/porcentaje/factor (StockAdjustmentModal, QuarantineCreateModal, ProductConversionsGrid, SaleReturnItemRow, PosCart cantidad) siguen sin `MoneyInput`
+- [x] 3.1 products (ProductForm), supplier-products (SupplierProductFormModal), importer (ResolveUnknownDrawer, EditAssociationDrawer); costos con `decimals=4`; verificar tests de forms
+- [x] 3.2 cash-register (OpenCashForm, CloseCashForm) y treasury (NewMovementModal); verificar tests
+- [x] 3.3 payments (PaymentFormPage), supplier-invoices (SupplierInvoiceForm), purchase-orders (GoodsReceiptLinesTable si es monto); verificar tests
+- [x] 3.4 customers (CustomerFormModal si es monto), customer-pricing, prices (MarkupFormModal solo si es monto), price-reviews (PriceReviewDecisionModal); verificar tests
+- [x] 3.5 Confirmar que cantidad/stock/porcentaje/factor (StockAdjustmentModal, QuarantineCreateModal, ProductConversionsGrid, SaleReturnItemRow, PosCart cantidad) siguen sin `MoneyInput`
 
 ## 4. Cierre
 
