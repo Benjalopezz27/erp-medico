@@ -2,16 +2,16 @@
 
 ## 1. Backend — datos y mail
 
-- [ ] 1.1 Entidad `PasswordResetToken` + migración `CreatePasswordResetTokens`; verificar con `pnpm --filter backend build` y migración local up/down.
-- [ ] 1.2 `modules/mail`: `MailService` (Resend por `fetch`, modo log en dev/test) + spec con `fetch` mockeado (éxito, error HTTP, modo log).
-- [ ] 1.3 Cola `mail-send`: constantes, `MailQueueService`, `MailSendProcessor` (arma link con `APP_PUBLIC_URL`) + specs; registrar en módulos producer/consumer.
+- [x] 1.1 Entidad `PasswordResetToken` + migración `CreatePasswordResetTokens`; verificar con `pnpm --filter backend build` y migración local up/down.
+- [x] 1.2 `modules/mail`: `MailService` (Resend por `fetch`, modo log en dev/test) + spec con `fetch` mockeado (éxito, error HTTP, modo log).
+- [x] 1.3 Cola `mail-send`: constantes, `MailQueueService`, `MailSendProcessor` (arma link con `APP_PUBLIC_URL`) + specs; registrar en módulos producer/consumer.
 
 ## 2. Backend — API
 
-- [ ] 2.1 DTOs `ForgotPasswordDto`/`ResetPasswordDto` + export en `dto/index.ts`.
-- [ ] 2.2 `PasswordRecoveryService` (forgot/reset) + spec: activo, inexistente, inactivo, token válido, vencido, reusado, invalidación de previos.
-- [ ] 2.3 Endpoints en `AuthController` con `@Throttle` (IP + email) y Swagger 200/400/429; actualizar `auth.controller.spec.ts`.
-- [ ] 2.4 Env `MAIL_API_KEY`, `MAIL_FROM`, `APP_PUBLIC_URL` en `.env.example` y `docs/deployment/mail-provider.md`; nota en `docs/DEBT.md` D-10.
+- [x] 2.1 DTOs `ForgotPasswordDto`/`ResetPasswordDto` + export en `dto/index.ts`.
+- [x] 2.2 `PasswordRecoveryService` (forgot/reset) + spec: activo, inexistente, inactivo, token válido, vencido, reusado, invalidación de previos.
+- [x] 2.3 Endpoints en `AuthController` con `@Throttle` (IP + email) y Swagger 200/400/429; actualizar `auth.controller.spec.ts`.
+- [x] 2.4 Env `MAIL_API_KEY`, `MAIL_FROM`, `APP_PUBLIC_URL` en `.env.example` y `docs/deployment/mail-provider.md`; nota en `docs/DEBT.md` D-10.
 
 ## 3. Frontend
 

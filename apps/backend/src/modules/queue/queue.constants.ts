@@ -5,3 +5,5 @@ export const FISCAL_INVOICE_QUEUE_NAME = 'wsfe-emit';
 export const FISCAL_INVOICE_JOB_NAME = 'wsfe-emit-job';
 export const PDF_GENERATE_QUEUE_NAME = 'pdf-generate';
 export const PDF_GENERATE_JOB_NAME = 'pdf-generate-job';
+export const MAIL_SEND_QUEUE_NAME = 'mail-send';
+export const MAIL_SEND_JOB_NAME = 'mail-send-job';
