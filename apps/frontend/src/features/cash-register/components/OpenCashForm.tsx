@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
 import { parseApiError } from '@/lib/errors/parse-api-error';
 import { useOpenCashRegisterMutation } from '../hooks/use-cash-register';
 import { isValidBalance, normalizeBalance } from '../utils/cash-register.math';
@@ -25,12 +25,11 @@ export function OpenCashForm() {
       <h2 className="text-sm font-semibold text-slate-900">Apertura de caja</h2>
       <label className="block space-y-1 text-xs font-semibold">
         Saldo inicial
-        <Input
+        <MoneyInput
           aria-label="Saldo inicial"
-          inputMode="decimal"
           className="font-mono"
           value={balance}
-          onChange={(e) => setBalance(e.target.value)}
+          onValueChange={setBalance}
         />
       </label>
       {(error || mutation.isError) && (

@@ -7,6 +7,7 @@ import {
 } from '@erp/shared-types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { MoneyInput } from '@/components/ui/money-input';
 import { Modal } from '@/components/ui/modal';
 import { Select } from '@/components/ui/select';
 import { parseApiError } from '@/lib/errors/parse-api-error';
@@ -101,12 +102,11 @@ export function NewMovementModal({ isOpen, onClose }: Props) {
         </label>
         <label className="block space-y-1 text-xs font-semibold">
           Monto
-          <Input
+          <MoneyInput
             aria-label="Monto"
-            inputMode="decimal"
             className="font-mono"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onValueChange={setAmount}
           />
           {errors.amount && <span className="text-rose-600">{errors.amount}</span>}
         </label>

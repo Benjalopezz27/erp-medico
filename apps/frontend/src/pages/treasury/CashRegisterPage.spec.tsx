@@ -74,9 +74,9 @@ describe('CashRegisterPage', () => {
     await waitFor(() => expect(body).toEqual({ openingBalance: '1500.50' }));
   });
 
-  it('rejects an invalid opening balance without calling the API', async () => {
+  it('rejects an empty opening balance without calling the API', async () => {
     const { user } = renderPage(closedState);
-    await user.type(await screen.findByLabelText('Saldo inicial'), '-5');
+    await screen.findByLabelText('Saldo inicial');
     await user.click(screen.getByRole('button', { name: /abrir caja/i }));
     expect(await screen.findByText(/monto válido/i)).toBeInTheDocument();
   });

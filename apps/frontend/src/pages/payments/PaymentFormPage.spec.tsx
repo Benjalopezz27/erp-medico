@@ -72,10 +72,10 @@ describe('PaymentFormPage', () => {
     const { user } = renderPage();
     await screen.findByText('V-00000001');
 
-    await user.type(screen.getByLabelText('Total cobrado'), '250.00');
+    await user.type(screen.getByLabelText('Total cobrado'), '250,00');
 
-    expect(amountInput('V-00000001')).toHaveValue('150.00');
-    expect(amountInput('V-00000002')).toHaveValue('100.00');
+    expect(amountInput('V-00000001')).toHaveValue('150,00');
+    expect(amountInput('V-00000002')).toHaveValue('100,00');
     expect(amountInput('V-00000003')).toHaveValue('');
     expect(submit()).toBeEnabled();
   });
@@ -86,13 +86,13 @@ describe('PaymentFormPage', () => {
     await screen.findByText('V-00000001');
     await user.click(screen.getByLabelText('Selección manual'));
 
-    await user.type(screen.getByLabelText('Total cobrado'), '100.00');
-    await user.type(amountInput('V-00000001'), '80.00');
+    await user.type(screen.getByLabelText('Total cobrado'), '100,00');
+    await user.type(amountInput('V-00000001'), '80,00');
     expect(screen.getByText(/no coincide con el cobrado/i)).toBeInTheDocument();
     expect(submit()).toBeDisabled();
 
     await user.clear(amountInput('V-00000001'));
-    await user.type(amountInput('V-00000001'), '100.00');
+    await user.type(amountInput('V-00000001'), '100,00');
     expect(submit()).toBeEnabled();
   });
 
@@ -101,8 +101,8 @@ describe('PaymentFormPage', () => {
     const { user } = renderPage();
     await screen.findByText('V-00000001');
     await user.click(screen.getByLabelText('Selección manual'));
-    await user.type(screen.getByLabelText('Total cobrado'), '160.00');
-    await user.type(amountInput('V-00000001'), '160.00');
+    await user.type(screen.getByLabelText('Total cobrado'), '160,00');
+    await user.type(amountInput('V-00000001'), '160,00');
     expect(screen.getByText(/excede el saldo/i)).toBeInTheDocument();
     expect(submit()).toBeDisabled();
   });
@@ -118,7 +118,7 @@ describe('PaymentFormPage', () => {
     );
     const { user } = renderPage();
     await screen.findByText('V-00000001');
-    await user.type(screen.getByLabelText('Total cobrado'), '250.00');
+    await user.type(screen.getByLabelText('Total cobrado'), '250,00');
     await user.click(submit());
 
     await waitFor(() => expect(screen.getByText('Recibo emitido')).toBeInTheDocument());
@@ -143,7 +143,7 @@ describe('PaymentFormPage', () => {
     );
     const { user } = renderPage();
     await screen.findByText('V-00000001');
-    await user.type(screen.getByLabelText('Total cobrado'), '250.00');
+    await user.type(screen.getByLabelText('Total cobrado'), '250,00');
     await user.click(submit());
     expect(await screen.findByText(/excede el saldo total/i)).toBeInTheDocument();
   });
@@ -172,7 +172,7 @@ describe('PaymentFormPage', () => {
       const { user } = renderPage();
       await screen.findByText('V-00000001');
       await user.selectOptions(screen.getByLabelText('Medio de cobro'), PaymentMethod.CHEQUE);
-      await user.type(screen.getByLabelText('Total cobrado'), '250.00');
+      await user.type(screen.getByLabelText('Total cobrado'), '250,00');
       expect(submit()).toBeDisabled();
 
       await fillCheck(user);
@@ -191,7 +191,7 @@ describe('PaymentFormPage', () => {
       const { user } = renderPage();
       await screen.findByText('V-00000001');
       await user.selectOptions(screen.getByLabelText('Medio de cobro'), PaymentMethod.CHEQUE);
-      await user.type(screen.getByLabelText('Total cobrado'), '250.00');
+      await user.type(screen.getByLabelText('Total cobrado'), '250,00');
       await fillCheck(user);
       await user.click(submit());
 
