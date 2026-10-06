@@ -21,6 +21,6 @@
 
 ## 4. Verificación
 
-- [ ] 4.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build`.
-- [ ] 4.2 Smoke con Chrome: forgot → link logueado → reset → login con clave nueva.
+- [x] 4.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build`.
+- [x] 4.2 Smoke con Chrome: forgot → link logueado → reset → login con clave nueva.
 - [ ] 4.3 (Pendiente owner) Mail real en staging desde dominio verificado.
