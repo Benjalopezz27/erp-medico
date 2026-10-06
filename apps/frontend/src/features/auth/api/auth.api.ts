@@ -13,3 +13,18 @@ export async function registerRequest(
   const response = await publicApiClient.post<{ message: string }>('/auth/register', data);
   return response.data;
 }
+
+export async function forgotPasswordRequest(email: string): Promise<{ message: string }> {
+  const response = await publicApiClient.post<{ message: string }>('/auth/forgot-password', {
+    email,
+  });
+  return response.data;
+}
+
+export async function resetPasswordRequest(data: {
+  token: string;
+  newPassword: string;
+}): Promise<{ message: string }> {
+  const response = await publicApiClient.post<{ message: string }>('/auth/reset-password', data);
+  return response.data;
+}

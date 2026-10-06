@@ -9,6 +9,8 @@ import { AppShell } from '@/components/layout/AppShell';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { LoginPage } from '@/pages/LoginPage';
 import { SignupPage } from '@/pages/SignupPage';
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { AccountPage } from '@/pages/AccountPage';
 import { HelpView } from '@/features/help/HelpView';
 import { TermsView } from '@/features/legal/TermsView';
@@ -572,6 +574,24 @@ const signupRoute = createRoute({
   component: () => <SignupPage />,
 });
 
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: '/forgot-password',
+  component: () => <ForgotPasswordPage />,
+});
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: '/reset-password',
+  validateSearch: (search: Record<string, unknown>): { token?: string } => ({
+    token: typeof search.token === 'string' && search.token ? search.token : undefined,
+  }),
+  component: function ResetPasswordRouteComponent() {
+    const { token } = resetPasswordRoute.useSearch();
+    return <ResetPasswordPage token={token} />;
+  },
+});
+
 // Public (no auth guard, reachable with or without session)
 const termsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -880,7 +900,7 @@ const priceReviewsRoute = createRoute({
 
 // 4. Build Route Tree
 const routeTree = rootRoute.addChildren([
-  authLayoutRoute.addChildren([loginRoute, signupRoute]),
+  authLayoutRoute.addChildren([loginRoute, signupRoute, forgotPasswordRoute, resetPasswordRoute]),
   termsRoute,
   appShellRoute.addChildren([
     indexRoute,

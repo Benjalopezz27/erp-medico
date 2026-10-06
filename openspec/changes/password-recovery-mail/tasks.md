@@ -15,9 +15,9 @@
 
 ## 3. Frontend
 
-- [ ] 3.1 Schemas zod + `auth.api.ts` + hooks de mutación, con specs.
-- [ ] 3.2 `ForgotPasswordPage` y `ResetPasswordPage` (estados token inválido, éxito → login) + specs; rutas públicas en `router.tsx`.
-- [ ] 3.3 Link "¿Olvidaste tu contraseña?" en `LoginPage.tsx` + actualizar `LoginPage.spec.tsx`.
+- [x] 3.1 Schemas zod + `auth.api.ts` + hooks de mutación, con specs.
+- [x] 3.2 `ForgotPasswordPage` y `ResetPasswordPage` (estados token inválido, éxito → login) + specs; rutas públicas en `router.tsx`.
+- [x] 3.3 Link "¿Olvidaste tu contraseña?" en `LoginPage.tsx` + actualizar `LoginPage.spec.tsx`.
 
 ## 4. Verificación
 

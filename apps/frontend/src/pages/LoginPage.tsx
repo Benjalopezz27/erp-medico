@@ -118,6 +118,12 @@ export const LoginPage: React.FC = () => {
                 {errors.password.message}
               </p>
             )}
+            <Link
+              to="/forgot-password"
+              className="block text-right text-xs text-blue-400 hover:text-blue-300 underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
           </div>
         </CardContent>
 

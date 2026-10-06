@@ -36,6 +36,14 @@ describe('LoginPage', () => {
     useAuthStore.setState(useAuthStore.getInitialState(), true);
   });
 
+  it('links to the password recovery page', async () => {
+    renderLogin();
+    expect(await screen.findByRole('link', { name: '¿Olvidaste tu contraseña?' })).toHaveAttribute(
+      'href',
+      '/forgot-password',
+    );
+  });
+
   it('starts empty and validates fields without calling the API', async () => {
     const request = vi.fn();
     server.use(
