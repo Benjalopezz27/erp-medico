@@ -23,6 +23,6 @@
 
 ## 4. Cierre
 
-- [ ] 4.1 `grep -rE "toLocaleString|Intl.NumberFormat" apps/frontend/src` no muestra formato de montos suelto (solo cantidades/fechas)
-- [ ] 4.2 Correr `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en limpio
+- [x] 4.1 `grep -rE "toLocaleString|Intl.NumberFormat" apps/frontend/src` no muestra formato de montos suelto (solo cantidades/fechas)
+- [x] 4.2 Correr `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en limpio
 - [ ] 4.3 Smoke test en navegador: tipear `1500000` en ProductForm y CloseCashForm, ver `1.500.000` + ayuda `1,5 M`, guardar y ver `$ 1.500.000,00` en la vista

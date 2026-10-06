@@ -7,11 +7,13 @@ Hoy conviven cinco formateadores (`formatCurrency` ×2, `formatMoneyAr`, `format
 ## Goals / Non-Goals
 
 **Goals:**
+
 - Un solo módulo de formato/parseo de montos, sin aritmética con `number`.
 - Un solo `MoneyInput` reutilizable, compatible con react-hook-form (`value`/`onChange` con string crudo).
 - Migración incremental por feature con PRs/commits revisables.
 
 **Non-Goals:**
+
 - Formateo de cantidades, stock, porcentajes, fechas.
 - Cambios de backend, API o esquema.
 - Conversión de número a palabras en español.

@@ -16,6 +16,7 @@ Los montos se muestran con formatos distintos según la vista y se tipean sin se
 ## Capabilities
 
 ### New Capabilities
+
 - `money-formatting`: formato ARS único para mostrar montos y comportamiento de los inputs de monto.
 
 ### Modified Capabilities
