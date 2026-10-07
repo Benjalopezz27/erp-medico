@@ -15,6 +15,6 @@
 
 ## 3. Verificación
 
-- [ ] 3.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en verde.
-- [ ] 3.2 Smoke con Chrome: bloque en Inicio, descarte persistente tras recargar, carteles una vez.
-- [ ] 3.3 Documentar las claves de `system_settings` en `docs/`.
+- [x] 3.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en verde.
+- [x] 3.2 Smoke con Chrome: bloque en Inicio, descarte persistente tras recargar, carteles una vez.
+- [x] 3.3 Documentar las claves de `system_settings` en `docs/`.
