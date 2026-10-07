@@ -126,3 +126,18 @@ Branch not protected` — a diferencia de un plan que lo bloquea (403 Upgrade), 
   contraseña.
 - **Trigger para resolver:** al agregar refresh tokens o un campo `token_version`/`password_changed_at`
   comparado contra `iat` en `JwtStrategy`; o ante un incidente de cuenta comprometida.
+
+## D-12 · Deuda aceptada de la auditoría #255
+
+- **Qué hay:** hallazgos Medio/Bajo de `docs/audit/2026-09-audit.md` que no bloquean el Go-Live y
+  se aceptan como deuda hasta resolverse en los issues derivados: límite de crédito sin aplicar
+  (M-1), devolución contado sin egreso de caja (M-2), devolución sobre factura cobrada o no
+  emitida (M-3), `RETRIES_EXHAUSTED` con CAE incierto (M-4), cierre de caja con movimientos
+  concurrentes (M-5), transacción abierta durante I/O de ARCA (M-6), JWT en `localStorage` y sin
+  CSP/HSTS (H-3, H-5), dependencias vulnerables sin parche (`node-forge`), y los Bajos B-1 a B-16
+  (`number` en rutas de dinero, status sin auth, hardening de CI, tests faltantes, etc.).
+  H-2 amplía D-10.
+- **Costo de seguir así:** diferencias de arqueo, devoluciones manuales, superficie de XSS mayor,
+  sesiones robadas válidas hasta 8 h.
+- **Trigger para resolver:** antes del Go-Live (DEVOPS-06) los Altos (A-1, A-2, A-3, H-1, issues
+  `type:bug`); los Medio/Bajo según los issues de mejora agrupados.
