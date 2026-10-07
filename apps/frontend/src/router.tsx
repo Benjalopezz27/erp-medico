@@ -4,7 +4,6 @@ import {
   createRootRoute,
   Outlet,
   redirect,
-  isRedirect,
 } from '@tanstack/react-router';
 import { AppShell } from '@/components/layout/AppShell';
 import { AuthLayout } from '@/components/layout/AuthLayout';
@@ -26,14 +25,6 @@ import { ProductCreatePage } from '@/pages/products/ProductCreatePage';
 import { ProductEditPage } from '@/pages/products/ProductEditPage';
 import { ProductBulkLoadPage } from '@/pages/products/ProductBulkLoadPage';
 import { useAuthStore } from '@/stores/authStore';
-import { queryClient } from '@/lib/query-client';
-import { getOnboardingStatusApi } from '@/features/onboarding/api/onboarding.api';
-import { ONBOARDING_KEY } from '@/features/onboarding/hooks/use-onboarding';
-import { OnboardingWizard } from '@/features/onboarding/components/OnboardingWizard';
-import {
-  ONBOARDING_PATH,
-  isAllowedDuringOnboarding,
-} from '@/features/onboarding/utils/onboarding-steps';
 import { isRouteAllowed } from '@/config/permissions.config';
 import {
   UserRole,
@@ -124,31 +115,6 @@ export function validateSettingsSearchParams(search: Record<string, unknown>): {
 
 export function requireAuthentication(): void {
   if (!useAuthStore.getState().isAuthenticated) throw redirect({ to: '/login' });
-}
-
-// Una vez completo no vuelve a incompleto: evita una consulta por navegación.
-let onboardingCompleted = false;
-
-export function resetOnboardingCache(): void {
-  onboardingCompleted = false;
-}
-
-/** Redirige al wizard (solo administradores) mientras falte la configuración inicial. */
-export async function requireOnboarding(pathname: string): Promise<void> {
-  if (onboardingCompleted || isAllowedDuringOnboarding(pathname)) return;
-  if (useAuthStore.getState().user?.role !== UserRole.ADMINISTRADOR) return;
-  try {
-    const status = await queryClient.fetchQuery({
-      queryKey: ONBOARDING_KEY,
-      queryFn: ({ signal }) => getOnboardingStatusApi({ signal }),
-      staleTime: 0,
-    });
-    onboardingCompleted = status.completed;
-    if (!status.completed) throw redirect({ to: ONBOARDING_PATH });
-  } catch (error) {
-    // Si no se pudo consultar, no se bloquea la app: el backend igual responde 428.
-    if (isRedirect(error)) throw error;
-  }
 }
 
 export function redirectAuthenticatedUser(): void {
@@ -638,17 +604,7 @@ const appShellRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: 'app',
   component: () => <AppShell />,
-  beforeLoad: ({ location }) => {
-    requireAuthentication();
-    return requireOnboarding(location.pathname);
-  },
-});
-
-const onboardingRoute = createRoute({
-  getParentRoute: () => appShellRoute,
-  path: ONBOARDING_PATH,
-  beforeLoad: () => requireRole(UserRole.ADMINISTRADOR),
-  component: () => <OnboardingWizard />,
+  beforeLoad: requireAuthentication,
 });
 
 const indexRoute = createRoute({
@@ -948,7 +904,6 @@ const routeTree = rootRoute.addChildren([
   termsRoute,
   appShellRoute.addChildren([
     indexRoute,
-    onboardingRoute,
     productsRoute,
     productCreateRoute,
     productEditRoute,

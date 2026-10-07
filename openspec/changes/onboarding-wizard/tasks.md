@@ -8,10 +8,10 @@
 
 ## 2. Frontend
 
-- [ ] 2.1 Retirar `OnboardingWizard`, ruta `/onboarding`, `requireOnboarding` y el uso del 428.
-- [ ] 2.2 API + hooks (`status`, `dismiss`, `dismissHint`) con specs.
-- [ ] 2.3 `FirstStepsCard` en el Dashboard (admin) con specs: pasos hechos/pendientes, descartar, oculto al completar.
-- [ ] 2.4 `ContextHint` y carteles en Productos, Compras y Ventas con specs.
+- [x] 2.1 Retirar `OnboardingWizard`, ruta `/onboarding`, `requireOnboarding` y el uso del 428.
+- [x] 2.2 API + hooks (`status`, `dismiss`, `dismissHint`) con specs.
+- [x] 2.3 `FirstStepsCard` en el Dashboard (admin) con specs: pasos hechos/pendientes, descartar, oculto al completar.
+- [x] 2.4 `ContextHint` y carteles en Productos, Compras y Ventas con specs.
 
 ## 3. Verificación
 

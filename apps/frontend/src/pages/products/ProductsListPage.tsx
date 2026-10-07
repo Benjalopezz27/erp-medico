@@ -26,6 +26,7 @@ import {
   useReactivateProductMutation,
 } from '@/features/products/hooks/use-product-mutations';
 import { parseProductApiError } from '@/features/products/utils/products.errors';
+import { ContextHint } from '@/features/onboarding/components/ContextHint';
 import type {
   ProductListItem,
   ProductSortField,
@@ -231,6 +232,11 @@ export const ProductsListPage: React.FC = () => {
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto animate-in fade-in duration-200">
+      <ContextHint
+        id="products"
+        title="Catálogo de productos"
+        text="Cada producto necesita una categoría y una unidad. Para cargar muchos de una vez usá la carga masiva."
+      />
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex items-center gap-3">

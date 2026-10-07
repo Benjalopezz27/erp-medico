@@ -1,16 +1,16 @@
-import type { IOnboardingStatus, OnboardingStepId } from '@erp/shared-types';
+import type { ContextHintId, IOnboardingStatus } from '@erp/shared-types';
 import { apiClient } from '@/services/api.client';
 
 export async function getOnboardingStatusApi(options?: { signal?: AbortSignal }) {
   return (await apiClient.get<IOnboardingStatus>('/config/onboarding-status', options)).data;
 }
 
-export async function skipOnboardingStepApi(id: OnboardingStepId) {
-  return (await apiClient.post<IOnboardingStatus>(`/config/onboarding/steps/${id}/skip`)).data;
+export async function dismissOnboardingApi() {
+  return (await apiClient.post<IOnboardingStatus>('/config/onboarding/dismiss')).data;
 }
 
-export async function completeOnboardingApi() {
-  return (await apiClient.post<IOnboardingStatus>('/config/onboarding/complete')).data;
+export async function dismissHintApi(id: ContextHintId) {
+  return (await apiClient.post<IOnboardingStatus>(`/config/hints/${id}/dismiss`)).data;
 }
 
 /** Solo lectura: el certificado se configura por entorno, nunca se sube. */

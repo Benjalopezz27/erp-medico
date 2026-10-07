@@ -1,25 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  completeOnboardingApi,
-  getArcaCertificateApi,
+  dismissHintApi,
+  dismissOnboardingApi,
   getOnboardingStatusApi,
-  skipOnboardingStepApi,
 } from '../api/onboarding.api';
 
 export const ONBOARDING_KEY = ['onboarding-status'] as const;
 
-export function useOnboardingStatusQuery() {
+/** Solo administradores: el endpoint es de rol admin. */
+export function useOnboardingStatusQuery(enabled: boolean) {
   return useQuery({
     queryKey: ONBOARDING_KEY,
     queryFn: ({ signal }) => getOnboardingStatusApi({ signal }),
-    // Se vuelve a consultar al volver de un módulo donde se cargaron datos.
-    staleTime: 0,
-    refetchOnWindowFocus: true,
-    refetchOnMount: 'always',
+    enabled,
+    meta: { skipGlobalErrorToast: true },
   });
 }
 
-function useStatusMutation<T>(fn: (arg: T) => ReturnType<typeof completeOnboardingApi>) {
+function useStatusMutation<T>(fn: (arg: T) => ReturnType<typeof dismissOnboardingApi>) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: fn,
@@ -27,14 +25,5 @@ function useStatusMutation<T>(fn: (arg: T) => ReturnType<typeof completeOnboardi
   });
 }
 
-export const useSkipStepMutation = () => useStatusMutation(skipOnboardingStepApi);
-export const useCompleteOnboardingMutation = () => useStatusMutation(completeOnboardingApi);
-
-export function useArcaCertificateQuery() {
-  return useQuery({
-    queryKey: ['arca-certificate'],
-    queryFn: ({ signal }) => getArcaCertificateApi({ signal }),
-    meta: { skipGlobalErrorToast: true },
-    retry: false,
-  });
-}
+export const useDismissOnboardingMutation = () => useStatusMutation(dismissOnboardingApi);
+export const useDismissHintMutation = () => useStatusMutation(dismissHintApi);
