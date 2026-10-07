@@ -255,11 +255,13 @@ export class WsfeSoapClientService {
       .replace(/&amp;/g, '&');
   }
 
+  /** YYYYMMDD in ART: the server clock may be UTC, which is a day ahead after 21:00 ART. */
   private formatDate(date: Date): string {
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    return `${yyyy}${mm}${dd}`;
+    return date
+      .toLocaleDateString('en-CA', {
+        timeZone: 'America/Argentina/Buenos_Aires',
+      })
+      .replace(/-/g, '');
   }
 
   private post(envelope: string, soapAction: string): Promise<string> {

@@ -98,6 +98,7 @@ export class ArcaCertificateLoader {
       const daysRemaining = Math.floor(msRemaining / (1000 * 60 * 60 * 24));
       const isExpired = msRemaining <= 0;
 
+      // Not logged: the subject carries the emitter's CUIT.
       const subject = cert.subject.attributes
         .map((attr) => `${attr.shortName || attr.name}=${attr.value}`)
         .join(', ');
@@ -107,15 +108,15 @@ export class ArcaCertificateLoader {
 
       if (isExpired) {
         this.logger.error(
-          `[ARCA] Certificate is EXPIRED since ${validTo.toISOString()}. Subject: ${subject}`,
+          `[ARCA] Certificate is EXPIRED since ${validTo.toISOString()}.`,
         );
       } else if (daysRemaining < 30) {
         this.logger.warn(
-          `[ARCA] Certificate will EXPIRE soon in ${daysRemaining} days (on ${validTo.toISOString()}). Subject: ${subject}`,
+          `[ARCA] Certificate will EXPIRE soon in ${daysRemaining} days (on ${validTo.toISOString()}).`,
         );
       } else {
         this.logger.log(
-          `[ARCA] Certificate loaded successfully. Subject: ${subject}, Valid until: ${validTo.toISOString()} (${daysRemaining} days remaining)`,
+          `[ARCA] Certificate loaded successfully. Valid until: ${validTo.toISOString()} (${daysRemaining} days remaining)`,
         );
       }
 
