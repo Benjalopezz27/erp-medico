@@ -2,12 +2,10 @@ server {
     listen 8080;
     server_name _;
 
-    add_header X-Frame-Options "DENY" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    include /etc/nginx/security-headers.conf;
 
     location / {
+        include /etc/nginx/security-headers.conf;
         root /usr/share/nginx/html;
         index index.html;
         try_files $uri $uri/ /index.html;
@@ -15,6 +13,7 @@ server {
     }
 
     location /assets/ {
+        include /etc/nginx/security-headers.conf;
         root /usr/share/nginx/html;
         expires 1y;
         add_header Cache-Control "public, max-age=31536000, immutable";
@@ -22,6 +21,7 @@ server {
     }
 
     location /version.json {
+        include /etc/nginx/security-headers.conf;
         root /usr/share/nginx/html;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
     }
@@ -39,6 +39,9 @@ server {
     }
 
     location /api/docs {
+        # Swagger UI needs inline scripts: skip the strict CSP inherited from the
+        # server block (any add_header here drops the inherited ones).
+        add_header X-Content-Type-Options "nosniff" always;
         proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT};
         proxy_http_version 1.1;
         proxy_set_header Host $host;
