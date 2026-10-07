@@ -19,6 +19,7 @@ export const queryClient = new QueryClient({
   mutationCache: new MutationCache({
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      void queryClient.invalidateQueries({ queryKey: ['onboarding-status'] });
     },
   }),
   queryCache: new QueryCache({

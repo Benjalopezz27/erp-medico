@@ -13,6 +13,7 @@ import type {
   PurchaseOrderStatus,
 } from '@/features/purchase-orders/types/purchase-orders.types';
 import { PurchasesNavigationTabs } from '@/features/purchase-orders/components/PurchasesNavigationTabs';
+import { ContextHint } from '@/features/onboarding/components/ContextHint';
 
 export const PurchaseOrdersListPage: React.FC = () => {
   const navigate = useNavigate();
@@ -70,6 +71,11 @@ export const PurchaseOrdersListPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <ContextHint
+        id="purchases"
+        title="Órdenes de compra"
+        text="Armá la orden para un proveedor, registrá la recepción para sumar stock y cargá después la factura del proveedor."
+      />
       {/* Header & Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

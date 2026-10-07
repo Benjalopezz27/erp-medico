@@ -16,3 +16,4 @@ export * from './system-config.model';
 export * from './api-error.model';
 export * from './product-bulk.model';
 export * from './sorting.model';
+export * from './onboarding.model';

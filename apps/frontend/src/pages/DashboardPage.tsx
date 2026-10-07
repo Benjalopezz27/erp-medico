@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ActivityFeed } from '@/features/dashboard/components/ActivityFeed';
 import { KpiCards } from '@/features/dashboard/components/KpiCards';
+import { FirstStepsCard } from '@/features/onboarding/components/FirstStepsCard';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -52,6 +53,8 @@ export const DashboardPage: React.FC = () => {
           </Link>
         </div>
       </div>
+
+      {isAdmin && <FirstStepsCard />}
 
       {isAdmin && <KpiCards />}
 
