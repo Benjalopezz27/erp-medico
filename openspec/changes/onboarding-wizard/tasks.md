@@ -1,26 +1,20 @@
 # Tasks
 
-## 1. Backend — estado y API
+## 1. Backend
 
-- [x] 1.1 `OnboardingService` en `modules/config`: calcula pasos (derivado de datos + claves `skipped`), primer pendiente, `complete`/`skip`; spec con repos mockeados.
-- [x] 1.2 Endpoints `GET /config/onboarding-status`, `POST /config/onboarding/steps/:id/skip`, `POST /config/onboarding/complete` (admin, Swagger) + tipos en `@erp/shared-types`; spec del controller.
-- [x] 1.3 `OnboardingGuard` (428 + `pendingStep`) con spec; aplicarlo a controllers operativos; spec que verifica 428 y que auth/config/CRUD del wizard siguen libres.
-- [x] 1.4 Migración `BackfillOnboardingCompleted` (up/down); verificar local up/down/up.
+- [ ] 1.1 Retirar `OnboardingGuard`, `AllowDuringOnboarding`, migración 037 (revertir en local) y su uso en controllers/specs operativos.
+- [ ] 1.2 Reescribir `OnboardingService`: estado calculado, `dismiss`, `dismissHint` con ids válidos; spec.
+- [ ] 1.3 `OnboardingController`: `GET /config/onboarding-status`, `POST /config/onboarding/dismiss`, `POST /config/hints/:id/dismiss`; tipos en `@erp/shared-types`.
 
-## 2. Frontend — shell
+## 2. Frontend
 
-- [x] 2.1 `onboarding.api.ts`, `useOnboardingStatus` y mutaciones skip/complete, con specs.
-- [x] 2.2 `OnboardingWizard` (stepper, reentrada al paso pendiente, omitir) + ruta y redirección en `router.tsx`; manejo de 428 en el cliente HTTP; specs.
+- [ ] 2.1 Retirar `OnboardingWizard`, ruta `/onboarding`, `requireOnboarding` y el uso del 428.
+- [ ] 2.2 API + hooks (`status`, `dismiss`, `dismissHint`) con specs.
+- [ ] 2.3 `FirstStepsCard` en el Dashboard (admin) con specs: pasos hechos/pendientes, descartar, oculto al completar.
+- [ ] 2.4 `ContextHint` y carteles en Productos, Compras y Ventas con specs.
 
-## 3. Frontend — pasos
+## 3. Verificación
 
-- [x] 3.1 Paso 1 Empresa y fiscal (reusa `SystemConfigForm` + estado de cert vía probe; sin subida de `.p12`).
-- [x] 3.2 Paso 2 Usuarios y paso 3 Categorías y unidades (reusan forms/hooks existentes).
-- [x] 3.3 Paso 4 Productos/precios/costos y paso 5 Clientes y proveedores (omitibles).
-- [x] 3.4 Paso 6 Tesorería (medios de pago y saldo inicial) y paso 7 Stock inicial (ajustes; omitido si se omitió el 4).
-
-## 4. Verificación
-
-- [x] 4.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en verde.
-- [ ] 4.2 Smoke con Chrome: base vacía → wizard → completar → operar; reinicio a mitad de camino reentra.
-- [ ] 4.3 Documentar el flag y el backfill en `docs/`.
+- [ ] 3.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en verde.
+- [ ] 3.2 Smoke con Chrome: bloque en Inicio, descarte persistente tras recargar, carteles una vez.
+- [ ] 3.3 Documentar las claves de `system_settings` en `docs/`.
