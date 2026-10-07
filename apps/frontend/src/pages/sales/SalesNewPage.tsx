@@ -24,6 +24,7 @@ import {
   calculatePreviewTotals,
 } from '@/features/sales/utils/sales-math.utils';
 import { parseSalesError } from '@/features/sales/utils/sales.errors';
+import { useIdempotencyKey } from '@/lib/use-idempotency-key';
 import { useCreateSaleMutation } from '@/features/sales/hooks/use-create-sale-mutation';
 import type { ParsedSalesError, PosPreviewLine } from '@/features/sales/types/sales.types';
 
@@ -34,6 +35,7 @@ export function SalesNewPage() {
   const [submitError, setSubmitError] = useState<ParsedSalesError | null>(null);
   const submittingRef = useRef(false);
   const mutation = useCreateSaleMutation();
+  const { keyFor, reset: resetKey } = useIdempotencyKey();
   const {
     control,
     handleSubmit,
@@ -136,13 +138,15 @@ export function SalesNewPage() {
     submittingRef.current = true;
     setSubmitError(null);
     try {
-      const sale = await mutation.mutateAsync({
+      const payload = {
         customerId: form.customerId || null,
         isCreditSale: form.isCreditSale,
         requiresFiscalInvoice: form.requiresFiscalInvoice,
         paymentMethod: form.paymentMethod,
         items: form.items.map(({ productId, quantityBase }) => ({ productId, quantityBase })),
-      });
+      };
+      const sale = await mutation.mutateAsync({ ...payload, idempotencyKey: keyFor(payload) });
+      resetKey();
       setConfirmedSale(sale);
       reset();
       setProducts(new Map());

@@ -149,6 +149,8 @@ export interface ICreateSalePayload {
   requiresFiscalInvoice: boolean;
   paymentMethod: PaymentMethod;
   items: ICreateSaleItemPayload[];
+  /** Reenviar la misma clave en reintentos evita duplicar la venta. */
+  idempotencyKey?: string;
 }
 
 export interface ISaleSearchParams extends ISortParams {
