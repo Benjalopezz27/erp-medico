@@ -19,6 +19,7 @@ import { useCustomerAccountQuery } from '@/features/receivables/hooks/use-receiv
 import { formatDate } from '@/features/receivables/utils/receivables.format';
 import { parseApiError } from '@/lib/errors/parse-api-error';
 import { formatCurrency } from '@/lib/money';
+import { useIdempotencyKey } from '@/lib/use-idempotency-key';
 
 type Method = PaymentMethod.EFECTIVO | PaymentMethod.TRANSFERENCIA | PaymentMethod.CHEQUE;
 
@@ -37,6 +38,7 @@ export function PaymentFormPage() {
 
   const account = useCustomerAccountQuery(customerId, 1, 1);
   const register = useRegisterPaymentMutation();
+  const { keyFor, reset: resetKey } = useIdempotencyKey();
   const invoices = useMemo(() => account.data?.pendingInvoices ?? [], [account.data]);
 
   const byAge = mode === PaymentAllocationType.GLOBAL_AGE;
@@ -93,10 +95,15 @@ export function PaymentFormPage() {
             .filter(([, amount]) => amount !== '' && sumAmounts([amount]).greaterThan(0))
             .map(([accountReceivableId, amount]) => ({ accountReceivableId, amount })),
         };
-    register.mutate(payload, {
-      onSuccess: ({ receipt }) =>
-        void navigate({ to: '/receipts/$id', params: { id: receipt.id } }),
-    });
+    register.mutate(
+      { ...payload, idempotencyKey: keyFor(payload) },
+      {
+        onSuccess: ({ receipt }) => {
+          resetKey();
+          void navigate({ to: '/receipts/$id', params: { id: receipt.id } });
+        },
+      },
+    );
   };
 
   return (

@@ -171,6 +171,49 @@ describe('Payments and receipts (E2E)', () => {
       ])
     )[0].id;
 
+  describe('idempotency', () => {
+    it('creates a single payment and receipt for a double-submitted GLOBAL_AGE payment', async () => {
+      const customer = await createCustomer('Cliente Doble', '30710000012');
+      await seedThree(customer.id);
+      const body = {
+        customerId: customer.id,
+        paymentMethod: PaymentMethod.EFECTIVO,
+        mode: PaymentAllocationType.GLOBAL_AGE,
+        totalAmount: '100.00',
+        idempotencyKey: 'pay-key-1',
+      };
+
+      const [a, b] = await Promise.all([post(body), post(body)]);
+      expect([a.status, b.status]).toEqual([201, 201]);
+      expect(b.body.payment.id).toBe(a.body.payment.id);
+      expect(b.body.receipt.id).toBe(a.body.receipt.id);
+
+      expect(await ds.query('SELECT 1 FROM payments')).toHaveLength(1);
+      expect(await ds.query('SELECT 1 FROM receipts')).toHaveLength(1);
+      expect(
+        await ds.query(
+          'SELECT 1 FROM treasury_movements WHERE reference_id = $1',
+          [a.body.payment.id],
+        ),
+      ).toHaveLength(1);
+    });
+
+    it('409s when the key is reused with a different body', async () => {
+      const customer = await createCustomer('Cliente Clave', '30710000013');
+      await seedThree(customer.id);
+      const body = {
+        customerId: customer.id,
+        paymentMethod: PaymentMethod.EFECTIVO,
+        mode: PaymentAllocationType.GLOBAL_AGE,
+        totalAmount: '100.00',
+        idempotencyKey: 'pay-key-2',
+      };
+      await post(body).expect(201);
+      const res = await post({ ...body, totalAmount: '50.00' }).expect(409);
+      expect(res.body.code).toBe('PAYMENT_IDEMPOTENCY_CONFLICT');
+    });
+  });
+
   describe('access control', () => {
     it('returns 401 without token', async () => {
       await http().post('/api/v1/payments').send({}).expect(401);

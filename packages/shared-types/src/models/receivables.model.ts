@@ -194,6 +194,7 @@ export interface IRegisterPaymentDirectedRequest {
   check?: ICheckInput;
   notes?: string;
   mode: PaymentAllocationType.DIRECTED;
+  idempotencyKey?: string;
   allocations: { accountReceivableId: string; amount: string }[];
 }
 
@@ -205,6 +206,7 @@ export interface IRegisterPaymentByAgeRequest {
   check?: ICheckInput;
   notes?: string;
   mode: PaymentAllocationType.GLOBAL_AGE;
+  idempotencyKey?: string;
   totalAmount: string;
 }
 

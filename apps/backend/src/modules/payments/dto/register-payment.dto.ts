@@ -88,6 +88,16 @@ export class RegisterPaymentDto {
   @Type(() => CheckInputDto)
   check?: CheckInputDto;
 
+  @ApiPropertyOptional({
+    maxLength: 100,
+    description:
+      'Clave generada por el cliente; reenviarla en reintentos evita duplicar la operación.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  idempotencyKey?: string;
+
   @ApiProperty({ enum: PaymentAllocationType })
   @IsEnum(PaymentAllocationType)
   mode: PaymentAllocationType;
