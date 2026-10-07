@@ -39,6 +39,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # node-forge/braces (high) have no patched release yet — see docs/DEBT.md.
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level=critical
+
       - name: Check code formatting (Prettier)
         run: pnpm run format:check
 
