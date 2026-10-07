@@ -171,6 +171,37 @@ describe('Payments and receipts (E2E)', () => {
       ])
     )[0].id;
 
+  describe('credit limit', () => {
+    const sell = (customerId: string, units: number) =>
+      http()
+        .post('/api/v1/sales')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          customerId,
+          isCreditSale: true,
+          requiresFiscalInvoice: true,
+          paymentMethod: PaymentMethod.CTA_CTE,
+          items: [{ productId: product.id, quantityBase: units }],
+        });
+
+    it('rejects a credit sale that would push the balance over the limit, rolling back stock', async () => {
+      const customer = await createCustomer(
+        'Cliente Límite',
+        '30710000014',
+        '200.00',
+      );
+      await sell(customer.id, 1).expect(201); // $121 <= $200
+      const res = await sell(customer.id, 1).expect(409); // $242 > $200
+      expect(res.body.code).toBe('SALE_CREDIT_LIMIT_EXCEEDED');
+      expect(await ds.query('SELECT 1 FROM sales')).toHaveLength(1);
+    });
+
+    it('treats creditLimit 0 as no limit', async () => {
+      const customer = await createCustomer('Cliente Libre', '30710000015');
+      await sell(customer.id, 5).expect(201);
+    });
+  });
+
   describe('idempotency', () => {
     it('creates a single payment and receipt for a double-submitted GLOBAL_AGE payment', async () => {
       const customer = await createCustomer('Cliente Doble', '30710000012');

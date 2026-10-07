@@ -17,8 +17,10 @@ describe('ReceivablesService', () => {
     create: jest.fn((value) => ({ id: 'mov-1', ...value })),
     save: jest.fn(async (value) => value),
   };
+  const query = jest.fn().mockResolvedValue([{ credit_limit: '0.00' }]);
   const manager = {
     queryRunner: { isTransactionActive: true },
+    query,
     getRepository: jest.fn((entity) =>
       entity === AccountReceivable ? receivableRepo : movementRepo,
     ),
@@ -34,6 +36,17 @@ describe('ReceivablesService', () => {
   };
 
   beforeEach(() => jest.clearAllMocks());
+
+  it('rejects the debt when balance plus invoice exceeds the credit limit', async () => {
+    query
+      .mockResolvedValueOnce([{ credit_limit: '200.00' }])
+      .mockResolvedValueOnce([{ balance: '121.00' }]);
+
+    await expect(
+      service.recordCreditSaleDebt(manager as any, input),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(receivableRepo.save).not.toHaveBeenCalled();
+  });
 
   it('creates the debt and its FACTURA movement in the supplied transaction', async () => {
     const result = await service.recordCreditSaleDebt(manager as any, input);

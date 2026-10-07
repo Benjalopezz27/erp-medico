@@ -10,6 +10,7 @@ import {
   ICheckRejectionImpactLine,
   PaymentAllocationType,
   PaymentErrorCode,
+  SalesErrorCode,
   SaleReturnErrorCode,
 } from '@erp/shared-types';
 import Decimal from 'decimal.js';
@@ -145,6 +146,8 @@ export class ReceivablesService {
     }
     const amount = total.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2);
 
+    await this.assertWithinCreditLimit(manager, input.customerId, amount);
+
     const repository = manager.getRepository(AccountReceivable);
     const accountReceivable = await repository.save(
       repository.create({
@@ -173,6 +176,36 @@ export class ReceivablesService {
     );
 
     return accountReceivable;
+  }
+
+  /**
+   * Locks the customer row so concurrent credit sales are checked one at a
+   * time against the same balance. creditLimit 0 means "no limit configured".
+   */
+  private async assertWithinCreditLimit(
+    manager: EntityManager,
+    customerId: string,
+    amount: string,
+  ): Promise<void> {
+    const [customer] = await manager.query<{ credit_limit: string }[]>(
+      'SELECT credit_limit FROM customers WHERE id = $1 FOR UPDATE',
+      [customerId],
+    );
+    const limit = new Decimal(customer?.credit_limit ?? 0);
+    if (!limit.greaterThan(0)) return;
+
+    const [{ balance }] = await manager.query<{ balance: string }[]>(
+      `SELECT COALESCE(SUM(current_balance), 0) AS balance
+       FROM account_receivables
+       WHERE customer_id = $1 AND status <> $2`,
+      [customerId, AccountReceivableStatus.CANCELADO],
+    );
+    if (new Decimal(balance).plus(amount).greaterThan(limit)) {
+      throw new ConflictException({
+        code: SalesErrorCode.SALE_CREDIT_LIMIT_EXCEEDED,
+        message: `La venta supera el límite de crédito del cliente (${limit.toFixed(2)}).`,
+      });
+    }
   }
 
   async recordCreditNoteCompensation(
