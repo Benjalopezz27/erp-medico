@@ -10,6 +10,7 @@ import { SalesTable } from '@/features/sales/components/SalesTable';
 import { useSalesQuery } from '@/features/sales/hooks/use-sales-query';
 import { useCustomerDetailQuery } from '@/features/customers/hooks/use-customers-query';
 import { parseSalesError } from '@/features/sales/utils/sales.errors';
+import { ContextHint } from '@/features/onboarding/components/ContextHint';
 
 export function SalesListPage() {
   const navigate = useNavigate();
@@ -34,6 +35,11 @@ export function SalesListPage() {
 
   return (
     <div className="space-y-5">
+      <ContextHint
+        id="sales"
+        title="Historial de ventas"
+        text="Acá ves las ventas confirmadas y el estado de su factura fiscal. Cada venta descuenta stock."
+      />
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Historial de Ventas</h1>

@@ -6,6 +6,14 @@ import {
 } from '@/features/fiscal-alerts/testing/fiscal-alerts-fixtures';
 
 export const handlers: RequestHandler[] = [
+  // Onboarding: todo hecho y descartado, así ni el bloque ni los carteles ensucian otros tests.
+  http.get('*/api/v1/config/onboarding-status', () =>
+    HttpResponse.json({
+      steps: [],
+      dismissed: true,
+      hintsDismissed: ['products', 'purchases', 'sales'],
+    }),
+  ),
   // Default stock alerts handler (returns total: 0 so Sidebar/Layout tests are clean by default)
   http.get('*/api/v1/stock/alerts', ({ request }) => {
     const url = new URL(request.url);
