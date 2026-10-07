@@ -17,9 +17,11 @@ El ERP es de puesto único y necesita datos maestros en varios módulos (fiscal,
 ## Capabilities
 
 ### New Capabilities
+
 - `onboarding-wizard`: estado de onboarding, endpoint de status, guard 428 y flujo del wizard.
 
 ### Modified Capabilities
+
 <!-- Ninguna: system-config no tiene spec principal en openspec/specs/. -->
 
 ## Impact

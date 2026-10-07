@@ -10,10 +10,12 @@
 ## Goals / Non-Goals
 
 **Goals**
+
 - Orquestar módulos existentes sin duplicar CRUD ni lógica de negocio.
 - Estado persistido, reentrante, y bloqueo operativo seguro para instalaciones existentes.
 
 **Non-Goals**
+
 - Subir o guardar el `.p12`; cambiar de env a DB la fuente fiscal; issues hermanas por módulo.
 
 ## Decisions
