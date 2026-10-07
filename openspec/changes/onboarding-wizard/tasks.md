@@ -2,9 +2,9 @@
 
 ## 1. Backend
 
-- [ ] 1.1 Retirar `OnboardingGuard`, `AllowDuringOnboarding`, migración 037 (revertir en local) y su uso en controllers/specs operativos.
-- [ ] 1.2 Reescribir `OnboardingService`: estado calculado, `dismiss`, `dismissHint` con ids válidos; spec.
-- [ ] 1.3 `OnboardingController`: `GET /config/onboarding-status`, `POST /config/onboarding/dismiss`, `POST /config/hints/:id/dismiss`; tipos en `@erp/shared-types`.
+- [x] 1.1 Retirar `OnboardingGuard`, `AllowDuringOnboarding`, migración 037 (revertir en local) y su uso en controllers/specs operativos.
+- [x] 1.2 Reescribir `OnboardingService`: estado calculado, `dismiss`, `dismissHint` con ids válidos; spec.
+- [x] 1.3 `OnboardingController`: `GET /config/onboarding-status`, `POST /config/onboarding/dismiss`, `POST /config/hints/:id/dismiss`; tipos en `@erp/shared-types`.
 
 ## 2. Frontend
 

@@ -4,7 +4,6 @@ import { SupplierInvoicesController } from './supplier-invoices.controller';
 import { SupplierInvoicesService } from '../services/supplier-invoices.service';
 import { SupplierInvoiceDecisionsService } from '../services/supplier-invoice-decisions.service';
 import { SupplierInvoiceConfirmationService } from '../services/supplier-invoice-confirmation.service';
-import { OnboardingGuard } from '../../onboarding/onboarding.guard';
 
 describe('SupplierInvoicesController', () => {
   const service = {
@@ -26,10 +25,7 @@ describe('SupplierInvoicesController', () => {
         { provide: SupplierInvoiceDecisionsService, useValue: decisions },
         { provide: SupplierInvoiceConfirmationService, useValue: confirmation },
       ],
-    })
-      .overrideGuard(OnboardingGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+    }).compile();
     controller = module.get(SupplierInvoicesController);
   });
 

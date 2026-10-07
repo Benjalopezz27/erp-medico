@@ -1,30 +1,16 @@
 import { BadRequestException } from '@nestjs/common';
 import { OnboardingService } from './onboarding.service';
 
-function build(opts: {
-  done: string[];
-  skipped?: string[];
-  completed?: boolean;
-}) {
-  const rows = [
-    ...(opts.completed ? [{ key: 'onboarding_completed', value: 'true' }] : []),
-    ...(opts.skipped ?? []).map((id) => ({
-      key: `onboarding_skip_${id}`,
-      value: 'true',
-    })),
-  ];
+function build(opts: { done: string[]; keys?: string[] }) {
+  const rows = (opts.keys ?? []).map((key) => ({ key, value: 'true' }));
   const settings = {
-    findOne: jest.fn(async () =>
-      rows.find((r) => r.key === 'onboarding_completed'),
-    ),
     find: jest.fn(async () => rows),
     save: jest.fn(async (r) => r),
   };
-  // Cada query de datos identifica su paso por la tabla consultada.
   const dataSource = {
     query: jest.fn(async (sql: string) => {
       const map: Record<string, string> = {
-        users: 'users',
+        users: 'FROM users',
         'catalog-base': 'categories',
         products: 'FROM products',
         parties: 'customers',
@@ -52,53 +38,54 @@ function build(opts: {
 }
 
 describe('OnboardingService', () => {
-  it('sistema nuevo: primer paso pendiente es fiscal', async () => {
-    const { service } = build({ done: [] });
+  it('calcula cada paso desde los datos, sin persistir nada', async () => {
+    const { service, settings } = build({ done: ['fiscal', 'users'] });
     const s = await service.getStatus();
-    expect(s.completed).toBe(false);
-    expect(s.pendingStep).toBe('fiscal');
-  });
-
-  it('refleja pasos hechos y reentra al primer pendiente', async () => {
-    const { service } = build({ done: ['fiscal', 'users'] });
-    const s = await service.getStatus();
-    expect(s.steps.slice(0, 2).map((x) => x.state)).toEqual(['done', 'done']);
-    expect(s.pendingStep).toBe('catalog-base');
-  });
-
-  it('omitir productos omite stock', async () => {
-    const { service } = build({
-      done: ['fiscal', 'users', 'catalog-base'],
-      skipped: ['products'],
-    });
-    const s = await service.getStatus();
-    expect(s.steps.find((x) => x.id === 'stock')?.state).toBe('skipped');
-  });
-
-  it('no deja omitir un paso obligatorio', async () => {
-    const { service } = build({ done: [] });
-    await expect(service.skip('fiscal', 'u1')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
-  });
-
-  it('complete falla con pendientes y no escribe el flag', async () => {
-    const { service, settings } = build({ done: ['fiscal'] });
-    await expect(service.complete('u1')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    expect(s.steps.map((x) => x.done)).toEqual([
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
     expect(settings.save).not.toHaveBeenCalled();
   });
 
-  it('complete escribe el flag con todo resuelto', async () => {
-    const { service, settings } = build({
-      done: ['fiscal', 'users', 'catalog-base'],
-      skipped: ['products', 'parties', 'treasury', 'stock'],
+  it('informa bloque y carteles descartados', async () => {
+    const { service } = build({
+      done: [],
+      keys: ['onboarding_dismissed', 'hint_dismissed_sales'],
     });
-    await service.complete('u1');
+    const s = await service.getStatus();
+    expect(s.dismissed).toBe(true);
+    expect(s.hintsDismissed).toEqual(['sales']);
+  });
+
+  it('descartar el bloque persiste la clave', async () => {
+    const { service, settings } = build({ done: [] });
+    await service.dismiss('u1');
+    expect(settings.save).toHaveBeenCalledWith({
+      key: 'onboarding_dismissed',
+      value: 'true',
+      updatedByUserId: 'u1',
+    });
+  });
+
+  it('descartar un cartel persiste su clave', async () => {
+    const { service, settings } = build({ done: [] });
+    await service.dismissHint('products', 'u1');
     expect(settings.save).toHaveBeenCalledWith(
-      expect.objectContaining({ key: 'onboarding_completed', value: 'true' }),
+      expect.objectContaining({ key: 'hint_dismissed_products' }),
     );
-    await expect(service.isCompleted()).resolves.toBe(true);
+  });
+
+  it('rechaza un cartel desconocido', async () => {
+    const { service, settings } = build({ done: [] });
+    await expect(service.dismissHint('nope', 'u1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(settings.save).not.toHaveBeenCalled();
   });
 });

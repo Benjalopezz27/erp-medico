@@ -2,22 +2,23 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import {
+  ContextHintId,
   IOnboardingStatus,
-  IOnboardingStep,
   OnboardingStepId,
 } from '@erp/shared-types';
 import { SystemSetting } from '../config/entities/system-setting.entity';
 import { SystemSettingsService } from '../config/system-settings.service';
 import {
-  ONBOARDING_COMPLETED_KEY,
-  ONBOARDING_STEPS,
-  skipKey,
+  DISMISSED_KEY,
+  HINT_IDS,
+  HINT_KEY_PREFIX,
+  STEP_IDS,
 } from './onboarding.constants';
 
 const EXISTS = (sql: string) => `SELECT EXISTS (${sql}) AS ok`;
 
 /** Mínimo cargado por paso, derivado de los datos reales del módulo. */
-const DATA_CHECKS: Partial<Record<OnboardingStepId, string>> = {
+const DATA_CHECKS: Record<Exclude<OnboardingStepId, 'fiscal'>, string> = {
   users: EXISTS(
     `SELECT 1 FROM users WHERE role = 'ADMINISTRADOR' AND is_active = true`,
   ),
@@ -28,11 +29,9 @@ const DATA_CHECKS: Partial<Record<OnboardingStepId, string>> = {
   stock: EXISTS(`SELECT 1 FROM stock_movements`),
 };
 
+/** El progreso se calcula; solo los descartes se persisten. */
 @Injectable()
 export class OnboardingService {
-  /** Una vez completo no vuelve a `false`: se cachea para el guard. */
-  private completedCache = false;
-
   constructor(
     private readonly dataSource: DataSource,
     @InjectRepository(SystemSetting)
@@ -40,68 +39,33 @@ export class OnboardingService {
     private readonly systemSettings: SystemSettingsService,
   ) {}
 
-  async isCompleted(): Promise<boolean> {
-    if (this.completedCache) return true;
-    const row = await this.settings.findOne({
-      where: { key: ONBOARDING_COMPLETED_KEY },
-    });
-    this.completedCache = row?.value === 'true';
-    return this.completedCache;
-  }
-
   async getStatus(): Promise<IOnboardingStatus> {
-    const completed = await this.isCompleted();
-    const skipped = new Set(
-      (await this.settings.find())
-        .filter((s) => s.key.startsWith('onboarding_skip_'))
-        .map((s) => s.key),
+    const keys = new Set((await this.settings.find()).map((s) => s.key));
+    const steps = await Promise.all(
+      STEP_IDS.map(async (id) => ({ id, done: await this.isDone(id) })),
     );
-    const steps: IOnboardingStep[] = [];
-    for (const { id, required } of ONBOARDING_STEPS) {
-      const state = (await this.isDone(id))
-        ? 'done'
-        : skipped.has(skipKey(id)) ||
-            (id === 'stock' &&
-              steps.some((s) => s.id === 'products' && s.state === 'skipped'))
-          ? 'skipped'
-          : 'pending';
-      steps.push({ id, required, state });
-    }
     return {
-      completed,
       steps,
-      pendingStep: steps.find((s) => s.state === 'pending')?.id ?? null,
+      dismissed: keys.has(DISMISSED_KEY),
+      hintsDismissed: HINT_IDS.filter((h) => keys.has(HINT_KEY_PREFIX + h)),
     };
   }
 
-  async skip(id: OnboardingStepId, userId: string): Promise<IOnboardingStatus> {
-    const step = ONBOARDING_STEPS.find((s) => s.id === id);
-    if (!step || step.required) {
-      throw new BadRequestException(`El paso "${id}" no se puede omitir`);
-    }
-    await this.settings.save({
-      key: skipKey(id),
-      value: 'true',
-      updatedByUserId: userId,
-    });
+  async dismiss(userId: string): Promise<IOnboardingStatus> {
+    await this.persist(DISMISSED_KEY, userId);
     return this.getStatus();
   }
 
-  async complete(userId: string): Promise<IOnboardingStatus> {
-    const status = await this.getStatus();
-    const missing = status.steps.filter((s) => s.state === 'pending');
-    if (missing.length > 0) {
-      throw new BadRequestException(
-        `Faltan pasos: ${missing.map((s) => s.id).join(', ')}`,
-      );
+  async dismissHint(id: string, userId: string): Promise<IOnboardingStatus> {
+    if (!HINT_IDS.includes(id as ContextHintId)) {
+      throw new BadRequestException(`Cartel desconocido: "${id}"`);
     }
-    await this.settings.save({
-      key: ONBOARDING_COMPLETED_KEY,
-      value: 'true',
-      updatedByUserId: userId,
-    });
-    this.completedCache = true;
+    await this.persist(HINT_KEY_PREFIX + id, userId);
     return this.getStatus();
+  }
+
+  private async persist(key: string, userId: string): Promise<void> {
+    await this.settings.save({ key, value: 'true', updatedByUserId: userId });
   }
 
   private async isDone(id: OnboardingStepId): Promise<boolean> {
@@ -114,7 +78,7 @@ export class OnboardingService {
         c.arcaPuntoVenta,
       );
     }
-    const [{ ok }] = await this.dataSource.query(DATA_CHECKS[id]!);
+    const [{ ok }] = await this.dataSource.query(DATA_CHECKS[id]);
     return ok === true;
   }
 }

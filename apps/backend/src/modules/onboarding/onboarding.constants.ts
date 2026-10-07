@@ -1,21 +1,21 @@
-import { OnboardingStepId } from '@erp/shared-types';
+import { ContextHintId, OnboardingStepId } from '@erp/shared-types';
 
-export const ONBOARDING_COMPLETED_KEY = 'onboarding_completed';
-export const skipKey = (id: OnboardingStepId): string =>
-  `onboarding_skip_${id}`;
+export const DISMISSED_KEY = 'onboarding_dismissed';
+export const HINT_KEY_PREFIX = 'hint_dismissed_';
 
-/** Orden del wizard. `required: false` admite "omitir por ahora". */
-export const ONBOARDING_STEPS: ReadonlyArray<{
-  id: OnboardingStepId;
-  required: boolean;
-}> = [
-  { id: 'fiscal', required: true },
-  { id: 'users', required: true },
-  { id: 'catalog-base', required: true },
-  { id: 'products', required: false },
-  { id: 'parties', required: false },
-  // Los medios de pago son un enum fijo y las cuentas se siembran: lo único
-  // cargable es el saldo inicial, que puede ser cero.
-  { id: 'treasury', required: false },
-  { id: 'stock', required: false },
+/** Orden de los pasos y su consulta de existencia (sin conteos). */
+export const STEP_IDS: readonly OnboardingStepId[] = [
+  'fiscal',
+  'users',
+  'catalog-base',
+  'products',
+  'parties',
+  'treasury',
+  'stock',
+];
+
+export const HINT_IDS: readonly ContextHintId[] = [
+  'products',
+  'purchases',
+  'sales',
 ];

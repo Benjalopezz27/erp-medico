@@ -11,10 +11,8 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { RegisterPaymentDto } from './dto/register-payment.dto';
 import { PaymentsService } from './payments.service';
-import { OnboardingGuard } from '../onboarding/onboarding.guard';
 
 @ApiTags('payments')
-@UseGuards(OnboardingGuard)
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}

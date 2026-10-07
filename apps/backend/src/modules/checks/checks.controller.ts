@@ -23,10 +23,8 @@ import { QueryChecksDto } from './dto/query-checks.dto';
 import { RejectCheckDto } from './dto/reject-check.dto';
 import { EndorseCheckDto } from './dto/endorse-check.dto';
 import { Check } from './entities/check.entity';
-import { OnboardingGuard } from '../onboarding/onboarding.guard';
 
 @ApiTags('checks')
-@UseGuards(OnboardingGuard)
 @Controller('checks')
 export class ChecksController {
   constructor(private readonly checksService: ChecksService) {}

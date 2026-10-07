@@ -10,7 +10,6 @@ import {
 } from '@erp/shared-types';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { CreateStockAdjustmentDto } from './dto/create-stock-adjustment.dto';
-import { OnboardingGuard } from '../onboarding/onboarding.guard';
 
 describe('StockController', () => {
   let controller: StockController;
@@ -96,10 +95,7 @@ describe('StockController', () => {
           useValue: mockStockAdjustmentsService,
         },
       ],
-    })
-      .overrideGuard(OnboardingGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+    }).compile();
 
     controller = module.get<StockController>(StockController);
     stockService = module.get<StockService>(StockService);

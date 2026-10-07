@@ -1,17 +1,16 @@
 export type OnboardingStepId =
   'fiscal' | 'users' | 'catalog-base' | 'products' | 'parties' | 'treasury' | 'stock';
 
-export type OnboardingStepState = 'done' | 'skipped' | 'pending';
+export type ContextHintId = 'products' | 'purchases' | 'sales';
 
 export interface IOnboardingStep {
   id: OnboardingStepId;
-  required: boolean;
-  state: OnboardingStepState;
+  done: boolean;
 }
 
 export interface IOnboardingStatus {
-  completed: boolean;
   steps: IOnboardingStep[];
-  /** Primer paso `pending`, `null` si no queda ninguno. */
-  pendingStep: OnboardingStepId | null;
+  /** El administrador descartó el bloque "Primeros pasos". */
+  dismissed: boolean;
+  hintsDismissed: ContextHintId[];
 }

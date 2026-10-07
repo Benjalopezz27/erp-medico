@@ -33,11 +33,9 @@ import {
   QueryBackordersDto,
   BackordersResponseDto,
 } from './dto';
-import { OnboardingGuard } from '../onboarding/onboarding.guard';
 
 @ApiTags('purchase-orders')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(OnboardingGuard)
 @Controller('purchase-orders')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMINISTRADOR)

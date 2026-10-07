@@ -11,11 +11,9 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { QueryDebtorsDto } from './dto/query-account.dto';
 import { ReceivablesQueryService } from './receivables-query.service';
 import { ReceivablesService } from './receivables.service';
-import { OnboardingGuard } from '../onboarding/onboarding.guard';
 
 @ApiTags('receivables')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(OnboardingGuard)
 @Controller('receivables')
 export class ReceivablesController {
   constructor(

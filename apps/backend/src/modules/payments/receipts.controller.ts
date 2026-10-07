@@ -20,11 +20,9 @@ import { Roles } from '../auth/decorators';
 import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { ReceiptPdfService } from './receipt-pdf.service';
 import { ReceiptsService } from './receipts.service';
-import { OnboardingGuard } from '../onboarding/onboarding.guard';
 
 @ApiTags('payments')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(OnboardingGuard)
 @Controller('receipts')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMINISTRADOR, UserRole.VENDEDOR)

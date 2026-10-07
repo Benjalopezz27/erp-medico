@@ -34,15 +34,10 @@ import {
   StockMovementResponseDto,
   QueryStockAlertsDto,
 } from './dto';
-import {
-  AllowDuringOnboarding,
-  OnboardingGuard,
-} from '../onboarding/onboarding.guard';
 
 @ApiTags('stock')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@UseGuards(OnboardingGuard)
 @Controller('stock')
 export class StockController {
   constructor(
@@ -75,7 +70,6 @@ export class StockController {
     return this.stockService.findStockAlerts(query);
   }
 
-  @AllowDuringOnboarding()
   @Get()
   @Roles(UserRole.ADMINISTRADOR, UserRole.VENDEDOR)
   @ApiOperation({
@@ -94,7 +88,6 @@ export class StockController {
     return this.stockService.findAllStock(query);
   }
 
-  @AllowDuringOnboarding()
   @Post('adjustments')
   @Roles(UserRole.ADMINISTRADOR)
   @ApiOperation({

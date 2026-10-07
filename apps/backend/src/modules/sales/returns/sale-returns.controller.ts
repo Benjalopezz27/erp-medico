@@ -25,12 +25,10 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { CreateSaleReturnDto, SaleReturnResponseDto } from './dto';
 import { SaleReturnsService } from './services/sale-returns.service';
-import { OnboardingGuard } from '../../onboarding/onboarding.guard';
 
 @ApiTags('Sales Returns')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@UseGuards(OnboardingGuard)
 @Controller('sales')
 export class SaleReturnsController {
   constructor(private readonly saleReturnsService: SaleReturnsService) {}
