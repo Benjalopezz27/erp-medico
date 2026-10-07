@@ -129,25 +129,28 @@ Branch not protected` — a diferencia de un plan que lo bloquea (403 Upgrade), 
 
 ## D-12 · Deuda aceptada de la auditoría #255
 
-- **Qué hay:** hallazgos Medio/Bajo de `docs/audit/2026-09-audit.md` que no bloquean el Go-Live y
-  se aceptan como deuda hasta resolverse en los issues derivados: límite de crédito sin aplicar
-  (M-1), devolución contado sin egreso de caja (M-2), devolución sobre factura cobrada o no
-  emitida (M-3), `RETRIES_EXHAUSTED` con CAE incierto (M-4), cierre de caja con movimientos
-  concurrentes (M-5), transacción abierta durante I/O de ARCA (M-6), JWT en `localStorage` y sin
-  CSP/HSTS (H-3, H-5), dependencias vulnerables sin parche (`node-forge`), y los Bajos B-1 a B-16
-  (`number` en rutas de dinero, status sin auth, hardening de CI, tests faltantes, etc.).
-  H-2 amplía D-10.
+- **Resuelto en `fix/296-301-audit-255-findings`:** A-1 (#296), A-2 (#297), A-3 (#298; cierra
+  D-11 ítem 2), H-1 (#299), y de #300/#301: M-1, H-5, B-2, B-8, B-11, B-12 (solo `permissions:`),
+  más overrides de `seroval` y `source-map-js` (parte de H-4).
+- **Qué queda:** M-2 (reembolso de venta contado, requiere decisión de negocio), M-3 (saldo a
+  favor), M-4 (estado "reconciliar" para `POST_CAE`), M-5, M-6, H-2/H-3 (sesión: `tokenVersion`,
+  cookie httpOnly), H-4 restante (`node-forge` y `braces` sin parche; `@nestjs/core` ≥11.1.18,
+  `file-type` ≥21 y `uuid` ≥11 piden salto de major de Nest/dependencias), y los Bajos
+  B-1, B-3, B-4, B-5, B-6, B-7, B-9, B-10, B-12 (pin de acciones por SHA, `head_branch` en `run:`),
+  B-13 a B-16. H-2 amplía D-10.
 - **Costo de seguir así:** diferencias de arqueo, devoluciones manuales, superficie de XSS mayor,
-  sesiones robadas válidas hasta 8 h.
-- **Trigger para resolver:** antes del Go-Live (DEVOPS-06) los Altos (A-1, A-2, A-3, H-1, issues
-  `type:bug`); los Medio/Bajo según los issues de mejora agrupados.
+  sesiones robadas válidas hasta 8 h, `pnpm audit` en CI solo bloquea críticos (los `high` sin
+  parche quedan fuera del gate).
+- **Trigger para resolver:** los Medio/Bajo restantes según los issues #300 y #301 (siguen
+  abiertos); subir el gate a `--audit-level=high` cuando `node-forge`/`braces` tengan parche.
+
 ## D-11 · Brechas halladas por la regresión e2e (#264)
 
 - **Qué hay:**
   1. El dominio no modela lote ni vencimiento (ni `stocks` ni `products`): no hay FEFO ni alertas
      de vencimiento. El scope de #264 pedía un caso borde "producto con lote/vencimiento".
-  2. `POST /sales` no tiene idempotency key: dos POST idénticos crean dos ventas (y dos
-     comprobantes). Solo la emisión fiscal está protegida contra doble submit (por documento).
+  2. ~~`POST /sales` no tiene idempotency key~~ — resuelto en #298 (`idempotencyKey` + hash del
+     cuerpo; el POS lo envía).
   3. `GET /reports/sales` usa `JOIN customers`: las ventas de mostrador sin cliente
      (`customer_id` NULL) no aparecen en "Ventas por período".
 - **Costo de seguir así:** (1) sin trazabilidad de lotes en una distribuidora médica; (2) un doble
