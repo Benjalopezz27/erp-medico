@@ -21,6 +21,6 @@
 
 ## 4. Verificación
 
-- [ ] 4.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en verde.
+- [x] 4.1 `pnpm run format:check && pnpm -r run lint && pnpm test && pnpm build` en verde.
 - [ ] 4.2 Smoke con Chrome: base vacía → wizard → completar → operar; reinicio a mitad de camino reentra.
 - [ ] 4.3 Documentar el flag y el backfill en `docs/`.
