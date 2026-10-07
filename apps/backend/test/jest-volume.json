@@ -1,0 +1,16 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "..",
+  "testRegex": "test/.*\\.volume-spec\\.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^@erp/shared-types$": "<rootDir>/../../packages/shared-types/src",
+    "^src/(.*)$": "<rootDir>/src/$1"
+  },
+  "testEnvironment": "node",
+  "testTimeout": 120000,
+  "maxWorkers": 1,
+  "setupFiles": ["<rootDir>/test/setup-e2e.ts"]
+}

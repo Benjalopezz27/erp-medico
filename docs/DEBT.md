@@ -126,3 +126,18 @@ Branch not protected` — a diferencia de un plan que lo bloquea (403 Upgrade), 
   contraseña.
 - **Trigger para resolver:** al agregar refresh tokens o un campo `token_version`/`password_changed_at`
   comparado contra `iat` en `JwtStrategy`; o ante un incidente de cuenta comprometida.
+
+## D-11 · Brechas halladas por la regresión e2e (#264)
+
+- **Qué hay:**
+  1. El dominio no modela lote ni vencimiento (ni `stocks` ni `products`): no hay FEFO ni alertas
+     de vencimiento. El scope de #264 pedía un caso borde "producto con lote/vencimiento".
+  2. `POST /sales` no tiene idempotency key: dos POST idénticos crean dos ventas (y dos
+     comprobantes). Solo la emisión fiscal está protegida contra doble submit (por documento).
+  3. `GET /reports/sales` usa `JOIN customers`: las ventas de mostrador sin cliente
+     (`customer_id` NULL) no aparecen en "Ventas por período".
+- **Costo de seguir así:** (1) sin trazabilidad de lotes en una distribuidora médica; (2) un doble
+  clic en el POS puede duplicar la venta; (3) el reporte subestima las ventas.
+- **Trigger para resolver:** (1) cuando el cliente confirme que lo necesita (feature aparte, con
+  migración y spec); (2) antes de la salida a producción del POS; (3) fix de una línea
+  (`LEFT JOIN` + `COALESCE`), a priorizar por el owner técnico.
