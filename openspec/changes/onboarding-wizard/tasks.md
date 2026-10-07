@@ -2,10 +2,10 @@
 
 ## 1. Backend — estado y API
 
-- [ ] 1.1 `OnboardingService` en `modules/config`: calcula pasos (derivado de datos + claves `skipped`), primer pendiente, `complete`/`skip`; spec con repos mockeados.
-- [ ] 1.2 Endpoints `GET /config/onboarding-status`, `POST /config/onboarding/steps/:id/skip`, `POST /config/onboarding/complete` (admin, Swagger) + tipos en `@erp/shared-types`; spec del controller.
-- [ ] 1.3 `OnboardingGuard` (428 + `pendingStep`) con spec; aplicarlo a controllers operativos; spec que verifica 428 y que auth/config/CRUD del wizard siguen libres.
-- [ ] 1.4 Migración `BackfillOnboardingCompleted` (up/down); verificar local up/down/up.
+- [x] 1.1 `OnboardingService` en `modules/config`: calcula pasos (derivado de datos + claves `skipped`), primer pendiente, `complete`/`skip`; spec con repos mockeados.
+- [x] 1.2 Endpoints `GET /config/onboarding-status`, `POST /config/onboarding/steps/:id/skip`, `POST /config/onboarding/complete` (admin, Swagger) + tipos en `@erp/shared-types`; spec del controller.
+- [x] 1.3 `OnboardingGuard` (428 + `pendingStep`) con spec; aplicarlo a controllers operativos; spec que verifica 428 y que auth/config/CRUD del wizard siguen libres.
+- [x] 1.4 Migración `BackfillOnboardingCompleted` (up/down); verificar local up/down/up.
 
 ## 2. Frontend — shell
 

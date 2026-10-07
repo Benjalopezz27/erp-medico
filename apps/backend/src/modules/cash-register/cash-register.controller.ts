@@ -9,11 +9,13 @@ import {
   CloseCashRegisterDto,
   OpenCashRegisterDto,
 } from './dto/cash-register.dto';
+import { OnboardingGuard } from '../onboarding/onboarding.guard';
 
 @ApiTags('cash-register')
 @ApiBearerAuth('JWT-auth')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMINISTRADOR)
+@UseGuards(OnboardingGuard)
 @Controller('cash-register')
 export class CashRegisterController {
   constructor(private readonly service: CashRegisterService) {}

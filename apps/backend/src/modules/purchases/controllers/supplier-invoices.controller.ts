@@ -45,11 +45,13 @@ import {
   PaginatedSupplierInvoicesResponseDto,
   SupplierInvoiceResponseDto,
 } from '../dto/supplier-invoice-response.dto';
+import { OnboardingGuard } from '../../onboarding/onboarding.guard';
 
 @ApiTags('Supplier Invoices')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMINISTRADOR)
+@UseGuards(OnboardingGuard)
 @Controller('supplier-invoices')
 export class SupplierInvoicesController {
   constructor(

@@ -33,9 +33,11 @@ import {
 } from './dto';
 import { RetryFiscalDocumentResponseDto } from './dto/pending-fiscal-response.dto';
 import { SalesService } from './sales.service';
+import { OnboardingGuard } from '../onboarding/onboarding.guard';
 
 @ApiTags('sales')
 @ApiBearerAuth('JWT-auth')
+@UseGuards(OnboardingGuard)
 @Controller('sales')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMINISTRADOR, UserRole.VENDEDOR)

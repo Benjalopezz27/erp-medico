@@ -3,6 +3,7 @@ import { GoodsReceiptsController } from './goods-receipts.controller';
 import { GoodsReceiptsService } from '../services/goods-receipts.service';
 import { User } from '../../users/entities/user.entity';
 import { PurchaseOrderStatus } from '@erp/shared-types';
+import { OnboardingGuard } from '../../onboarding/onboarding.guard';
 
 describe('GoodsReceiptsController', () => {
   let controller: GoodsReceiptsController;
@@ -22,7 +23,10 @@ describe('GoodsReceiptsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [GoodsReceiptsController],
       providers: [{ provide: GoodsReceiptsService, useValue: service }],
-    }).compile();
+    })
+      .overrideGuard(OnboardingGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<GoodsReceiptsController>(GoodsReceiptsController);
   });

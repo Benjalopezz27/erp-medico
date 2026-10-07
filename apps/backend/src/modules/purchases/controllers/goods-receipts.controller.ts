@@ -28,11 +28,13 @@ import { CreateGoodsReceiptDto } from '../dto/create-goods-receipt.dto';
 import { QueryGoodsReceiptsDto } from '../dto/query-goods-receipts.dto';
 import { CreateGoodsReceiptResponseDto } from '../dto/create-goods-receipt-response.dto';
 import { PaginatedGoodsReceiptsResponseDto } from '../dto/paginated-goods-receipts-response.dto';
+import { OnboardingGuard } from '../../onboarding/onboarding.guard';
 
 @ApiTags('Purchase Orders Receipts')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMINISTRADOR)
+@UseGuards(OnboardingGuard)
 @Controller('purchase-orders/:purchaseOrderId/receipts')
 export class GoodsReceiptsController {
   constructor(private readonly goodsReceiptsService: GoodsReceiptsService) {}

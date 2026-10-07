@@ -31,6 +31,7 @@ import { CashRegisterModule } from './modules/cash-register/cash-register.module
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { SystemConfigModule } from './modules/config/system-config.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { HealthModule } from './modules/health/health.module';
 import { QueueProducerModule } from './modules/queue/queue-producer.module';
 
@@ -72,6 +73,7 @@ import { QueueProducerModule } from './modules/queue/queue-producer.module';
     DashboardModule,
     ReportsModule,
     SystemConfigModule,
+    OnboardingModule,
     HealthModule,
     QueueProducerModule,
   ],

@@ -15,7 +15,7 @@ El sistema SHALL persistir `onboarding_completed` y el avance por paso en `syste
 - **THEN** `completed` es `false` y el primer paso pendiente es "Empresa y fiscal"
 
 ### Requirement: Completitud mínima por paso
-El sistema SHALL marcar un paso como `done` solo si el módulo correspondiente tiene el mínimo cargado (fiscal: razón social, CUIT, condición y punto de venta; usuarios: al menos un administrador activo; categorías y unidades: al menos una de cada; tesorería: al menos un medio de pago configurado y caja/saldo inicial). Los pasos productos, clientes/proveedores y stock MAY marcarse `skipped`.
+El sistema SHALL marcar un paso como `done` solo si el módulo correspondiente tiene el mínimo cargado (fiscal: razón social, CUIT, condición y punto de venta; usuarios: al menos un administrador activo; categorías y unidades: al menos una de cada; tesorería: saldo inicial cargado). Los pasos productos, clientes/proveedores, tesorería (saldo cero) y stock MAY marcarse `skipped`.
 
 #### Scenario: Avanzar sin mínimo
 - **WHEN** se intenta completar el paso de categorías sin ninguna unidad cargada

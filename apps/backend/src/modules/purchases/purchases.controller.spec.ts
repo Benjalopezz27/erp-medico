@@ -4,6 +4,7 @@ import { PurchaseOrdersService } from './services/purchase-orders.service';
 import { BackordersService } from './services/backorders.service';
 import { PurchaseOrderStatus, UserRole } from '@erp/shared-types';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { OnboardingGuard } from '../onboarding/onboarding.guard';
 
 describe('PurchasesController Unit Tests', () => {
   let controller: PurchasesController;
@@ -77,7 +78,10 @@ describe('PurchasesController Unit Tests', () => {
         { provide: PurchaseOrdersService, useValue: service },
         { provide: BackordersService, useValue: backordersService },
       ],
-    }).compile();
+    })
+      .overrideGuard(OnboardingGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<PurchasesController>(PurchasesController);
   });

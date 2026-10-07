@@ -25,6 +25,7 @@ import {
   PendingFiscalCountResponseDto,
   RetryFiscalDocumentResponseDto,
 } from './dto/pending-fiscal-response.dto';
+import { OnboardingGuard } from '../onboarding/onboarding.guard';
 
 /**
  * Rutas literales bajo `sales/pending-fiscal*` — registrado ANTES de
@@ -33,6 +34,7 @@ import {
  */
 @ApiTags('sales')
 @ApiBearerAuth('JWT-auth')
+@UseGuards(OnboardingGuard)
 @Controller('sales/pending-fiscal')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMINISTRADOR)
