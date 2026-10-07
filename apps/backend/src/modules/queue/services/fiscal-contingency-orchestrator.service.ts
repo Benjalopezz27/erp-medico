@@ -303,37 +303,21 @@ export class FiscalContingencyOrchestrator {
       caeExpirationDate: string | null;
     },
   ): Promise<FiscalInvoiceJobResult> {
-    let updateResult: { affected?: number };
-    try {
-      updateResult = await manager.getRepository(FiscalDocument).update(
-        {
-          id: fiscalDocumentId,
-          arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
-        },
-        {
-          documentType: data.documentType,
-          pointOfSale: data.pointOfSale,
-          documentNumber: data.documentNumber,
-          cae: data.cae,
-          caeExpirationDate: data.caeExpirationDate,
-          arcaStatus: ArcaStatus.EMITIDO,
-          issuedAt: new Date(),
-        },
-      );
-    } catch (persistError: unknown) {
-      if (this.isUniqueViolation(persistError)) {
-        // The (documentType, pointOfSale, documentNumber) backstop index
-        // rejected a duplicate number — reload instead of surfacing a raw
-        // 500. The advisory lock should prevent this in practice; this is
-        // the last-instance guard the design calls for.
-        this.logger.warn(
-          `[Worker] wsfe-emit job ${job.id}: numbering collision on document ${fiscalDocumentId}, reloading.`,
-        );
-        updateResult = { affected: 0 };
-      } else {
-        throw persistError;
-      }
-    }
+    const updateResult = await manager.getRepository(FiscalDocument).update(
+      {
+        id: fiscalDocumentId,
+        arcaStatus: ArcaStatus.PENDIENTE_FACTURACION,
+      },
+      {
+        documentType: data.documentType,
+        pointOfSale: data.pointOfSale,
+        documentNumber: data.documentNumber,
+        cae: data.cae,
+        caeExpirationDate: data.caeExpirationDate,
+        arcaStatus: ArcaStatus.EMITIDO,
+        issuedAt: new Date(),
+      },
+    );
 
     if (updateResult.affected === 0) {
       // Another worker already persisted a terminal status for this
@@ -404,14 +388,6 @@ export class FiscalContingencyOrchestrator {
   private formatCaeExpiration(caeExpiration: string): string {
     // ARCA returns YYYYMMDD; the column is a plain DATE.
     return `${caeExpiration.slice(0, 4)}-${caeExpiration.slice(4, 6)}-${caeExpiration.slice(6, 8)}`;
-  }
-
-  private isUniqueViolation(error: unknown): boolean {
-    if (!error || typeof error !== 'object') return false;
-    const code =
-      (error as { code?: string }).code ??
-      (error as { driverError?: { code?: string } }).driverError?.code;
-    return code === '23505';
   }
 
   private isTotalsMismatch(message: string): boolean {

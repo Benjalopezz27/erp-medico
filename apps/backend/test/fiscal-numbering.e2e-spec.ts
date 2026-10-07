@@ -3,13 +3,19 @@ import { FiscalDocumentType, PaymentMethod } from '@erp/shared-types';
 import dataSource from '../src/database/data-source';
 import { runInitialSeed } from '../src/database/seeds/initial.seed';
 import { User } from '../src/modules/users/entities/user.entity';
-import { FiscalDocument } from '../src/modules/sales/entities/fiscal-document.entity';
 import { FiscalNumberingService } from '../src/modules/sales/services/fiscal-numbering.service';
 
 describe('FiscalNumberingService concurrency (E2E, real Postgres)', () => {
   let ds: DataSource;
   let service: FiscalNumberingService;
   let userId: string;
+
+  const cleanup = async (): Promise<void> => {
+    await ds.query(
+      `DELETE FROM fiscal_documents WHERE sale_id IN (SELECT id FROM sales WHERE sale_number LIKE 'FN-TEST-%')`,
+    );
+    await ds.query(`DELETE FROM sales WHERE sale_number LIKE 'FN-TEST-%'`);
+  };
 
   beforeAll(async () => {
     ds = await dataSource.initialize();
@@ -22,11 +28,13 @@ describe('FiscalNumberingService concurrency (E2E, real Postgres)', () => {
       .getRepository(User)
       .findOneByOrFail({ email: 'fiscal-numbering-admin@erp.com' });
     userId = admin.id;
-    service = new FiscalNumberingService(ds);
+    await cleanup();
+    service = new FiscalNumberingService();
   });
 
   afterAll(async () => {
     if (ds?.isInitialized) {
+      await cleanup();
       await runInitialSeed(ds);
       await ds.destroy();
     }
@@ -48,51 +56,65 @@ describe('FiscalNumberingService concurrency (E2E, real Postgres)', () => {
     return fiscalDoc.id;
   }
 
-  it('assigns consecutive numbers to two concurrent jobs for the same point of sale and type, without collision', async () => {
+  it('assigns distinct numbers to concurrent workers when ARCA only advances on requestCAE', async () => {
     const pointOfSale = 999; // dedicated test point of sale, unused elsewhere
     const documentType = FiscalDocumentType.FACTURA_B;
     const docIdA = await seedFiscalDocument('A');
     const docIdB = await seedFiscalDocument('B');
 
-    // Shared "ARCA" state: both concurrent calls read from and race against
-    // this counter. Without the advisory lock serializing access, both
-    // reads would return the same value before either write lands.
+    // Fake ARCA like the real one: "last authorized" moves ONLY when a CAE is
+    // granted, never when it is read.
     let lastAuthorized = 100;
-    const getLastAuthorized = async (): Promise<number> => {
-      const snapshot = lastAuthorized;
-      await new Promise((resolve) => setTimeout(resolve, 25)); // simulate WSFE latency
-      lastAuthorized = snapshot + 1;
-      return snapshot;
+    const getLastAuthorized = async (): Promise<number> => lastAuthorized;
+    const requestCAE = async (number: number): Promise<void> => {
+      await new Promise((resolve) => setTimeout(resolve, 50)); // WSFE latency
+      if (number !== lastAuthorized + 1) {
+        throw new Error(`out of sequence: ${number} after ${lastAuthorized}`);
+      }
+      lastAuthorized = number;
     };
 
+    // Same shape as FiscalInvoiceProcessor: reserve + CAE inside ONE tx.
+    const worker = (docId: string) =>
+      ds.transaction(async (manager) => {
+        const number = await service.reserveNextNumber(
+          docId,
+          documentType,
+          pointOfSale,
+          getLastAuthorized,
+          manager,
+        );
+        await requestCAE(number);
+        return number;
+      });
+
     const [numberA, numberB] = await Promise.all([
-      service.reserveNextNumber(
-        docIdA,
-        documentType,
-        pointOfSale,
-        getLastAuthorized,
-      ),
-      service.reserveNextNumber(
-        docIdB,
-        documentType,
-        pointOfSale,
-        getLastAuthorized,
-      ),
+      worker(docIdA),
+      worker(docIdB),
     ]);
 
-    expect(numberA).not.toBe(numberB);
     expect([numberA, numberB].sort((a, b) => a - b)).toEqual([101, 102]);
+  });
 
-    const persistedA = await ds
-      .getRepository(FiscalDocument)
-      .findOneByOrFail({ id: docIdA });
-    const persistedB = await ds
-      .getRepository(FiscalDocument)
-      .findOneByOrFail({ id: docIdB });
-    expect(
-      [persistedA.documentNumber, persistedB.documentNumber].sort(
-        (a, b) => (a ?? 0) - (b ?? 0),
-      ),
-    ).toEqual([101, 102]);
+  it('skips numbers already reserved by a pending document awaiting ARCA', async () => {
+    const pointOfSale = 998;
+    const documentType = FiscalDocumentType.FACTURA_B;
+    const docIdA = await seedFiscalDocument('C');
+    const docIdB = await seedFiscalDocument('D');
+
+    const reserve = (docId: string) =>
+      ds.transaction((manager) =>
+        service.reserveNextNumber(
+          docId,
+          documentType,
+          pointOfSale,
+          async () => 200,
+          manager,
+        ),
+      );
+
+    // A reserves 201 and commits without a CAE (retrying); ARCA still says 200.
+    expect(await reserve(docIdA)).toBe(201);
+    expect(await reserve(docIdB)).toBe(202);
   });
 });

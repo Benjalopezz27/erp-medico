@@ -224,7 +224,7 @@ describe('FiscalContingencyOrchestrator', () => {
     expect(result).toEqual({ status: 'rejected', fiscalDocumentId: 'doc-1' });
   });
 
-  it('reloads instead of throwing a raw error when the unique index rejects a duplicate number', async () => {
+  it('does not report skipped when the unique index rejects a duplicate number (tx is aborted, must retry)', async () => {
     repos.FiscalDocument.update.mockRejectedValueOnce({
       code: '23505',
       message: 'duplicate key value violates unique constraint',
@@ -232,7 +232,7 @@ describe('FiscalContingencyOrchestrator', () => {
 
     const result = await orchestrator.process(manager, makeJob(), 'doc-1');
 
-    expect(result).toEqual({ status: 'skipped', fiscalDocumentId: 'doc-1' });
+    expect(result.status).toBe('retrying');
   });
 
   it('does not modify Sale.status on success or rejection', async () => {
