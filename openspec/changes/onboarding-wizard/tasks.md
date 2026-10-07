@@ -9,15 +9,15 @@
 
 ## 2. Frontend — shell
 
-- [ ] 2.1 `onboarding.api.ts`, `useOnboardingStatus` y mutaciones skip/complete, con specs.
-- [ ] 2.2 `OnboardingWizard` (stepper, reentrada al paso pendiente, omitir) + ruta y redirección en `router.tsx`; manejo de 428 en el cliente HTTP; specs.
+- [x] 2.1 `onboarding.api.ts`, `useOnboardingStatus` y mutaciones skip/complete, con specs.
+- [x] 2.2 `OnboardingWizard` (stepper, reentrada al paso pendiente, omitir) + ruta y redirección en `router.tsx`; manejo de 428 en el cliente HTTP; specs.
 
 ## 3. Frontend — pasos
 
-- [ ] 3.1 Paso 1 Empresa y fiscal (reusa `SystemConfigForm` + estado de cert vía probe; sin subida de `.p12`).
-- [ ] 3.2 Paso 2 Usuarios y paso 3 Categorías y unidades (reusan forms/hooks existentes).
-- [ ] 3.3 Paso 4 Productos/precios/costos y paso 5 Clientes y proveedores (omitibles).
-- [ ] 3.4 Paso 6 Tesorería (medios de pago y saldo inicial) y paso 7 Stock inicial (ajustes; omitido si se omitió el 4).
+- [x] 3.1 Paso 1 Empresa y fiscal (reusa `SystemConfigForm` + estado de cert vía probe; sin subida de `.p12`).
+- [x] 3.2 Paso 2 Usuarios y paso 3 Categorías y unidades (reusan forms/hooks existentes).
+- [x] 3.3 Paso 4 Productos/precios/costos y paso 5 Clientes y proveedores (omitibles).
+- [x] 3.4 Paso 6 Tesorería (medios de pago y saldo inicial) y paso 7 Stock inicial (ajustes; omitido si se omitió el 4).
 
 ## 4. Verificación
 
