@@ -1,11 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import {
+  PASSWORD_RESET_SUBJECT,
+  renderPasswordResetEmail,
+} from './password-reset.template';
+
 const RESEND_URL = 'https://api.resend.com/emails';
 
 /**
  * Single transactional-mail implementation (Resend over HTTPS; Railway blocks
- * outbound SMTP on lower plans). Outside production it only logs, so dev/test never send. Swapping provider only touches this file.
+ * outbound SMTP on lower plans). Without MAIL_API_KEY it only logs (dev/test);
+ * in production a missing key fails the job instead of logging the link.
+ * Swapping provider only touches this file.
  */
 @Injectable()
 export class MailService {
@@ -14,12 +21,15 @@ export class MailService {
   constructor(private readonly config: ConfigService) {}
 
   async sendPasswordReset(to: string, link: string): Promise<void> {
-    if (this.config.get<string>('NODE_ENV') !== 'production') {
+    const isProd = this.config.get<string>('NODE_ENV') === 'production';
+    const apiKey = isProd
+      ? this.config.getOrThrow<string>('MAIL_API_KEY')
+      : this.config.get<string>('MAIL_API_KEY');
+
+    if (!apiKey) {
       this.logger.log(`[Mail:dry-run] password reset for ${to}: ${link}`);
       return;
     }
-    // In production a missing key fails the job (retried) instead of logging the link.
-    const apiKey = this.config.getOrThrow<string>('MAIL_API_KEY');
 
     const res = await fetch(RESEND_URL, {
       method: 'POST',
@@ -30,8 +40,8 @@ export class MailService {
       body: JSON.stringify({
         from: this.config.getOrThrow<string>('MAIL_FROM'),
         to: [to],
-        subject: 'Recuperá tu contraseña',
-        html: `<p>Pediste restablecer tu contraseña.</p><p><a href="${link}">Elegir una contraseña nueva</a></p><p>El link vence en 30 minutos y se puede usar una sola vez. Si no fuiste vos, ignorá este mail.</p>`,
+        subject: PASSWORD_RESET_SUBJECT,
+        ...renderPasswordResetEmail(link),
       }),
     });
 

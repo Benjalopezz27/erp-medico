@@ -14,12 +14,22 @@ describe('MailService', () => {
     global.fetch = fetchMock as unknown as typeof fetch;
   });
 
-  it('does not call the provider outside production', async () => {
-    await build({
-      NODE_ENV: 'development',
-      MAIL_API_KEY: 'k',
-    }).sendPasswordReset('a@b.com', 'http://x');
+  it('only logs when there is no API key outside production', async () => {
+    await build({ NODE_ENV: 'development' }).sendPasswordReset(
+      'a@b.com',
+      'http://x',
+    );
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('sends outside production when an API key is configured (e.g. staging)', async () => {
+    fetchMock.mockResolvedValue({ ok: true });
+    await build({
+      NODE_ENV: 'staging',
+      MAIL_API_KEY: 'key',
+      MAIL_FROM: 'f',
+    }).sendPasswordReset('a@b.com', 'http://x');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('fails in production without API key instead of logging the link', async () => {
@@ -44,10 +54,13 @@ describe('MailService', () => {
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('https://api.resend.com/emails');
     expect(init.headers.Authorization).toBe('Bearer key');
-    expect(JSON.parse(init.body)).toMatchObject({
+    const body = JSON.parse(init.body);
+    expect(body).toMatchObject({
       to: ['a@b.com'],
       from: 'ERP <no-reply@x.com>',
     });
+    expect(body.html).toContain('href="http://x/reset?token=t"');
+    expect(body.text).toContain('http://x/reset?token=t');
   });
 
   it('throws on provider error without leaking the body', async () => {
