@@ -8,8 +8,10 @@ import helmet from 'helmet';
 import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { AllExceptionsFilter } from '../src/common/filters/all-exceptions.filter';
+import { Public } from '../src/modules/auth/decorators/public.decorator';
 import dataSource from '../src/database/data-source';
 
+@Public()
 @Controller('test-throttling')
 class TestThrottlingController {
   @Get('limited')

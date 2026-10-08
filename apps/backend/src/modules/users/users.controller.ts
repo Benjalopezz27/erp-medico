@@ -33,6 +33,7 @@ import { UserResponseDto } from './dto/user-response.dto';
 import { PaginatedUsersResponseDto } from './dto/paginated-users-response.dto';
 import { AuditQueryDto } from '../audit/dto/audit-query.dto';
 import { PaginatedAuditLogsResponseDto } from '../audit/dto/paginated-audit-response.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('users')
 @ApiBearerAuth('JWT-auth')
@@ -42,6 +43,7 @@ import { PaginatedAuditLogsResponseDto } from '../audit/dto/paginated-audit-resp
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Public()
   @Get('status')
   @ApiOperation({ summary: 'Check Users module status' })
   @ApiResponse({ status: 200, description: 'Users module operational' })

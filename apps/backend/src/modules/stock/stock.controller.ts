@@ -34,6 +34,7 @@ import {
   StockMovementResponseDto,
   QueryStockAlertsDto,
 } from './dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('stock')
 @ApiBearerAuth()
@@ -45,6 +46,7 @@ export class StockController {
     private readonly stockAdjustmentsService: StockAdjustmentsService,
   ) {}
 
+  @Public()
   @Get('status')
   @ApiOperation({ summary: 'Check Stock module status' })
   @ApiResponse({ status: 200, description: 'Stock module operational' })

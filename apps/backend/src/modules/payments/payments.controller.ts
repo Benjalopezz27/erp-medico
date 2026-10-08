@@ -11,12 +11,14 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { RegisterPaymentDto } from './dto/register-payment.dto';
 import { PaymentsService } from './payments.service';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('payments')
 @Controller('payments')
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}
 
+  @Public()
   @Get('status')
   @ApiOperation({ summary: 'Check Payments module status' })
   @ApiResponse({ status: 200, description: 'Payments module operational' })

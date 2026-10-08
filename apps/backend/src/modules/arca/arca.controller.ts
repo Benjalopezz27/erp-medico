@@ -16,6 +16,7 @@ import { ArcaClockSyncService } from './services/arca-clock-sync.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('arca')
 @Controller('arca')
@@ -28,6 +29,7 @@ export class ArcaController {
     private readonly configService: ConfigService,
   ) {}
 
+  @Public()
   @Get('status')
   @ApiOperation({ summary: 'Check ARCA module status' })
   @ApiResponse({ status: 200, description: 'ARCA module operational' })

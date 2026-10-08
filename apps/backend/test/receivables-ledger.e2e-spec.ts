@@ -144,6 +144,14 @@ describe('Receivables ledger (E2E)', () => {
 
   /** Nota de crédito por 1 unidad ($121.00). */
   async function returnOneUnit(sale: { id: string; items: { id: string }[] }) {
+    // Credit notes need an authorized invoice: simulate the CAE.
+    await ds.query(
+      `UPDATE fiscal_documents
+       SET arca_status = 'EMITIDO', cae = '70123456789012', document_type = 'FACTURA_B',
+           point_of_sale = 1, document_number = floor(random() * 1000000000)::int, issued_at = now()
+       WHERE sale_id = $1 AND sale_return_id IS NULL AND arca_status <> 'EMITIDO'`,
+      [sale.id],
+    );
     await http()
       .post(`/api/v1/sales/${sale.id}/returns`)
       .set('Authorization', `Bearer ${sellerToken}`)

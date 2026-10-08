@@ -23,12 +23,14 @@ import { QueryChecksDto } from './dto/query-checks.dto';
 import { RejectCheckDto } from './dto/reject-check.dto';
 import { EndorseCheckDto } from './dto/endorse-check.dto';
 import { Check } from './entities/check.entity';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('checks')
 @Controller('checks')
 export class ChecksController {
   constructor(private readonly checksService: ChecksService) {}
 
+  @Public()
   @Get('status')
   @ApiOperation({ summary: 'Check Checks module status' })
   @ApiResponse({ status: 200, description: 'Checks module operational' })

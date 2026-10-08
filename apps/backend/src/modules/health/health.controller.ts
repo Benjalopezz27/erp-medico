@@ -1,3 +1,4 @@
+import { Public } from '../auth/decorators/public.decorator';
 import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
@@ -10,6 +11,7 @@ import {
 } from './health.service';
 
 @ApiTags('health')
+@Public()
 @Controller('health')
 @SkipThrottle()
 export class HealthController {

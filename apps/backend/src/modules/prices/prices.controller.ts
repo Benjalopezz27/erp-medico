@@ -24,11 +24,13 @@ import { User } from '../users/entities/user.entity';
 import { CreateMarkupConfigurationDto } from './dto/create-markup-configuration.dto';
 import { UpdateMarkupConfigurationDto } from './dto/update-markup-configuration.dto';
 import { PricesService } from './prices.service';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('prices')
 @Controller('prices')
 export class PricesController {
   constructor(private readonly pricesService: PricesService) {}
+  @Public()
   @Get('status')
   @ApiOperation({ summary: 'Check Prices module status' })
   getStatus() {
