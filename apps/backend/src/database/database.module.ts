@@ -25,6 +25,9 @@ import * as path from 'path';
         // TypeORM needs to validate metadata, without hand-listing modules.
         entities: [path.resolve(__dirname, '../modules/**/*.entity{.ts,.js}')],
         migrations: [path.resolve(__dirname, './migrations/*{.ts,.js}')],
+        // Workers hold a connection for the whole ARCA round-trip (up to ~30 s
+        // x concurrency 5); the pg default of 10 leaves little room for the rest.
+        extra: { max: Number(configService.get('DB_POOL_MAX', 20)) },
         synchronize: false,
         logging: configService.get<string>('NODE_ENV') === 'development',
       }),
