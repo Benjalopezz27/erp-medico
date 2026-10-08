@@ -11,7 +11,6 @@ import {
   PaymentAllocationType,
   PaymentErrorCode,
   SalesErrorCode,
-  SaleReturnErrorCode,
 } from '@erp/shared-types';
 import Decimal from 'decimal.js';
 import { EntityManager } from 'typeorm';
