@@ -6,19 +6,19 @@
 
 ## 1. Gates externos (#71)
 
-| #   | Gate                                                              | Estado    | Responsable | Fecha      | Decisión / referencia                                                |
-| --- | ----------------------------------------------------------------- | --------- | ----------- | ---------- | -------------------------------------------------------------------- |
-| 1   | Plan de Railway, presupuesto mensual y responsable de facturación | APROBADO  | Benjamin    | 2026-10-08 | Railway Hobby, paga el responsable técnico                           |
-| 2   | Dominio y acceso DNS (o uso del dominio Railway)                  | APROBADO  | Benjamin    | 2026-10-08 | Dominio `app.distribuidoramedica.store`; falta confirmar acceso DNS  |
-| 3   | Ventana de Go-Live y ventana de rollback                          | APROBADO  | Benjamin    | 2026-10-08 | Lunes 2026-10-12 (feriado), tarde; rollback 4 h; hora exacta a fijar |
-| 4   | Responsable técnico y representante del cliente presentes         | PENDIENTE |             |            | Confirmar quién del cliente está presente                            |
-| 5   | Certificado ARCA productivo, CUIT y punto de venta confirmados    | PENDIENTE | Benjamin    |            | Falta hablar con la contadora (2026-10-09)                           |
-| 6   | Almacenamiento de backups operativo (gates de `backup-gates.md`)  | PENDIENTE |             |            | Ver sección 8: backup manual para el Go-Live                         |
-| 7   | SMTP productivo, si se habilitan notificaciones                   | PENDIENTE |             |            | Confirmar si se habilitan mails (reset de contraseña)                |
-| 8   | Datos iniciales y autorización para cargarlos                     | APROBADO  | Benjamin    | 2026-10-08 | Sin datos iniciales: el cliente carga todo                           |
-| 9   | Criterios objetivos de éxito y de rollback (sección 3)            | APROBADO  | Benjamin    | 2026-10-08 | Sección 3, aprobados por el responsable técnico                      |
-| 10  | Plan de comunicación ante incidentes                              | APROBADO  | Benjamin    | 2026-10-08 | Sección 7; canal: WhatsApp con el cliente                            |
-| 11  | Aceptación del cliente para poner el sistema en producción        | PENDIENTE |             |            |                                                                      |
+| #   | Gate                                                              | Estado    | Responsable | Fecha      | Decisión / referencia                                                                           |
+| --- | ----------------------------------------------------------------- | --------- | ----------- | ---------- | ----------------------------------------------------------------------------------------------- |
+| 1   | Plan de Railway, presupuesto mensual y responsable de facturación | APROBADO  | Benjamin    | 2026-10-08 | Railway Hobby, paga el responsable técnico                                                      |
+| 2   | Dominio y acceso DNS (o uso del dominio Railway)                  | APROBADO  | Benjamin    | 2026-10-08 | Dominio `app.distribuidoramedica.store`; falta confirmar acceso DNS                             |
+| 3   | Ventana de Go-Live y ventana de rollback                          | APROBADO  | Benjamin    | 2026-10-08 | Lunes 2026-10-12 (feriado), tarde; rollback 4 h; hora exacta a fijar                            |
+| 4   | Responsable técnico y representante del cliente presentes         | PENDIENTE |             |            | Confirmar quién del cliente está presente                                                       |
+| 5   | Certificado ARCA productivo, CUIT y punto de venta confirmados    | PENDIENTE | Benjamin    |            | Punto de venta RECE web services OK (2026-10-08). Faltan condición IVA y certificado productivo |
+| 6   | Almacenamiento de backups operativo (gates de `backup-gates.md`)  | PENDIENTE |             |            | Ver sección 8: backup manual para el Go-Live                                                    |
+| 7   | SMTP productivo, si se habilitan notificaciones                   | PENDIENTE |             |            | Confirmar si se habilitan mails (reset de contraseña)                                           |
+| 8   | Datos iniciales y autorización para cargarlos                     | APROBADO  | Benjamin    | 2026-10-08 | Sin datos iniciales: el cliente carga todo                                                      |
+| 9   | Criterios objetivos de éxito y de rollback (sección 3)            | APROBADO  | Benjamin    | 2026-10-08 | Sección 3, aprobados por el responsable técnico                                                 |
+| 10  | Plan de comunicación ante incidentes                              | APROBADO  | Benjamin    | 2026-10-08 | Sección 7; canal: WhatsApp con el cliente                                                       |
+| 11  | Aceptación del cliente para poner el sistema en producción        | PENDIENTE |             |            |                                                                                                 |
 
 Estados: `PENDIENTE` · `APROBADO` · `RECHAZADO`. Cada aprobación referencia un comentario en #71.
 
