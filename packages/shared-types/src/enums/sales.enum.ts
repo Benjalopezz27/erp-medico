@@ -33,6 +33,8 @@ export enum FiscalErrorCode {
   TOTALS_MISMATCH = 'TOTALS_MISMATCH',
   QUERY_UNCERTAIN = 'QUERY_UNCERTAIN',
   RETRIES_EXHAUSTED = 'RETRIES_EXHAUSTED',
+  /** Retries exhausted but ARCA may have authorized it: verify before re-creating the sale. */
+  CAE_UNCERTAIN = 'CAE_UNCERTAIN',
 }
 
 export enum PdfArtifactStatus {

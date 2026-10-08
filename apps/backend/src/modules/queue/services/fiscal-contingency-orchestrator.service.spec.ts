@@ -290,6 +290,32 @@ describe('FiscalContingencyOrchestrator', () => {
     });
   });
 
+  describe('agotamiento con CAE incierto', () => {
+    it('flags CAE_UNCERTAIN when the status query keeps failing on the last attempt', async () => {
+      repos.FiscalDocument.findOne.mockResolvedValue({
+        ...fiscalDocument,
+        documentNumber: 42,
+      } as FiscalDocument);
+      arcaService.queryDocument.mockRejectedValue(
+        new Error('WSFE FECompConsultar timeout'),
+      );
+
+      await orchestrator.process(
+        manager,
+        makeJob({ attemptsMade: 5, attempts: 6 }),
+        'doc-1',
+      );
+
+      expect(repos.FiscalDocument.update).toHaveBeenCalledWith(
+        { id: 'doc-1', arcaStatus: ArcaStatus.PENDIENTE_FACTURACION },
+        expect.objectContaining({
+          arcaStatus: ArcaStatus.RECHAZADO,
+          arcaErrorCode: FiscalErrorCode.CAE_UNCERTAIN,
+        }),
+      );
+    });
+  });
+
   describe('Escenario B — número ya reservado por un intento previo', () => {
     const documentWithNumber: FiscalDocument = {
       ...fiscalDocument,

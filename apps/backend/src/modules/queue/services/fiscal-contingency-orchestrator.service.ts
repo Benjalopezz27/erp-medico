@@ -258,9 +258,18 @@ export class FiscalContingencyOrchestrator {
         this.logger.warn(
           `[Worker] wsfe-emit job ${job.id}: reintentos agotados para documento ${fiscalDocumentId}. ${sanitized}`,
         );
+        // CAE may exist on ARCA's side (post-CAE failure, or the status query
+        // itself failed): flag it so nobody re-creates the sale. Retrying the
+        // same document is safe, it queries the reserved number first.
+        const uncertain =
+          failureStage === FiscalFailureStage.POST_CAE ||
+          arcaErrorCode === FiscalErrorCode.QUERY_UNCERTAIN;
+        const exhaustedCode = uncertain
+          ? FiscalErrorCode.CAE_UNCERTAIN
+          : FiscalErrorCode.RETRIES_EXHAUSTED;
         return this.persistRechazado(manager, document, fiscalDocumentId, {
-          arcaErrorCode: FiscalErrorCode.RETRIES_EXHAUSTED,
-          message: `RETRIES_EXHAUSTED: ${sanitized}`,
+          arcaErrorCode: exhaustedCode,
+          message: `${exhaustedCode}: ${sanitized}`,
           failureStage,
         });
       }
