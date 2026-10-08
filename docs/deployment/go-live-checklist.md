@@ -6,19 +6,19 @@
 
 ## 1. Gates externos (#71)
 
-| #   | Gate                                                              | Estado    | Responsable | Fecha | Decisión / referencia |
-| --- | ----------------------------------------------------------------- | --------- | ----------- | ----- | --------------------- |
-| 1   | Plan de Railway, presupuesto mensual y responsable de facturación | PENDIENTE |             |       |                       |
-| 2   | Dominio y acceso DNS (o uso del dominio Railway)                  | PENDIENTE |             |       |                       |
-| 3   | Ventana de Go-Live y ventana de rollback                          | PENDIENTE |             |       |                       |
-| 4   | Responsable técnico y representante del cliente presentes         | PENDIENTE |             |       |                       |
-| 5   | Certificado ARCA productivo, CUIT y punto de venta confirmados    | PENDIENTE |             |       |                       |
-| 6   | Almacenamiento de backups operativo (gates de `backup-gates.md`)  | PENDIENTE |             |       |                       |
-| 7   | SMTP productivo, si se habilitan notificaciones                   | PENDIENTE |             |       |                       |
-| 8   | Datos iniciales y autorización para cargarlos                     | PENDIENTE |             |       |                       |
-| 9   | Criterios objetivos de éxito y de rollback (sección 3)            | PENDIENTE |             |       |                       |
-| 10  | Plan de comunicación ante incidentes                              | PENDIENTE |             |       |                       |
-| 11  | Aceptación del cliente para poner el sistema en producción        | PENDIENTE |             |       |                       |
+| #   | Gate                                                              | Estado    | Responsable | Fecha      | Decisión / referencia                                       |
+| --- | ----------------------------------------------------------------- | --------- | ----------- | ---------- | ----------------------------------------------------------- |
+| 1   | Plan de Railway, presupuesto mensual y responsable de facturación | APROBADO  | Benjamin    | 2026-10-08 | Railway Hobby, paga el responsable técnico                  |
+| 2   | Dominio y acceso DNS (o uso del dominio Railway)                  | PENDIENTE |             |            | Se usa el dominio Railway; dominio propio fuera del Go-Live |
+| 3   | Ventana de Go-Live y ventana de rollback                          | PROPUESTO | Benjamin    | 2026-10-08 | Lunes 2026-10-12 (feriado), tarde; ventana de rollback 4 h  |
+| 4   | Responsable técnico y representante del cliente presentes         | PENDIENTE |             |            | Confirmar quién del cliente está presente                   |
+| 5   | Certificado ARCA productivo, CUIT y punto de venta confirmados    | PENDIENTE | Benjamin    |            | Falta hablar con la contadora (2026-10-09)                  |
+| 6   | Almacenamiento de backups operativo (gates de `backup-gates.md`)  | PENDIENTE |             |            | Ver sección 8: backup manual para el Go-Live                |
+| 7   | SMTP productivo, si se habilitan notificaciones                   | PENDIENTE |             |            | Confirmar si se habilitan mails (reset de contraseña)       |
+| 8   | Datos iniciales y autorización para cargarlos                     | APROBADO  | Benjamin    | 2026-10-08 | Sin datos iniciales: el cliente carga todo                  |
+| 9   | Criterios objetivos de éxito y de rollback (sección 3)            | PROPUESTO | Benjamin    | 2026-10-08 | Sección 3, a aprobar con el cliente y la contadora          |
+| 10  | Plan de comunicación ante incidentes                              | PROPUESTO | Benjamin    | 2026-10-08 | Sección 7                                                   |
+| 11  | Aceptación del cliente para poner el sistema en producción        | PENDIENTE |             |            |                                                             |
 
 Estados: `PENDIENTE` · `APROBADO` · `RECHAZADO`. Cada aprobación referencia un comentario en #71.
 
@@ -44,15 +44,32 @@ Los agentes no ejecutan estos pasos (AGENTS §6 y §8).
 - [ ] Postgres y Redis sin dominio público ni TCP proxy.
 - [ ] Alertas y responsables activos ([runbook de operaciones](railway-operations-runbook.md) §9).
 
-## 3. Criterios de éxito y rollback (a aprobar en el gate 9)
+## 3. Criterios de éxito y rollback (propuestos)
 
-| Criterio                                       | Valor acordado |
-| ---------------------------------------------- | -------------- |
-| Smoke test verde (`Verify Railway Production`) | PENDIENTE      |
-| Prueba fiscal acordada con el cliente aprobada | PENDIENTE      |
-| Tiempo máximo de rollback de aplicación        | PENDIENTE      |
-| Tiempo máximo de restore de datos (RTO)        | PENDIENTE      |
-| Condiciones que obligan a hacer rollback       | PENDIENTE      |
+**Ventana:** lunes 2026-10-12 (feriado), por la tarde (hora exacta a confirmar). Ventana de rollback: 4 h desde el inicio del cutover.
+
+**Éxito** (deben cumplirse todos para dar por cerrado el Go-Live):
+
+- Backend, worker y frontend en `SUCCESS`; migración de pre-deploy sin error.
+- `Verify Railway Production` verde con el SHA desplegado.
+- `/api/v1/health/ready` responde 200 durante 30 min seguidos, sin errores 5xx en logs.
+- Login, venta de prueba con descuento de stock, PDF y backorders funcionan en la URL final.
+- Cola BullMQ procesa un job de prueba sin quedar en error.
+- Prueba fiscal acordada con la contadora aprobada (pendiente de definir, ver gate 5).
+
+**Rollback** (cualquiera obliga a decidir en el momento):
+
+- La migración falla, o el smoke falla y no se corrige en 60 min.
+- La emisión fiscal es rechazada por causa del sistema (no por datos del comprobante).
+- Inconsistencia de datos (stock negativo, saldos que no cierran).
+- Errores 5xx sostenidos por más de 15 min.
+- Se llega a la hora 3 de la ventana sin criterios de éxito cumplidos: decisión final de continuar o volver atrás antes de la hora 4.
+
+| Tiempo máximo                       | Valor propuesto |
+| ----------------------------------- | --------------- |
+| Rollback de aplicación              | 15 min          |
+| Restore de datos (RTO)              | 1 h             |
+| Decisión final continuar o rollback | hora 3 de 4     |
 
 ## 4. Go-Live
 
@@ -76,3 +93,22 @@ Los agentes no ejecutan estos pasos (AGENTS §6 y §8).
 - [ ] Gates aprobados, smoke exitoso, aceptación del cliente.
 - [ ] `v1.0.0` publicado, runbooks y handoff entregados.
 - [ ] #283 y #71 cerradas, board en Done.
+
+## 7. Plan de comunicación (propuesto)
+
+- **Contactos:** responsable técnico (Benjamin), representante del cliente y contadora (nombres y teléfonos a completar fuera del repo).
+- **Canal:** un grupo de mensajería con los tres. Sin secretos ni datos fiscales reales en los mensajes.
+- **Antes:** aviso al cliente 24 h antes con fecha, franja y qué esperar.
+- **Durante:** mensaje al inicio, al terminar el deploy, al terminar los smoke tests y al decidir continuar o rollback.
+- **Incidente:** aviso inmediato si se activa un criterio de rollback, con estado y hora estimada de resolución. Cada hora hasta resolver.
+- **Después:** mensaje de cierre con el resultado; monitoreo intensivo los 3 días siguientes.
+
+## 8. Backup para el Go-Live (sin plan Pro)
+
+El backup no depende del plan de Railway: `pg_dump` corre del lado cliente. Para el Go-Live alcanza un dump manual, cifrado y copiado a dos lugares, hasta aprobar el destino automatizado de `backup-gates.md` (por ejemplo un bucket S3-compatible).
+
+1. Habilitar temporalmente el TCP Proxy de Postgres en Railway (o usar `railway connect`) y deshabilitarlo al terminar.
+2. `pg_dump -Fc --no-owner` desde tu máquina; verificar con `pg_restore --list`.
+3. Restaurar en un Postgres local de prueba y revisar conteos de tablas críticas.
+4. Cifrar el dump y guardarlo en dos lugares distintos. La clave no se guarda con el dump.
+5. Registrar fecha, tamaño y resultado del restore en `evidence/`, sin datos reales.
