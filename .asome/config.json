@@ -7,7 +7,7 @@
   "deploy": {
     "dev": "dev",
     "prod": "main",
-    "_note": "No hay rama 'staging' en el remoto. Staging corre como ambiente separado en Railway (ver .github/workflows/verify-staging.yml), no como rama git."
+    "_note": "Entorno unico en Railway (production). Flujo dev -> main; no existe staging (ver .github/workflows/verify-production.yml)."
   },
   "fields": {
     "Status": {

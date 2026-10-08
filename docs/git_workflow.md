@@ -41,7 +41,7 @@ main
 
 ### `dev`
 
-- **Propósito:** Integración continua. Staging / demo del cliente.
+- **Propósito:** Integración continua. Demo del cliente. No despliega: el único entorno Railway es `production` (desde `main`).
 - **Regla:** Toda feature branch se mergea aquí al terminar la historia. Es la rama que el cliente ve en los demos de fin de sprint.
 - **Protección:** Require CI to pass. Sí permite self-merge (sin PR review requerido de otro dev).
 
@@ -381,7 +381,7 @@ CI verde
 Reglas:
 
 - Railway no recibe claves SSH ni acceso al equipo del desarrollador.
-- `staging` y `production` usan ambientes, redes, bases y secrets independientes.
+- Existe un único entorno Railway (`production`); sus secrets viven en el GitHub Environment `production` y en Railway, nunca compartidos con desarrollo local.
 - `Wait for CI` impide desplegar una revisión con checks fallidos y cada deployment registra su SHA.
 - Producción requiere aprobación manual, backup previo y criterio de rollback.
 - Ningún workflow contrata infraestructura, modifica DNS o carga certificados sin resolver los gates externos de su issue.
@@ -486,7 +486,7 @@ src/database/migrations/*.js
 RAMA        PROPÓSITO               BASE        MERGE A
 ──────────────────────────────────────────────────────────
 main        Producción              —           — (solo recibe)
-dev         Staging / integración   main        main (milestone)
+dev         Integración (sin deploy)   main        main (milestone)
 feat/*      Feature (1 por US)      dev         dev (fin de US)
 fix/*       Bug no urgente          dev         dev
 hotfix/*    Bug crítico en prod     main        main + dev

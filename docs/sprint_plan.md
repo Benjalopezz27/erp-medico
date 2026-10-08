@@ -869,7 +869,7 @@ Cada reporte sigue el mismo patrón:
 3. **[QA]** Verificar todos los reportes generan Excel/PDF sin errores
 4. **[QA]** Test de regresión: ejecutar toda la suite de tests (`pnpm -r run test`)
 5. **[Infra]** Confirmar [#69](https://github.com/Benjalopezz27/erp-medico/issues/69) y [#70](https://github.com/Benjalopezz27/erp-medico/issues/70) cerradas
-6. **[Infra]** Ejecutar [#71](https://github.com/Benjalopezz27/erp-medico/issues/71): promover a producción el mismo digest validado en staging, aplicar migraciones, smoke tests y criterio de rollback
+6. **[Infra]** Ejecutar [#71](https://github.com/Benjalopezz27/erp-medico/issues/71): promover a producción el commit validado por CI en `dev` (entorno único, #283), con backup previo, aplicar migraciones, smoke tests y criterio de rollback
 7. **[Release]** Publicar `v1.0.0` únicamente después de la aceptación del Go-Live
 8. **[Docs]** Entregar runbooks de deploy, incidentes, backup, restore y operación
 
@@ -884,7 +884,7 @@ El Go-Live requiere aprobar el plan y costo real de Railway, dominio/DNS de prod
 - [ ] Configuración del sistema guardando en DB
 - [ ] Suite de tests completa pasando en CI
 - [ ] Deploy en producción operativo
-- [ ] Producción usa el mismo digest validado en staging
+- [ ] Producción despliega el commit de `main` validado por CI, con backup previo
 - [ ] Backup externo restaurado y rollback ensayado
 - [ ] Gates externos y aceptación del cliente registrados
 - [ ] Smoke test manual del flujo completo pasado

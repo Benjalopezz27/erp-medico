@@ -19,4 +19,4 @@ las variables deben estar en el servicio worker de Railway. Fuera de producción
 
 1. Crear cuenta Resend y generar API key.
 2. Agregar el dominio de envío y cargar los registros DNS **SPF, DKIM** (y DMARC recomendado).
-3. Esperar estado `verified`, cargar las variables en staging y pedir un reset de prueba.
+3. Esperar estado `verified`, cargar las variables en production y pedir un reset de prueba.

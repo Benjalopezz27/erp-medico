@@ -6,15 +6,17 @@ This runbook starts after the repository owner provisions Railway. It provides o
 
 ## 1. First deployment
 
-1. Confirm CI is green for the selected `dev` commit.
-2. Confirm backend, frontend, and PostgreSQL belong to the `staging` environment.
+1. Confirm CI is green for the selected `main` commit.
+2. Confirm backend, worker, frontend, PostgreSQL and Redis belong to the single `production` environment.
+   There is no pre-deploy environment: migrations run against real data. Test them locally or in an ephemeral PR environment before merging to `main`.
+   **Before approving every deploy, take a restorable Postgres backup** (`ops/backup/backup.sh --label pre-migration`, [backup-restore-runbook.md](backup-restore-runbook.md)) and note its object name in the operations issue.
 3. Confirm only frontend has public networking.
 4. Review staged Railway configuration and variables without exposing values.
-5. Deploy PostgreSQL, then backend, then frontend. After CI passes on `dev` (staging) or `main` (production), the `Deploy Railway` workflow does this in order: backend, worker, frontend. Each step waits for a `SUCCESS` deployment (build, pre-deploy migration, healthcheck) before the next starts.
-   - One-time setup: disable GitHub auto-deploy on `backend`, `worker` and `frontend` in both environments (otherwise Railway deploys them in parallel). Create a Railway project token per environment and store it as `RAILWAY_TOKEN` in the matching GitHub Environment (`staging`, `production`).
+5. Deploy PostgreSQL, then backend, then frontend. After CI passes on `main`, the `Deploy Railway` workflow waits for manual approval of the GitHub Environment `production`, then does this in order: backend, worker, frontend. Each step waits for a `SUCCESS` deployment (build, pre-deploy migration, healthcheck) before the next starts.
+   - One-time setup: disable GitHub auto-deploy on `backend`, `worker` and `frontend` (otherwise Railway deploys them in parallel). Set their deploy branch to `main`. Create a Railway project token for the `production` environment and store it as `RAILWAY_TOKEN` in the GitHub Environment `production`, with required reviewers enabled.
 6. Confirm the backend pre-deploy migration exits successfully.
 7. Confirm both application health checks pass (`/api/v1/health/ready` or `/api/v1/health`).
-8. Run the `Verify Railway Staging` GitHub workflow with the exact commit SHA.
+8. Run the `Verify Railway Production` GitHub workflow with the exact commit SHA.
 9. Record the deployment URL, SHA, timestamp, and smoke result in the operations issue. Do not record secrets.
 
 ---
@@ -113,7 +115,7 @@ An application rollback does not undo a database migration; the local rehearsal 
 
 ## 7. Cost controls
 
-- Enable serverless sleeping for staging frontend and backend if cold starts are acceptable.
+- Do not enable serverless sleeping on production services unless cold starts are accepted by the client.
 - Set a billing email alert before enabling the services.
 - A hard usage limit takes workloads offline. Use it only with a deliberate amount and never treat it as an availability feature.
 - Review estimated usage after one week before provisioning production.
@@ -130,7 +132,7 @@ If a secret or credential is suspected to be compromised:
    - Immediately revoke compromised certificate in AFIP / ARCA portal if necessary.
    - Generate new CSR / download new X.509 PKCS#12 certificate.
    - Encode new certificate as Base64: `base64 -w 0 new_cert.p12 > cert_base64.txt`.
-   - Update `ARCA_CERT_BASE64` and `ARCA_CERT_PASSWORD` in Railway staging variables.
+   - Update `ARCA_CERT_BASE64` and `ARCA_CERT_PASSWORD` in Railway production variables.
    - Trigger redeploy of backend and worker services.
    - Never commit or paste raw certificate files in Git or logs.
 4. **Audit Snapshot Integrity**: Confirm that audit logs did not store compromised keys (verified by automated `stripSensitiveKeys`).
@@ -139,11 +141,11 @@ If a secret or credential is suspected to be compromised:
 
 ## 9. Phase B: External Monitoring & Alerting (Deferred to #114)
 
-When the repository owner provisions Railway staging in **Issue #114**, the following will be validated:
+When the repository owner provisions Railway production in **Issue #114**, the following will be validated:
 
-1. External uptime monitor configured against `https://<staging-url>/api/v1/health/ready`.
+1. External uptime monitor configured against `https://<production-url>/api/v1/health/ready`.
 2. Notification channel (Slack webhook, Telegram, or email).
-3. Controlled staging drill:
+3. Controlled drill in a maintenance window (never during business hours):
    - Query `/api/v1/health/ready` (expect 200).
    - Temporarily pause database or test non-prod service.
    - Verify external alert is received in the approved channel.
@@ -211,7 +213,7 @@ AFIP WSAA rejects authentication requests if the server clock drifts from offici
 
 ### Triggering and Monitoring Operational Test Jobs
 
-To verify Redis queue dispatch, worker processing, and retry recovery in staging:
+To verify Redis queue dispatch, worker processing, and retry recovery in production:
 
 1. **Enqueue an Operational Probe Job**:
 
@@ -221,7 +223,7 @@ To verify Redis queue dispatch, worker processing, and retry recovery in staging
    Content-Type: application/json
 
    {
-     "message": "Manual staging worker verification",
+     "message": "Manual production worker verification",
      "failAttempts": 0
    }
    ```
