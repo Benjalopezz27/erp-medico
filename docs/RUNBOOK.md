@@ -12,8 +12,9 @@ separado (`dist/worker.js`) para jobs asíncronos (emisión fiscal ARCA, PDF, re
 
 Detalle completo, topología y variables por ambiente:
 
-- [`docs/deployment/staging-environment.md`](deployment/staging-environment.md) — topología
-  Railway de staging.
+- [`docs/deployment/production-environment.md`](deployment/production-environment.md) — topología
+  Railway del entorno único `production`.
+- [`docs/deployment/go-live-checklist.md`](deployment/go-live-checklist.md) — gates y cutover del Go-Live.
 - [`docs/deployment/production-containers.md`](deployment/production-containers.md) — imágenes
   productivas reproducibles (`docker-compose.prod.yml`).
 - [`docs/deployment/railway-operations-runbook.md`](deployment/railway-operations-runbook.md) —
@@ -22,8 +23,8 @@ Detalle completo, topología y variables por ambiente:
 ## Entornos
 
 - **Development** — local, Docker Compose (`docker-compose.yml`), `ArcaMockService` para fiscal.
-- **Staging** — Railway, no es una rama git (no existe `staging` en el remoto). Homologación
-  AFIP/ARCA real (`ArcaHomologationService`), certificado `.p12` de homologación.
+- **Production** — Railway, entorno único (rama `main`, deploy con aprobación manual). No existe
+  entorno `staging`. `ARCA_ENV` y el certificado `.p12` los fija una persona en Railway.
 - **Production** — rama `main`, `docker-compose.prod.yml` como referencia de imágenes.
   Certificado y CUIT de producción: <<HUECO M-05>> — no confirmados en este bootstrap.
 
@@ -49,8 +50,7 @@ backup con datos reales sale del entorno. Antes de una migración riesgosa:
   la venta `CONFIRMADA` con `FiscalDocument=PENDIENTE_FACTURACION` (reintento automático vía
   BullMQ); un fallo post-CAE se reconcilia con `FECompConsultar` antes de reintentar
   `FECAESolicitar` — ver Sprint 8 (#9, #224, #226).
-- Sin rama `staging` en git: cualquier automatización que asuma la cadena `dev → staging → main`
-  no aplica acá tal cual — ver `.asome/config.json`.
+- Sin entorno `staging`: la cadena de promoción es `dev → main` — ver `.asome/config.json`.
 
 <<HUECO M-06>> — procedimiento de rotación del certificado `.p12` y responsable, pendiente de
 confirmación con el cliente (ver también #69).

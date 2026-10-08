@@ -42,7 +42,7 @@ modelo. Para debuggear se usan fixtures anonimizadas / `ArcaMockService` (§8.7)
 - **Backend:** NestJS (monolito modular) + TypeORM + PostgreSQL 16 + BullMQ/Redis 7
 - **Frontend:** React 19 + Vite + TanStack Router/Query + shadcn/ui + Tailwind
 - **Infraestructura local:** Docker Compose (`postgres:16-alpine`, `redis:7-alpine`, `mailhog`)
-- **Infraestructura deploy:** Railway (staging y producción corren ahí, no como rama git)
+- **Infraestructura deploy:** Railway, entorno único `production` (no hay entorno previo al deploy)
 
 ```bash
 # instalar
@@ -60,10 +60,10 @@ pnpm db:migrate ; pnpm db:revert
 
 ## 4. Ramas y entornos
 
-- Rama de desarrollo: `dev` → entorno Development
-- `main` → Producción
-- **No hay rama `staging` en git** — staging es un ambiente separado en Railway
-  (`.github/workflows/verify-staging.yml`), no una rama de promoción.
+- Rama de desarrollo: `dev` → entorno Development (local; `dev` no despliega)
+- `main` → Producción (único entorno Railway; deploy con aprobación manual)
+- Flujo de promoción: `dev → main`. **No hay rama ni entorno `staging`.** Verificación externa:
+  `.github/workflows/verify-production.yml`.
 - Las ramas de trabajo salen de `dev`. Los PRs van contra `dev`. Nunca contra `main` directo.
 
 ⚠️ El _default branch_ del repositorio en GitHub es `main`, no `dev`. Un `git clone` te deja en
@@ -76,14 +76,14 @@ la rama equivocada. Verificar siempre con `git rev-parse --abbrev-ref HEAD` ante
 - **Manejo de errores:** nunca se silencia un error. `catch` vacío o que solo loguea = rechazo en
   review.
 - **Estado y datos:** todo cambio de esquema es migración TypeORM versionada. **Un agente no
-  ejecuta migraciones contra staging/producción** — puede escribirlas y correrlas en local.
+  ejecuta migraciones contra producción** — puede escribirlas y correrlas en local.
 - **Commits:** Conventional Commits, atómicos. Footer de coautoría cuando trabajó un modelo:
   `Co-Authored-By: <modelo> <email del proveedor>`
 - **Certificados y secretos ARCA:** nunca en Git, imágenes ni logs. `secrets/` está gitignored
-  para uso local únicamente — no es el mecanismo de custodia de staging/producción (eso vive en
+  para uso local únicamente — no es el mecanismo de custodia de producción (eso vive en
   Railway variables, fuera de este repo).
 - **Patrones existentes a reusar:** `IArcaService` + `ArcaMockService` (dev) /
-  `ArcaHomologationService` (staging/homologación) en `apps/backend` — no reimplementar el
+  `ArcaHomologationService` (homologación ARCA) en `apps/backend` — no reimplementar el
   contrato de emisión fiscal por fuera de esa interfaz.
 
 ## 6. Reglas para agentes acá
@@ -99,7 +99,7 @@ la rama equivocada. Verificar siempre con `git rev-parse --abbrev-ref HEAD` ante
 ### Nunca
 
 - Tocar secretos, `.env`, certificados `.p12`, infraestructura o producción.
-- Correr migraciones contra staging/producción sin aprobación humana explícita.
+- Correr migraciones contra producción sin aprobación humana explícita.
 - Push directo a `dev` o `main`; force push; borrar ramas remotas.
 - Instalar dependencias sin aprobación.
 - Usar CUIT, comprobantes o datos de clientes reales para debuggear — `ArcaMockService` o
@@ -119,10 +119,10 @@ la rama equivocada. Verificar siempre con `git rev-parse --abbrev-ref HEAD` ante
 Control real en `.claude/settings.json` (reglas `deny`). Esta tabla explica; ese archivo impide.
 Una allowlist que solo vive en un documento no es una allowlist (P5).
 
-| Servidor  | Para qué                                                                              | Scope                                                                                                                                                                                                                  |
-| --------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Figma`   | Leer diseños y wireframes al implementar                                              | **Solo lectura**: `get_design_context`, `get_screenshot`, `get_metadata`, `get_variable_defs`. Crear/editar en Figma denegado                                                                                          |
-| `railway` | Diagnóstico de staging/producción (logs, métricas, estado, variables de solo lectura) | **Solo lectura**. Todo verbo de escritura o destructivo (`deploy`, `restart`, `delete-*`, `set-*`, `create-*`, `update-*`) está denegado — el proyecto es fiscal (§8.6), nada toca producción sin un humano ejecutando |
+| Servidor  | Para qué                                                                      | Scope                                                                                                                                                                                                                  |
+| --------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Figma`   | Leer diseños y wireframes al implementar                                      | **Solo lectura**: `get_design_context`, `get_screenshot`, `get_metadata`, `get_variable_defs`. Crear/editar en Figma denegado                                                                                          |
+| `railway` | Diagnóstico de producción (logs, métricas, estado, variables de solo lectura) | **Solo lectura**. Todo verbo de escritura o destructivo (`deploy`, `restart`, `delete-*`, `set-*`, `create-*`, `update-*`) está denegado — el proyecto es fiscal (§8.6), nada toca producción sin un humano ejecutando |
 
 Cualquiera fuera de esta tabla no se usa. Incorporar uno nuevo requiere aprobación del owner
 técnico y entra por PR modificando esta tabla **y** las reglas `deny`.
@@ -148,7 +148,7 @@ No son MCP, pero también llevan scope (§8.1):
 | Numeración de comprobantes por punto de venta                | Colisión entre jobs concurrentes duplica o salta numeración fiscal    |
 | `docs/decimal_policy.md` y su implementación                 | Redondeo incorrecto en montos/IVA es un error fiscal, no solo un bug  |
 | `secrets/` y variables Railway de ARCA                       | Certificado y contraseña de homologación/producción                   |
-| Migraciones TypeORM                                          | Corren contra datos reales de stock y ventas en staging/producción    |
+| Migraciones TypeORM                                          | Corren contra datos reales de stock y ventas en producción            |
 
 <<HUECO M-03>> — la lista se completa con el owner técnico; hoy es una primera aproximación
 derivada del README y de las issues de Sprint 8, no una auditoría exhaustiva del código.

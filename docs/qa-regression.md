@@ -32,7 +32,7 @@ base de test, nunca una con datos que importen.
 
 En un runner más lento: `THRESHOLD_FACTOR=2 pnpm --filter @erp/backend run test:volume`.
 
-## Smoke de UI en staging (manual, pendiente de ejecutar por el equipo)
+## Smoke de UI en producción (manual, pendiente de ejecutar por el equipo)
 
 Navegador y resolución del equipo del cliente. Datos de prueba (no CUIT/clientes reales).
 

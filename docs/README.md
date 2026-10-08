@@ -51,7 +51,7 @@ Welcome to the central documentation hub for the ERP System.
    - **Business rules embedded**: Stock non-negative errors, credit sale invoice lock, price review tray, ARCA contingency states, cheque reversal flow.
 
 8. [Git Workflow & Branch Strategy (v1.0)](git_workflow.md)
-   - **Branch model**: `main` (production) · `dev` (staging/integration) · `feat/sN-usXX-*` · `fix/*` · `hotfix/*`.
+   - **Branch model**: `main` (production) · `dev` (integration, no deploy) · `feat/sN-usXX-*` · `fix/*` · `hotfix/*`.
    - **Conventional Commits**: typed commits with US scope (`feat(us25): ...`) for full traceability.
    - **Self-review checklist**: replaces peer review for single-developer workflow.
    - **GitHub Actions**: CI (lint + test + build), container evidence in GHCR, and Railway deployments gated by CI.

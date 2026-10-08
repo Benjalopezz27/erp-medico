@@ -302,18 +302,18 @@ ARCA_PUNTO_VENTA=1
 
 ---
 
-## 9. Staging & Production Hosting
+## 9. Production Hosting
 
-**Proveedor objetivo:** Railway. Staging inicia en Hobby y producción se evalúa
-con métricas reales antes del Go-Live; el crédito incluido no funciona como tope.
+**Proveedor objetivo:** Railway, entorno único `production` (decisión #283). Inicia en Hobby y
+se evalúa el plan Pro con métricas reales; el crédito incluido no funciona como tope.
 
 - Servicios frontend y backend construidos desde Dockerfiles del monorepo
 - Autodeploy desde GitHub exclusivamente después de CI verde (`Wait for CI`)
 - Nginx del frontend como proxy same-origin hacia el backend privado
-- PostgreSQL administrado en una red aislada por ambiente
+- PostgreSQL administrado en una red privada del entorno
 - Redis se incorpora al implementar BullMQ/ARCA, no antes
-- Dominio Railway para staging y dominio comprado únicamente para producción
-- Secrets, base de datos y red independientes por ambiente
+- Dominio propio para producción (o dominio Railway hasta aprobarlo)
+- Secrets en Railway y GitHub Environment `production`, nunca compartidos con desarrollo local
 - Health/readiness, logs, alertas de gasto y rollback documentado
 
 ```
