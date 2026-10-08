@@ -163,10 +163,10 @@ Triggered automatically via `workflow_run` upon successful CI completion on `dev
    - Extracts immutable digests (`image@sha256:<digest>`).
    - Generates and uploads `release-manifest.json` as release evidence.
 
-Railway Hobby staging builds these same Dockerfiles from the private GitHub
+Railway Hobby production builds these same Dockerfiles from the private GitHub
 repository after CI succeeds. It does not consume private GHCR images because
 Railway reserves private registry credentials for its Pro plan. See
-[`staging-environment.md`](./staging-environment.md) for the provider-specific
+[`production-environment.md`](./production-environment.md) for the provider-specific
 deployment model and the external steps that remain intentionally unprovisioned.
 
 ---

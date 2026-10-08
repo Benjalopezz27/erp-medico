@@ -57,11 +57,11 @@ PostgreSQL has no public exposure.
 Runs on an operator machine with Docker, `aws` and `gpg`; never against production.
 
 ```bash
-export BACKUP_ENV=staging BACKUP_BUCKET=… BACKUP_ENDPOINT_URL=… \
+export BACKUP_ENV=production BACKUP_BUCKET=… BACKUP_ENDPOINT_URL=… \
        AWS_ACCESS_KEY_ID=… AWS_SECRET_ACCESS_KEY=… \
        BACKUP_ENCRYPTION_PASSPHRASE=… DB_HOST=<source host> DB_NAME=<source db>
 ops/backup/restore.sh --latest --report restore-report.json          # latest
-ops/backup/restore.sh --name erp-medico-staging-<UTC>.dump.gpg        # an older copy
+ops/backup/restore.sh --name erp-medico-production-<UTC>.dump.gpg        # an older copy
 ops/backup/restore.sh --latest --label pre-migration                  # pre-migration copy
 ```
 
@@ -81,7 +81,7 @@ ops/backup/restore.sh --latest --label pre-migration                  # pre-migr
   successful backup). With a daily job: ≤ 24 h + minutes. If the client needs less, options are
   more frequent dumps or WAL archiving/PITR (out of scope here).
 - **RTO** = measured `total_seconds` of the restore drill + human time to decide, repoint the app
-  and smoke (estimate in the evidence file; measure it in the staging rehearsal).
+  and smoke (estimate in the evidence file; measure it in the Go-Live rehearsal).
 - Both must be **accepted by the client** (gate 5) — measured numbers are input, not acceptance.
 
 ## 5. Backup before a risky migration
@@ -133,13 +133,13 @@ deploy A → migrate → `health/ready`; pre-migration backup; deploy B with mig
 A on the migrated schema**; failed migration C while A keeps serving; restore of the
 pre-migration backup with `restore.sh`. Output is pasted into an evidence file.
 
-### 8.2 Staging (human-executed)
+### 8.2 Production (human-executed)
 
 Needs an authorised window (gate 8). Do not use the `railway` MCP for writes.
 
 1. Announce the window; take `backup.sh --label pre-migration`.
 2. Deploy the candidate SHA per `railway-operations-runbook.md` §1 (migration runs as pre-deploy).
-3. Run the `Verify Railway Staging` workflow with that SHA; record URL, SHA, time, result.
+3. Run the `Verify Railway Production` workflow with that SHA; record URL, SHA, time, result.
 4. Roll back to the previous deployment (§6 of that runbook); re-run the smoke against the old SHA.
 5. Run the restore drill from the backup taken in step 1.
 6. File evidence (`evidence/_template.md`): SHAs, per-step times, RPO/RTO observed, issues.
@@ -170,5 +170,5 @@ Each item has an owner (fill in at gate 6) and an observable criterion.
 - [ ] Named person reads alerts and executes the restore (gate 6), with a backup person.
 - [ ] Alert path tested: forced failure produces a notification in the approved channel.
 - [ ] Restore drill performed from the newest **and** from an older copy, evidence filed.
-- [ ] Rollback rehearsed in staging with the previous image, evidence filed.
+- [ ] Rollback rehearsed with the previous image before the final Go-Live window, evidence filed.
 - [ ] Pre-migration backup step is part of the release checklist for risky migrations.

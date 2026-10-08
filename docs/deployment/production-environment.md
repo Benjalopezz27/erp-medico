@@ -1,9 +1,11 @@
-# Railway staging environment
+# Railway production environment (single environment)
 
-This repository is prepared for an isolated Railway staging environment. The
-external project, services, variables, domains, and billing limits are not
-provisioned by this change and must be configured by the repository owner before
-the first deployment.
+Railway runs a **single** environment, `production` (decision #283: the former
+`staging` environment is renamed to `production`; there is no pre-deploy environment).
+Because migrations run against real data, every deploy requires a restorable
+backup first and a human approval. See [`go-live-checklist.md`](./go-live-checklist.md)
+for the cutover and [`railway-operations-runbook.md`](./railway-operations-runbook.md)
+for day-to-day operations.
 
 ## Target topology
 
@@ -31,7 +33,7 @@ Worker (NestJS background worker, dist/worker.js, private)
 ## Deployment model
 
 - All application services use the private GitHub repository as their source.
-- Staging tracks the `dev` branch.
+- Production tracks the `main` branch. `dev` does not deploy.
 - Railway `Wait for CI` must be enabled for all services. A failed GitHub check
   therefore skips the corresponding deployment.
 - Railway builds the existing production Dockerfiles from the repository root:
@@ -45,10 +47,11 @@ Worker (NestJS background worker, dist/worker.js, private)
   images as independent release evidence. Hobby deployments do not pull private
   GHCR images because private registry credentials require Railway Pro.
 
-No automatic Railway deployment workflow is committed: repository connection,
-`Wait for CI`, service settings, and the first deployment require owner actions in
-the Railway dashboard. After provisioning, `.github/workflows/verify-staging.yml`
-can verify an externally deployed revision without holding Railway credentials.
+Railway auto-deploy from GitHub is disabled on backend, worker and frontend. The
+`Deploy Railway` workflow (push to `main`, GitHub Environment `production` with
+required reviewers) deploys them by commit SHA in order: backend, worker, frontend.
+Afterwards `.github/workflows/verify-production.yml` verifies the deployed revision
+without holding Railway credentials.
 
 ## Service configuration
 
@@ -59,7 +62,7 @@ root manifests and `packages/shared-types`.
 
 | Setting            | Value                                  |
 | ------------------ | -------------------------------------- |
-| Source branch      | `dev`                                  |
+| Source branch      | `main`                                 |
 | Dockerfile path    | `/apps/backend/Dockerfile`             |
 | Public networking  | Disabled                               |
 | Port               | `3000`                                 |
@@ -85,7 +88,7 @@ JWT_EXPIRATION=8h
 ARCA_ENV=disabled
 ```
 
-When activating ARCA Homologation in staging (after customer credentials gate):
+ARCA homologation (ARCA test service) is set per environment by a person, after the customer credentials gate. For real fiscal emission use `ARCA_ENV=production` per the Go-Live checklist:
 
 ```text
 ARCA_ENV=homologation
@@ -100,7 +103,7 @@ ARCA_WSAA_URL=https://wsaahomo.afip.gov.ar/ws/services/LoginCms
 
 | Setting           | Value                        |
 | ----------------- | ---------------------------- |
-| Source branch     | `dev`                        |
+| Source branch     | `main`                       |
 | Dockerfile path   | `/apps/backend/Dockerfile`   |
 | Custom Start CMD  | `node dist/worker.js`        |
 | Healthcheck CMD   | `node dist/worker-health.js` |
@@ -128,7 +131,7 @@ ARCA_ENV=disabled
 
 | Setting           | Value                          |
 | ----------------- | ------------------------------ |
-| Source branch     | `dev`                          |
+| Source branch     | `main`                         |
 | Dockerfile path   | `/apps/frontend/Dockerfile`    |
 | Public networking | Railway-generated HTTPS domain |
 | Port              | `8080`                         |
@@ -150,17 +153,18 @@ without rebuilding the SPA or exposing the API publicly.
 ## Security and data boundaries
 
 1. Do not enable a public domain or TCP proxy for backend or PostgreSQL.
-2. Keep staging and production in separate persistent Railway environments.
-3. Never reuse `JWT_SECRET`, database credentials, or future ARCA credentials.
-4. Staging accepts synthetic fixtures only. Never restore a production dump.
-5. Keep `ARCA_ENV=disabled` until the homologation integration is explicitly
-   implemented and approved.
-6. Generate a Railway domain for staging; reserve the purchased custom domain for
-   the future production frontend.
+2. There is no environment to test migrations on: test them locally or in an
+   ephemeral PR environment, and take a restorable backup before every deploy.
+3. Never reuse `JWT_SECRET`, database credentials or ARCA credentials from local
+   development or from any removed environment.
+4. Never copy production data to local or other environments.
+5. Keep `ARCA_ENV=disabled` until the corresponding ARCA integration is explicitly
+   approved for production.
+6. Use the Railway domain until the custom domain gate is approved.
 
 ## Verification
 
-After Railway reports both services healthy, run `Verify Railway Staging` from
+After Railway reports both services healthy, run `Verify Railway Production` from
 GitHub Actions with the frontend HTTPS origin and deployed commit SHA. It checks:
 
 - HTTPS and HTTP-to-HTTPS redirect;
@@ -174,6 +178,5 @@ Review deployment logs and metrics after every first-time configuration change.
 
 ## Activation status
 
-Prepared in code does not mean provisioned. Until the owner completes the linked
-operations issue, staging has no Railway project, service, domain, secrets, data,
-or running deployment.
+Prepared in code does not mean cut over. The state of each Go-Live gate and the
+cutover sequence live in [`go-live-checklist.md`](./go-live-checklist.md).
