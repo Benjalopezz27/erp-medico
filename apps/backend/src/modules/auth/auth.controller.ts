@@ -34,6 +34,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(EmailThrottlerGuard) // also per target email: rotating IPs cannot brute-force one account
   @Throttle({
     default: {
       limit: Number(process.env.THROTTLE_LIMIT_LOGIN || 5),
