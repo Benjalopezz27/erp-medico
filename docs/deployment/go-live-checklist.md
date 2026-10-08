@@ -28,8 +28,8 @@ Los agentes no ejecutan estos pasos (AGENTS §6 y §8).
 
 **Antes de borrar nada**
 
-- [ ] Backup de Postgres del `staging` actual, con restore verificado ([runbook de backup](backup-restore-runbook.md) §4). Evidencia en `evidence/`.
-- [ ] El `production` actual (Postgres, Redis, volúmenes) verificado **vacío**. Si tiene datos reales, migrarlos antes.
+- [x] Backup de Postgres del `staging` actual, con restore verificado (2026-10-08, ver `evidence/pre-cutover-backup-2026-10-08.md`; repetir antes del cutover) ([runbook de backup](backup-restore-runbook.md) §4). Evidencia en `evidence/`.
+- [x] El `production` anterior estaba vacío y ya fue eliminado (2026-10-08; el proyecto solo tiene `staging`).
 - [ ] El cambio `railway-single-env-production` mergeado a `dev` y promovido a `main`.
 
 **Infra**
