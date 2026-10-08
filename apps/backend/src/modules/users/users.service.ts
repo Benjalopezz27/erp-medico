@@ -430,7 +430,10 @@ export class UsersService {
     await this.dataSource.transaction(async (manager: EntityManager) => {
       await manager
         .getRepository(User)
-        .update({ id: user.id }, { passwordHash });
+        .update(
+          { id: user.id },
+          { passwordHash, passwordChangedAt: new Date() },
+        );
       // audit_logs.action is DB-constrained (no password-specific action), so record an UPDATE
       // flag: the trail says the password changed, never the hash.
       await this.auditService.record(manager, {

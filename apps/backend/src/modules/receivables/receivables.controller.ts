@@ -11,6 +11,7 @@ import { JwtAuthGuard, RolesGuard } from '../auth/guards';
 import { QueryDebtorsDto } from './dto/query-account.dto';
 import { ReceivablesQueryService } from './receivables-query.service';
 import { ReceivablesService } from './receivables.service';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('receivables')
 @ApiBearerAuth('JWT-auth')
@@ -21,6 +22,7 @@ export class ReceivablesController {
     private readonly queryService: ReceivablesQueryService,
   ) {}
 
+  @Public()
   @Get('status')
   @ApiOperation({ summary: 'Check Receivables module status' })
   @ApiResponse({ status: 200, description: 'Receivables module operational' })

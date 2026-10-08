@@ -144,6 +144,14 @@ describe('Receivables ledger (E2E)', () => {
 
   /** Nota de crédito por 1 unidad ($121.00). */
   async function returnOneUnit(sale: { id: string; items: { id: string }[] }) {
+    // Credit notes need an authorized invoice: simulate the CAE.
+    await ds.query(
+      `UPDATE fiscal_documents
+       SET arca_status = 'EMITIDO', cae = '70123456789012', document_type = 'FACTURA_B',
+           point_of_sale = 1, document_number = floor(random() * 1000000000)::int, issued_at = now()
+       WHERE sale_id = $1 AND sale_return_id IS NULL AND arca_status <> 'EMITIDO'`,
+      [sale.id],
+    );
     await http()
       .post(`/api/v1/sales/${sale.id}/returns`)
       .set('Authorization', `Bearer ${sellerToken}`)
@@ -344,11 +352,7 @@ describe('Receivables ledger (E2E)', () => {
     });
 
     it('flags credit limit exceeded only when a limit is set', async () => {
-      const limited = await createCustomer(
-        'Con Limite',
-        '30700000009',
-        '100.00',
-      );
+      const limited = await createCustomer('Con Limite', '30700000009', '0.00');
       const unlimited = await createCustomer(
         'Sin Limite',
         '30700000010',
@@ -356,6 +360,11 @@ describe('Receivables ledger (E2E)', () => {
       );
       await creditSale(limited.id, 1);
       await creditSale(unlimited.id, 1);
+      // Limit lowered after the debt existed: the sale itself is now blocked
+      // when it crosses the limit, so the flag only shows for pre-existing debt.
+      await ds.query(`UPDATE customers SET credit_limit = 100 WHERE id = $1`, [
+        limited.id,
+      ]);
 
       const a = await get(`/api/v1/customers/${limited.id}/account-receivable`);
       const b = await get(

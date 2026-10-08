@@ -41,10 +41,11 @@ jobs:
 
       - name: Prepare Image Tags & Target Names
         id: meta
+        env:
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           REPO_OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
           HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
-          HEAD_BRANCH="${{ github.event.workflow_run.head_branch }}"
           BACKEND_TARGET="ghcr.io/${REPO_OWNER}/erp-medico-backend"
           FRONTEND_TARGET="ghcr.io/${REPO_OWNER}/erp-medico-frontend"
 
@@ -168,10 +169,11 @@ jobs:
           curl -sf http://127.0.0.1:8080/version.json | grep -q "${{ steps.meta.outputs.head_sha }}"
 
       - name: Push Container Images to GHCR
+        env:
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           BACKEND_TARGET="${{ steps.meta.outputs.backend_target }}"
           FRONTEND_TARGET="${{ steps.meta.outputs.frontend_target }}"
-          HEAD_BRANCH="${{ github.event.workflow_run.head_branch }}"
           HEAD_SHA="${{ steps.meta.outputs.head_sha }}"
 
           # Push immutable SHA tags
@@ -193,11 +195,12 @@ jobs:
 
       - name: Extract Image Digests & Generate Release Manifest
         id: manifest
+        env:
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           BACKEND_SHA_TAG="${{ steps.meta.outputs.backend_sha_tag }}"
           FRONTEND_SHA_TAG="${{ steps.meta.outputs.frontend_sha_tag }}"
           HEAD_SHA="${{ steps.meta.outputs.head_sha }}"
-          HEAD_BRANCH="${{ github.event.workflow_run.head_branch }}"
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
           # Inspect repo digests after push

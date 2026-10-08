@@ -183,6 +183,25 @@ describe('ArcaHomologationService', () => {
       expect(ticket.expirationTime).toBe('2026-09-01T23:59:59-03:00');
     });
 
+    it('shares one WSAA request between concurrent logins (single-flight)', async () => {
+      const ticket = {
+        token: 't',
+        sign: 's',
+        expirationTime: '2099-01-01T00:00:00-03:00',
+      };
+      const loginSpy = jest
+        .spyOn(service as any, 'loginWithWsaa')
+        .mockImplementation(async () => {
+          await new Promise((r) => setTimeout(r, 20));
+          return ticket;
+        });
+
+      const [a, b] = await Promise.all([service.login(), service.login()]);
+
+      expect(loginSpy).toHaveBeenCalledTimes(1);
+      expect(a).toBe(b);
+    });
+
     it('should throw ServiceUnavailableException if certificate is expired', async () => {
       jest.spyOn(mockCertLoader, 'loadCertificate').mockReturnValue({
         ...validCertData,

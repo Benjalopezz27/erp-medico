@@ -72,6 +72,7 @@ describe('SalesNewPage', () => {
       requiresFiscalInvoice: false,
       paymentMethod: PaymentMethod.EFECTIVO,
       items: [{ productId: product.id, quantityBase: 1 }],
+      idempotencyKey: expect.any(String),
     });
     expect(await screen.findByText('V-00000001')).toBeInTheDocument();
   });

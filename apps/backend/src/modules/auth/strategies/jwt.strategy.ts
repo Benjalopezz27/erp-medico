@@ -33,7 +33,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       !user ||
       !user.isActive ||
       user.role !== payload.role ||
-      user.email !== payload.email
+      user.email !== payload.email ||
+      // Password changed/reset after this token was issued: revoke it.
+      (user.passwordChangedAt &&
+        (payload.iat ?? 0) <
+          Math.floor(user.passwordChangedAt.getTime() / 1000))
     ) {
       throw new UnauthorizedException('Unauthorized');
     }

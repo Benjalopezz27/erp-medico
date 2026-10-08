@@ -28,6 +28,7 @@ import { UpdateSupplierDto } from './dto/update-supplier.dto';
 import { QuerySupplierDto } from './dto/query-supplier.dto';
 import { SupplierResponseDto } from './dto/supplier-response.dto';
 import { PaginatedSuppliersResponseDto } from './dto/paginated-suppliers-response.dto';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('suppliers')
 @ApiBearerAuth('JWT-auth')
@@ -37,6 +38,7 @@ import { PaginatedSuppliersResponseDto } from './dto/paginated-suppliers-respons
 export class SuppliersController {
   constructor(private readonly suppliersService: SuppliersService) {}
 
+  @Public()
   @Get('status')
   @ApiOperation({ summary: 'Check Suppliers module status' })
   @ApiResponse({ status: 200, description: 'Suppliers module operational' })

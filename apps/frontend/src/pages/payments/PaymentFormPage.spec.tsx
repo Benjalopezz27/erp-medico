@@ -127,6 +127,7 @@ describe('PaymentFormPage', () => {
       paymentMethod: PaymentMethod.EFECTIVO,
       mode: PaymentAllocationType.GLOBAL_AGE,
       totalAmount: '250.00',
+      idempotencyKey: expect.any(String),
     });
     expect(RECEIPT_ID).toBeTruthy();
   });
@@ -201,6 +202,7 @@ describe('PaymentFormPage', () => {
         paymentMethod: PaymentMethod.CHEQUE,
         mode: PaymentAllocationType.GLOBAL_AGE,
         totalAmount: '250.00',
+        idempotencyKey: expect.any(String),
         check: {
           bankName: 'Galicia',
           checkNumber: '12345678',

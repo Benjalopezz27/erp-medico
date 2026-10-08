@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
+import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -18,6 +19,7 @@ import { PasswordRecoveryService } from './password-recovery.service';
 import { EmailThrottlerGuard } from './guards/email-throttler.guard';
 
 @ApiTags('auth')
+@Public()
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -34,6 +36,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @UseGuards(EmailThrottlerGuard) // also per target email: rotating IPs cannot brute-force one account
   @Throttle({
     default: {
       limit: Number(process.env.THROTTLE_LIMIT_LOGIN || 5),

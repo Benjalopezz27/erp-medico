@@ -58,7 +58,16 @@ export class TreasuryService {
     if (!account) {
       throw new Error(`Cuenta de tesorería ${input.accountType} inexistente.`);
     }
+    // Cash movements share-lock the open register: closing it (FOR UPDATE)
+    // waits for in-flight ones, and later ones are stamped after the close, so
+    // no movement falls between the closing snapshot and the next shift.
+    if (input.accountType === TreasuryAccountType.EFECTIVO) {
+      await manager.query(
+        'SELECT 1 FROM cash_registers WHERE closed_at IS NULL FOR SHARE',
+      );
+    }
     return manager.save(TreasuryMovement, {
+      createdAt: new Date(),
       treasuryAccountId: account.id,
       movementType: input.movementType,
       amount,

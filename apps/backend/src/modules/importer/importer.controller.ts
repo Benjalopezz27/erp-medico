@@ -47,6 +47,7 @@ import {
 import { SupplierProductResponseDto } from '../suppliers/supplier-products/dto';
 import { MulterExceptionFilter } from './filters/multer-exception.filter';
 import { SECURE_SPREADSHEET_MAX_FILE_SIZE } from '../../shared/parsers/secure-spreadsheet-parser';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('importer')
 @ApiBearerAuth('JWT-auth')
@@ -61,6 +62,7 @@ export class ImporterController {
     private readonly supplierProductsService: SupplierProductsService,
   ) {}
 
+  @Public()
   @Get('status')
   @ApiOperation({ summary: 'Check Importer module status' })
   @ApiResponse({ status: 200, description: 'Importer module operational' })

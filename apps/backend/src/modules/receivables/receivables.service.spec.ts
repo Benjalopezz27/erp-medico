@@ -17,8 +17,10 @@ describe('ReceivablesService', () => {
     create: jest.fn((value) => ({ id: 'mov-1', ...value })),
     save: jest.fn(async (value) => value),
   };
+  const query = jest.fn().mockResolvedValue([{ credit_limit: '0.00' }]);
   const manager = {
     queryRunner: { isTransactionActive: true },
+    query,
     getRepository: jest.fn((entity) =>
       entity === AccountReceivable ? receivableRepo : movementRepo,
     ),
@@ -34,6 +36,17 @@ describe('ReceivablesService', () => {
   };
 
   beforeEach(() => jest.clearAllMocks());
+
+  it('rejects the debt when balance plus invoice exceeds the credit limit', async () => {
+    query
+      .mockResolvedValueOnce([{ credit_limit: '200.00' }])
+      .mockResolvedValueOnce([{ balance: '121.00' }]);
+
+    await expect(
+      service.recordCreditSaleDebt(manager as any, input),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(receivableRepo.save).not.toHaveBeenCalled();
+  });
 
   it('creates the debt and its FACTURA movement in the supplied transaction', async () => {
     const result = await service.recordCreditSaleDebt(manager as any, input);
@@ -167,7 +180,7 @@ describe('ReceivablesService', () => {
       );
     });
 
-    it('throws ConflictException if credit note amount exceeds remaining balance', async () => {
+    it('absorbs only the open balance when the credit note exceeds it', async () => {
       const ar = {
         id: 'ar-1',
         saleId: 'sale-1',
@@ -180,9 +193,12 @@ describe('ReceivablesService', () => {
           where: jest.fn().mockReturnThis(),
           getOne: jest.fn(async () => ar),
         })),
+        save: jest.fn(async (val) => val),
       };
       const armRepo = {
         findOne: jest.fn(async () => null),
+        create: jest.fn((val) => ({ id: 'arm-1', ...val })),
+        save: jest.fn(async (val) => val),
       };
       const txManager = {
         queryRunner: { isTransactionActive: true },
@@ -192,17 +208,15 @@ describe('ReceivablesService', () => {
         }),
       };
 
-      await expect(
-        service.recordCreditNoteCompensation(txManager as any, {
-          saleId: 'sale-1',
-          saleReturnId: 'ret-1',
-          fiscalDocumentId: 'fiscal-nc-1',
-          creditNoteAmount: '150.00',
-          userId: 'user-1',
-        }),
-      ).rejects.toThrow(
-        'El monto de la nota de crédito no puede exceder el saldo pendiente',
-      );
+      const res = await service.recordCreditNoteCompensation(txManager as any, {
+        saleId: 'sale-1',
+        saleReturnId: 'ret-1',
+        fiscalDocumentId: 'fiscal-nc-1',
+        creditNoteAmount: '150.00',
+        userId: 'user-1',
+      });
+      expect(res?.applied).toBe('100.00');
+      expect(res?.accountReceivable.currentBalance).toBe('0.00');
     });
 
     it('returns null for cash sale with no account receivable', async () => {

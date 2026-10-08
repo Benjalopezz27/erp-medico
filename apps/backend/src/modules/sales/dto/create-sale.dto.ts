@@ -9,7 +9,9 @@ import {
   IsNumber,
   IsOptional,
   IsPositive,
+  IsString,
   IsUUID,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 
@@ -69,6 +71,16 @@ export class CreateSaleDto {
   @ApiProperty({ enum: PaymentMethod })
   @IsEnum(PaymentMethod)
   paymentMethod: PaymentMethod;
+
+  @ApiPropertyOptional({
+    maxLength: 100,
+    description:
+      'Clave generada por el cliente; reenviarla en reintentos evita duplicar la operación.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  idempotencyKey?: string;
 
   @ApiProperty({ type: [CreateSaleItemDto] })
   @IsArray()

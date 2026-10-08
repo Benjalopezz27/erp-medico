@@ -13,7 +13,10 @@ import * as path from 'path';
         host: configService.get<string>('DB_HOST', 'localhost'),
         port: configService.get<number>('DB_PORT', 5432),
         username: configService.get<string>('DB_USER', 'erp_user'),
-        password: configService.get<string>('DB_PASSWORD', 'erp_password_dev'),
+        password:
+          process.env.NODE_ENV === 'production'
+            ? configService.getOrThrow<string>('DB_PASSWORD')
+            : configService.get<string>('DB_PASSWORD', 'erp_password_dev'),
         database: configService.get<string>('DB_NAME', 'erp_medico'),
         autoLoadEntities: true,
         // Explicit glob (in addition to autoLoadEntities) so partial app
@@ -22,6 +25,9 @@ import * as path from 'path';
         // TypeORM needs to validate metadata, without hand-listing modules.
         entities: [path.resolve(__dirname, '../modules/**/*.entity{.ts,.js}')],
         migrations: [path.resolve(__dirname, './migrations/*{.ts,.js}')],
+        // Workers hold a connection for the whole ARCA round-trip (up to ~30 s
+        // x concurrency 5); the pg default of 10 leaves little room for the rest.
+        extra: { max: Number(configService.get('DB_POOL_MAX', 20)) },
         synchronize: false,
         logging: configService.get<string>('NODE_ENV') === 'development',
       }),

@@ -193,6 +193,45 @@ describe('Sales domain and API (E2E)', () => {
     });
   });
 
+  it('replays the same sale for a repeated idempotencyKey and rejects a different body', async () => {
+    const product = await createProduct(
+      '10000000-0000-4000-8000-000000000002',
+      10,
+      '100.00',
+      '10.50',
+    );
+    const send = (body: object) =>
+      request(app.getHttpServer())
+        .post('/api/v1/sales')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send(body);
+    const payload = {
+      ...cashPayload(product.id, 2),
+      idempotencyKey: 'sale-key-1',
+    };
+
+    // Double click: both requests in flight at once.
+    const [first, second] = await Promise.all([send(payload), send(payload)]);
+    expect([first.status, second.status]).toEqual([201, 201]);
+    expect(second.body.id).toBe(first.body.id);
+
+    const [{ count }] = await ds.query(
+      `SELECT COUNT(*)::int AS count FROM sales WHERE idempotency_key = 'sale-key-1'`,
+    );
+    expect(count).toBe(1);
+    const stock = await ds.query(
+      `SELECT current_base_stock FROM stocks WHERE product_id = $1`,
+      [product.id],
+    );
+    expect(Number(stock[0].current_base_stock)).toBe(8);
+
+    const conflict = await send({
+      ...cashPayload(product.id, 3),
+      idempotencyKey: 'sale-key-1',
+    }).expect(409);
+    expect(conflict.body.code).toBe('SALE_IDEMPOTENCY_CONFLICT');
+  });
+
   it('requires authentication for the fiscal document endpoint and 404s without one', async () => {
     const product = await createProduct(
       '10000000-0000-4000-8000-000000000002',

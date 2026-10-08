@@ -224,7 +224,7 @@ describe('FiscalContingencyOrchestrator', () => {
     expect(result).toEqual({ status: 'rejected', fiscalDocumentId: 'doc-1' });
   });
 
-  it('reloads instead of throwing a raw error when the unique index rejects a duplicate number', async () => {
+  it('does not report skipped when the unique index rejects a duplicate number (tx is aborted, must retry)', async () => {
     repos.FiscalDocument.update.mockRejectedValueOnce({
       code: '23505',
       message: 'duplicate key value violates unique constraint',
@@ -232,7 +232,7 @@ describe('FiscalContingencyOrchestrator', () => {
 
     const result = await orchestrator.process(manager, makeJob(), 'doc-1');
 
-    expect(result).toEqual({ status: 'skipped', fiscalDocumentId: 'doc-1' });
+    expect(result.status).toBe('retrying');
   });
 
   it('does not modify Sale.status on success or rejection', async () => {
@@ -285,6 +285,32 @@ describe('FiscalContingencyOrchestrator', () => {
         expect.objectContaining({
           arcaStatus: ArcaStatus.RECHAZADO,
           arcaErrorCode: FiscalErrorCode.RETRIES_EXHAUSTED,
+        }),
+      );
+    });
+  });
+
+  describe('agotamiento con CAE incierto', () => {
+    it('flags CAE_UNCERTAIN when the status query keeps failing on the last attempt', async () => {
+      repos.FiscalDocument.findOne.mockResolvedValue({
+        ...fiscalDocument,
+        documentNumber: 42,
+      } as FiscalDocument);
+      arcaService.queryDocument.mockRejectedValue(
+        new Error('WSFE FECompConsultar timeout'),
+      );
+
+      await orchestrator.process(
+        manager,
+        makeJob({ attemptsMade: 5, attempts: 6 }),
+        'doc-1',
+      );
+
+      expect(repos.FiscalDocument.update).toHaveBeenCalledWith(
+        { id: 'doc-1', arcaStatus: ArcaStatus.PENDIENTE_FACTURACION },
+        expect.objectContaining({
+          arcaStatus: ArcaStatus.RECHAZADO,
+          arcaErrorCode: FiscalErrorCode.CAE_UNCERTAIN,
         }),
       );
     });

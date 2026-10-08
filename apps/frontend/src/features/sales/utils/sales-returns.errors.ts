@@ -14,6 +14,8 @@ const messages: Record<string, string> = {
   [SaleReturnErrorCode.SALE_RETURN_ITEM_NOT_FOUND]:
     'Uno de los ítems seleccionados no pertenece a esta venta.',
   [SaleReturnErrorCode.SALE_RETURN_PRODUCT_INACTIVE]: 'Uno de los productos se encuentra inactivo.',
+  [SaleReturnErrorCode.SALE_RETURN_INVOICE_NOT_EMITTED]:
+    'La factura original todavía no tiene CAE. Esperá a que se emita para registrar la devolución.',
   [SaleReturnErrorCode.SALE_RETURN_RECEIVABLE_INCONSISTENCY]:
     'No fue posible compensar la cuenta corriente de la venta.',
 };

@@ -46,6 +46,7 @@ LABEL org.opencontainers.image.title="ERP Distribuidora Médica - Frontend SPA" 
       org.opencontainers.image.vendor="Benjamin Lopez"
 
 COPY apps/frontend/nginx.conf /etc/nginx/nginx.conf
+COPY apps/frontend/nginx/security-headers.conf /etc/nginx/security-headers.conf
 COPY apps/frontend/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=builder /workspace/apps/frontend/dist /usr/share/nginx/html
 

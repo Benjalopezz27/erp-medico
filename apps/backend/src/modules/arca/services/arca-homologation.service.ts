@@ -37,6 +37,7 @@ export interface ArcaHomologationOptions {
 export class ArcaHomologationService implements IArcaService {
   private readonly logger = new Logger(ArcaHomologationService.name);
   private cachedTicket: ArcaAuthTicket | null = null;
+  private loginInFlight: Promise<ArcaAuthTicket> | null = null;
 
   private readonly wsaaUrl: string;
   private readonly wsfeUrl: string;
@@ -128,6 +129,17 @@ export class ArcaHomologationService implements IArcaService {
       return this.cachedTicket;
     }
 
+    // Single-flight: WSAA refuses a new login while a valid ticket exists, so
+    // concurrent callers must share one request.
+    // ponytail: per-process only; add a Redis lock if several workers log in at once.
+    this.loginInFlight ??= this.loginWithWsaa().finally(() => {
+      this.loginInFlight = null;
+    });
+    return this.loginInFlight;
+  }
+
+  private async loginWithWsaa(): Promise<ArcaAuthTicket> {
+    const now = new Date();
     const sharedTicket = await this.ticketCache.get(this.arcaEnv, this.cuit);
     if (sharedTicket && this.hasRenewalMargin(sharedTicket, now)) {
       this.cachedTicket = sharedTicket;

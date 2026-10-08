@@ -129,25 +129,47 @@ Branch not protected` — a diferencia de un plan que lo bloquea (403 Upgrade), 
 
 ## D-12 · Deuda aceptada de la auditoría #255
 
-- **Qué hay:** hallazgos Medio/Bajo de `docs/audit/2026-09-audit.md` que no bloquean el Go-Live y
-  se aceptan como deuda hasta resolverse en los issues derivados: límite de crédito sin aplicar
-  (M-1), devolución contado sin egreso de caja (M-2), devolución sobre factura cobrada o no
-  emitida (M-3), `RETRIES_EXHAUSTED` con CAE incierto (M-4), cierre de caja con movimientos
-  concurrentes (M-5), transacción abierta durante I/O de ARCA (M-6), JWT en `localStorage` y sin
-  CSP/HSTS (H-3, H-5), dependencias vulnerables sin parche (`node-forge`), y los Bajos B-1 a B-16
-  (`number` en rutas de dinero, status sin auth, hardening de CI, tests faltantes, etc.).
-  H-2 amplía D-10.
-- **Costo de seguir así:** diferencias de arqueo, devoluciones manuales, superficie de XSS mayor,
-  sesiones robadas válidas hasta 8 h.
-- **Trigger para resolver:** antes del Go-Live (DEVOPS-06) los Altos (A-1, A-2, A-3, H-1, issues
-  `type:bug`); los Medio/Bajo según los issues de mejora agrupados.
+- **Resuelto en `fix/296-301-audit-255-findings`:** A-1 (#296), A-2 (#297), A-3 (#298; cierra
+  D-11 ítem 2), H-1 (#299). De #300: M-1, M-2, M-3, M-4, M-5 (carrera con el cierre), M-6
+  (pool de conexiones), H-2, H-4 parcial (`proxy-addr`, `seroval`, `source-map-js`), H-5. De #301:
+  B-1, B-2, B-4, B-6, B-8, B-9 (login por email), B-11, B-12, B-13 (Redis), B-14, B-16
+  (umbral de cobertura).
+- **Decisiones tomadas (revisables):**
+  - M-2/M-3: la nota de crédito compensa solo la deuda abierta; el resto se devuelve con un
+    EGRESO de tesorería (venta contado: cuenta del medio original; factura ya cobrada: efectivo).
+    No existe "saldo a favor" del cliente. Una devolución se rechaza hasta que la factura original
+    tenga CAE (`SALE_RETURN_INVOICE_NOT_EMITTED`).
+  - M-4: se mantiene `RECHAZADO` (reintentable, el reintento consulta ARCA antes de pedir otro CAE)
+    pero con código `CAE_UNCERTAIN` cuando el CAE pudo haberse emitido.
+  - M-5: los movimientos de efectivo y el cierre se serializan. **No** se exige caja abierta para
+    vender o cobrar (cambiaría la operatoria de mostrador).
+  - M-6: no se movió la emisión fuera de la transacción; se agrandó el pool (`DB_POOL_MAX`, 20).
+  - H-2: cambiar o resetear la contraseña invalida los JWT anteriores (incluido el de quien la
+    cambia: tiene que volver a loguearse). Sigue sin refresh token.
+- **Qué queda (issues #300 y #301 siguen abiertas):**
+  - H-3 JWT en `localStorage`: requiere cookie httpOnly + CSRF (cambio de contrato front/back);
+    mitigado parcialmente con la CSP de H-5.
+  - H-4: `node-forge` y `braces` sin parche; `@nestjs/core` ≥11.1.18, `file-type` ≥21,
+    `uuid` ≥11 y `postcss-selector-parser` ≥7 piden salto de major.
+  - B-3 `number`/`toFixed` en rutas de dinero (sin error demostrable; tocar el camino fiscal pide
+    su propio cambio con spec), B-5 saldo de efectivo negativo y cliente inactivo en cobros (cobrar
+    a un inactivo con deuda es legítimo: decisión de negocio), B-7 emisión post-commit (la emisión
+    manual es el diseño de `manual-invoice-emission`), B-9 enumeración en `/auth/register`, B-10
+    endpoints `status` públicos (solo devuelven "initialized"; ahora son `@Public()` explícitos) y
+    Swagger por nginx, B-12 `--audit-level=high`, B-13 TLS entre contenedores, B-15 visibilidad
+    de ventas por vendedor (decisión de negocio), B-16 e2e de tesorería y esperas con `setTimeout`.
+- **Costo de seguir así:** sesiones robadas por XSS válidas hasta 8 h, `pnpm audit` en CI solo
+  bloquea críticos.
+- **Trigger para resolver:** antes de abrir el sistema a más usuarios (H-3) o cuando
+  `node-forge`/`braces` tengan parche (subir el gate a `high`).
+
 ## D-11 · Brechas halladas por la regresión e2e (#264)
 
 - **Qué hay:**
   1. El dominio no modela lote ni vencimiento (ni `stocks` ni `products`): no hay FEFO ni alertas
      de vencimiento. El scope de #264 pedía un caso borde "producto con lote/vencimiento".
-  2. `POST /sales` no tiene idempotency key: dos POST idénticos crean dos ventas (y dos
-     comprobantes). Solo la emisión fiscal está protegida contra doble submit (por documento).
+  2. ~~`POST /sales` no tiene idempotency key~~ — resuelto en #298 (`idempotencyKey` + hash del
+     cuerpo; el POS lo envía).
   3. `GET /reports/sales` usa `JOIN customers`: las ventas de mostrador sin cliente
      (`customer_id` NULL) no aparecen en "Ventas por período".
 - **Costo de seguir así:** (1) sin trazabilidad de lotes en una distribuidora médica; (2) un doble

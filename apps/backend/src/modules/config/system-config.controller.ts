@@ -15,6 +15,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('system-config')
 @Controller('config')
@@ -24,6 +25,7 @@ export class SystemConfigController {
     private readonly settingsService: SystemSettingsService,
   ) {}
 
+  @Public()
   @Get('status')
   @ApiOperation({ summary: 'Check System Config module status' })
   @ApiResponse({ status: 200, description: 'System Config module operational' })

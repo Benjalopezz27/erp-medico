@@ -95,6 +95,16 @@ describe('Customer returns domain and API (E2E)', () => {
     }
   });
 
+  /** Credit notes need an authorized invoice: simulate the CAE. */
+  const markInvoiceEmitted = (saleId: string) =>
+    ds.query(
+      `UPDATE fiscal_documents
+       SET arca_status = 'EMITIDO', cae = '70123456789012', document_type = 'FACTURA_B',
+           point_of_sale = 1, document_number = 1, issued_at = now()
+       WHERE sale_id = $1 AND sale_return_id IS NULL`,
+      [saleId],
+    );
+
   async function createProduct(
     id: string,
     stock: number,
@@ -170,6 +180,7 @@ describe('Customer returns domain and API (E2E)', () => {
       .expect(201);
 
     const sale = saleRes.body;
+    await markInvoiceEmitted(sale.id);
     const saleItemId = sale.items[0].id;
 
     // Available stock should now be 5
@@ -242,6 +253,7 @@ describe('Customer returns domain and API (E2E)', () => {
       .expect(201);
 
     const sale = saleRes.body;
+    await markInvoiceEmitted(sale.id);
     const saleItemId = sale.items[0].id;
 
     // Available stock is 6
@@ -303,6 +315,7 @@ describe('Customer returns domain and API (E2E)', () => {
       .expect(201);
 
     const sale = saleRes.body;
+    await markInvoiceEmitted(sale.id);
 
     const returnRes = await request(app.getHttpServer())
       .post(`/api/v1/sales/${sale.id}/returns`)
@@ -355,6 +368,7 @@ describe('Customer returns domain and API (E2E)', () => {
       .expect(201);
 
     const sale = saleRes.body;
+    await markInvoiceEmitted(sale.id);
     const saleItemId = sale.items[0].id;
 
     // First return: 4 units (remaining 6)
@@ -414,6 +428,7 @@ describe('Customer returns domain and API (E2E)', () => {
       .expect(201);
 
     const sale = saleRes.body;
+    await markInvoiceEmitted(sale.id);
     let ar = await ds
       .getRepository(AccountReceivable)
       .findOneByOrFail({ saleId: sale.id });
@@ -476,6 +491,127 @@ describe('Customer returns domain and API (E2E)', () => {
     expect(ar.status).toBe('CANCELADO');
   });
 
+  it('rejects a return while the original invoice has no CAE yet', async () => {
+    const product = await createProduct('NOCAE', 10);
+    const customer = await createCustomer();
+    const sale = (
+      await request(app.getHttpServer())
+        .post('/api/v1/sales')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          customerId: customer.id,
+          isCreditSale: false,
+          requiresFiscalInvoice: true,
+          paymentMethod: PaymentMethod.EFECTIVO,
+          items: [{ productId: product.id, quantityBase: 2 }],
+        })
+        .expect(201)
+    ).body;
+
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/sales/${sale.id}/returns`)
+      .set('Authorization', `Bearer ${sellerToken}`)
+      .send({
+        reason: 'Antes de la factura',
+        items: [
+          {
+            saleItemId: sale.items[0].id,
+            quantityBase: 1,
+            quality: SaleReturnItemQuality.APTO,
+          },
+        ],
+      })
+      .expect(409);
+    expect(res.body.code).toBe('SALE_RETURN_INVOICE_NOT_EMITTED');
+  });
+
+  it('refunds a cash sale return with a treasury EGRESO on the original account', async () => {
+    const product = await createProduct('CASH1', 10, '100.00');
+    const customer = await createCustomer();
+    const sale = (
+      await request(app.getHttpServer())
+        .post('/api/v1/sales')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          customerId: customer.id,
+          isCreditSale: false,
+          requiresFiscalInvoice: true,
+          paymentMethod: PaymentMethod.EFECTIVO,
+          items: [{ productId: product.id, quantityBase: 2 }],
+        })
+        .expect(201)
+    ).body;
+    await markInvoiceEmitted(sale.id);
+
+    const ret = await request(app.getHttpServer())
+      .post(`/api/v1/sales/${sale.id}/returns`)
+      .set('Authorization', `Bearer ${sellerToken}`)
+      .send({
+        reason: 'Devolución contado',
+        items: [
+          {
+            saleItemId: sale.items[0].id,
+            quantityBase: 1,
+            quality: SaleReturnItemQuality.APTO,
+          },
+        ],
+      })
+      .expect(201);
+
+    const rows = await ds.query(
+      `SELECT movement_type, amount::text AS amount FROM treasury_movements
+       WHERE reference_type = 'SALE_RETURN' AND reference_id = $1`,
+      [ret.body.id],
+    );
+    expect(rows).toEqual([{ movement_type: 'EGRESO', amount: '121.00' }]);
+  });
+
+  it('accepts a return on an already collected credit invoice and refunds the paid part', async () => {
+    const product = await createProduct('PAID1', 10, '100.00');
+    const customer = await createCustomer();
+    const sale = (
+      await request(app.getHttpServer())
+        .post('/api/v1/sales')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          customerId: customer.id,
+          isCreditSale: true,
+          requiresFiscalInvoice: true,
+          paymentMethod: PaymentMethod.CTA_CTE,
+          items: [{ productId: product.id, quantityBase: 1 }],
+        })
+        .expect(201)
+    ).body;
+    await markInvoiceEmitted(sale.id);
+    // Customer already paid the whole invoice.
+    await ds.query(
+      `UPDATE account_receivables SET current_balance = 0, status = 'CANCELADO' WHERE sale_id = $1`,
+      [sale.id],
+    );
+
+    const ret = await request(app.getHttpServer())
+      .post(`/api/v1/sales/${sale.id}/returns`)
+      .set('Authorization', `Bearer ${sellerToken}`)
+      .send({
+        reason: 'Devolución de factura cobrada',
+        items: [
+          {
+            saleItemId: sale.items[0].id,
+            quantityBase: 1,
+            quality: SaleReturnItemQuality.APTO,
+          },
+        ],
+      })
+      .expect(201);
+
+    const rows = await ds.query(
+      `SELECT amount::text AS amount FROM treasury_movements
+       WHERE reference_type = 'SALE_RETURN' AND reference_id = $1`,
+      [ret.body.id],
+    );
+    expect(rows).toEqual([{ amount: '121.00' }]);
+  });
+
   it('lists return history via GET /api/v1/sales/:id/returns', async () => {
     const product = await createProduct('HIST1', 10);
     const saleRes = await request(app.getHttpServer())
@@ -491,6 +627,7 @@ describe('Customer returns domain and API (E2E)', () => {
       .expect(201);
 
     const sale = saleRes.body;
+    await markInvoiceEmitted(sale.id);
 
     // Create 2 returns
     await request(app.getHttpServer())

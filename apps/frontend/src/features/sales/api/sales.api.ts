@@ -52,6 +52,7 @@ export async function createSaleApi(payload: ICreateSalePayload): Promise<ISale>
     requiresFiscalInvoice: payload.requiresFiscalInvoice,
     paymentMethod: payload.paymentMethod,
     items: payload.items.map(({ productId, quantityBase }) => ({ productId, quantityBase })),
+    ...(payload.idempotencyKey ? { idempotencyKey: payload.idempotencyKey } : {}),
   };
   return (await apiClient.post<ISale>('/sales', body)).data;
 }

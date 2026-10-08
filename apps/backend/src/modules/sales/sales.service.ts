@@ -42,6 +42,11 @@ import {
   SaleResponseDto,
 } from './dto';
 import { resolveSort } from '../../common/sorting/sorting';
+import {
+  assertSameRequest,
+  hashRequest,
+  lockIdempotencyKey,
+} from '../../common/utils/idempotency.utils';
 import { accountForPaymentMethod } from '../treasury/payment-method-account';
 import { TreasuryService } from '../treasury/treasury.service';
 import { FiscalDocument } from './entities/fiscal-document.entity';
@@ -86,7 +91,24 @@ export class SalesService {
       .sort((left, right) => left.productId.localeCompare(right.productId));
 
     try {
+      const { idempotencyKey, ...body } = dto;
+      const requestHash = hashRequest(body);
       const result = await this.dataSource.transaction(async (manager) => {
+        if (idempotencyKey) {
+          await lockIdempotencyKey(manager, 'sale', userId, idempotencyKey);
+          const existing = await manager
+            .getRepository(Sale)
+            .findOne({ where: { userId, idempotencyKey } });
+          if (existing) {
+            assertSameRequest(
+              existing,
+              requestHash,
+              SalesErrorCode.SALE_IDEMPOTENCY_CONFLICT,
+            );
+            return this.loadDetail(manager, existing.id);
+          }
+        }
+
         const saleNumber = await this.nextSaleNumber(manager);
         const saleRepository = manager.getRepository(Sale);
         const itemRepository = manager.getRepository(SaleItem);
@@ -107,6 +129,8 @@ export class SalesService {
             ivaTotal: '0.00',
             totalGross: '0.00',
             userId,
+            idempotencyKey: idempotencyKey ?? null,
+            requestHash: idempotencyKey ? requestHash : null,
           }),
         );
 

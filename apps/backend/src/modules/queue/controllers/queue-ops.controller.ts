@@ -6,6 +6,7 @@ import {
   Body,
   UseGuards,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -36,6 +37,9 @@ export class QueueOpsController {
 
   @Get('probe/:jobId')
   async getProbeStatus(@Param('jobId') jobId: string) {
+    if (!/^[\w.:-]{1,100}$/.test(jobId)) {
+      throw new BadRequestException('jobId inválido.');
+    }
     const jobStatus = await this.queueService.getJobStatus(jobId);
     if (!jobStatus) {
       throw new NotFoundException(`Queue job ${jobId} not found`);

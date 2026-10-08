@@ -5,6 +5,9 @@ import type { ParsedSalesError, StockErrorDetails } from '../types/sales.types';
 const messages: Record<string, string> = {
   [SalesErrorCode.SALE_CONCURRENCY_CONFLICT]:
     'La venta cambió concurrentemente. Podés intentar confirmarla nuevamente.',
+  [SalesErrorCode.SALE_CREDIT_LIMIT_EXCEEDED]: 'La venta supera el límite de crédito del cliente.',
+  [SalesErrorCode.SALE_IDEMPOTENCY_CONFLICT]:
+    'Esta venta ya fue enviada con otro contenido. Recargá la pantalla e intentá de nuevo.',
   [SalesErrorCode.SALE_DUPLICATE_PRODUCT]: 'Un producto no puede repetirse en la venta.',
   [SalesErrorCode.SALE_CREDIT_REQUIRES_CUSTOMER]: 'La venta a crédito requiere un cliente.',
   [SalesErrorCode.SALE_CREDIT_REQUIRES_INVOICE]: 'La venta a crédito requiere factura.',

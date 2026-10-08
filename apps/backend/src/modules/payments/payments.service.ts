@@ -15,6 +15,11 @@ import {
 } from '@erp/shared-types';
 import Decimal from 'decimal.js';
 import { DataSource } from 'typeorm';
+import {
+  assertSameRequest,
+  hashRequest,
+  lockIdempotencyKey,
+} from '../../common/utils/idempotency.utils';
 import { accountForPaymentMethod } from '../treasury/payment-method-account';
 import { TreasuryService } from '../treasury/treasury.service';
 import { Check } from '../checks/entities/check.entity';
@@ -79,7 +84,26 @@ export class PaymentsService {
       });
     }
 
+    const { idempotencyKey, ...body } = dto;
+    const requestHash = hashRequest(body);
+
     return this.dataSource.transaction(async (manager) => {
+      if (idempotencyKey) {
+        await lockIdempotencyKey(manager, 'payment', userId, idempotencyKey);
+        const existing = await manager.getRepository(Payment).findOne({
+          where: { userId, idempotencyKey },
+          relations: ['receipt'],
+        });
+        if (existing) {
+          assertSameRequest(
+            existing,
+            requestHash,
+            PaymentErrorCode.PAYMENT_IDEMPOTENCY_CONFLICT,
+          );
+          return { payment: existing, receipt: existing.receipt! };
+        }
+      }
+
       const customer = await manager
         .getRepository(Customer)
         .findOne({ where: { id: dto.customerId } });
@@ -108,6 +132,8 @@ export class PaymentsService {
           paymentMethod: dto.paymentMethod,
           notes: dto.notes ?? null,
           userId,
+          idempotencyKey: idempotencyKey ?? null,
+          requestHash: idempotencyKey ? requestHash : null,
         }),
       );
 

@@ -1,3 +1,4 @@
+import { GlobalJwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -81,6 +82,10 @@ import { QueueProducerModule } from './modules/queue/queue-producer.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: GlobalJwtAuthGuard,
     },
     {
       provide: APP_INTERCEPTOR,

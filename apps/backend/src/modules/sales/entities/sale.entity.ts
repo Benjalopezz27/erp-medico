@@ -64,6 +64,17 @@ export class Sale {
   @Column({ name: 'user_id', type: 'uuid' })
   userId: string;
 
+  @Column({
+    name: 'idempotency_key',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  idempotencyKey: string | null;
+
+  @Column({ name: 'request_hash', type: 'varchar', length: 64, nullable: true })
+  requestHash: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;
 

@@ -27,6 +27,7 @@ describe('accountForPaymentMethod', () => {
 describe('TreasuryService', () => {
   const saved: any[] = [];
   const manager = {
+    query: jest.fn(async () => []),
     findOne: jest.fn(async (_e, { where }) => ({
       id: `acc-${where.accountType}`,
     })),

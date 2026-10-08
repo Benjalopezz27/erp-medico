@@ -48,7 +48,7 @@ function buildFiscalInvoiceProcessor(app: INestApplication, ds: DataSource) {
     ds,
     app.get<IArcaService>(ARCA_SERVICE),
     app.get(InvoiceTypeResolverService),
-    new FiscalNumberingService(ds),
+    new FiscalNumberingService(),
     app.get(ConfigService),
   );
   return new FiscalInvoiceProcessor(

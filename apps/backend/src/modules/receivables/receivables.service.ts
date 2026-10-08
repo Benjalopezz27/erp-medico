@@ -10,7 +10,7 @@ import {
   ICheckRejectionImpactLine,
   PaymentAllocationType,
   PaymentErrorCode,
-  SaleReturnErrorCode,
+  SalesErrorCode,
 } from '@erp/shared-types';
 import Decimal from 'decimal.js';
 import { EntityManager } from 'typeorm';
@@ -145,6 +145,8 @@ export class ReceivablesService {
     }
     const amount = total.toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2);
 
+    await this.assertWithinCreditLimit(manager, input.customerId, amount);
+
     const repository = manager.getRepository(AccountReceivable);
     const accountReceivable = await repository.save(
       repository.create({
@@ -175,6 +177,36 @@ export class ReceivablesService {
     return accountReceivable;
   }
 
+  /**
+   * Locks the customer row so concurrent credit sales are checked one at a
+   * time against the same balance. creditLimit 0 means "no limit configured".
+   */
+  private async assertWithinCreditLimit(
+    manager: EntityManager,
+    customerId: string,
+    amount: string,
+  ): Promise<void> {
+    const [customer] = await manager.query<{ credit_limit: string }[]>(
+      'SELECT credit_limit FROM customers WHERE id = $1 FOR UPDATE',
+      [customerId],
+    );
+    const limit = new Decimal(customer?.credit_limit ?? 0);
+    if (!limit.greaterThan(0)) return;
+
+    const [{ balance }] = await manager.query<{ balance: string }[]>(
+      `SELECT COALESCE(SUM(current_balance), 0) AS balance
+       FROM account_receivables
+       WHERE customer_id = $1 AND status <> $2`,
+      [customerId, AccountReceivableStatus.CANCELADO],
+    );
+    if (new Decimal(balance).plus(amount).greaterThan(limit)) {
+      throw new ConflictException({
+        code: SalesErrorCode.SALE_CREDIT_LIMIT_EXCEEDED,
+        message: `La venta supera el límite de crédito del cliente (${limit.toFixed(2)}).`,
+      });
+    }
+  }
+
   async recordCreditNoteCompensation(
     manager: EntityManager,
     input: {
@@ -185,8 +217,10 @@ export class ReceivablesService {
       userId: string;
     },
   ): Promise<{
-    movement: AccountReceivableMovement;
+    movement: AccountReceivableMovement | null;
     accountReceivable: AccountReceivable;
+    /** Part of the credit note absorbed by the open debt. */
+    applied: string;
   } | null> {
     if (!manager.queryRunner?.isTransactionActive) {
       throw new Error(
@@ -211,18 +245,20 @@ export class ReceivablesService {
       where: { saleReturnId: input.saleReturnId },
     });
     if (existingMovement) {
-      return { movement: existingMovement, accountReceivable };
+      return {
+        movement: existingMovement,
+        accountReceivable,
+        applied: existingMovement.amount,
+      };
     }
 
-    const creditAmount = new Decimal(input.creditNoteAmount);
+    const requested = new Decimal(input.creditNoteAmount);
     const prevBalance = new Decimal(accountReceivable.currentBalance);
-
-    if (creditAmount.greaterThan(prevBalance)) {
-      throw new ConflictException({
-        code: SaleReturnErrorCode.SALE_RETURN_RECEIVABLE_INCONSISTENCY,
-        message:
-          'El monto de la nota de crédito no puede exceder el saldo pendiente de la cuenta corriente.',
-      });
+    // The invoice may already be (partly) collected: the debt absorbs only what
+    // is still open, the caller refunds the rest.
+    const creditAmount = Decimal.min(requested, prevBalance);
+    if (!creditAmount.greaterThan(0)) {
+      return { movement: null, accountReceivable, applied: '0.00' };
     }
 
     const nextBalance = prevBalance
@@ -249,7 +285,7 @@ export class ReceivablesService {
       }),
     );
 
-    return { movement, accountReceivable };
+    return { movement, accountReceivable, applied: creditAmount.toFixed(2) };
   }
 
   /**

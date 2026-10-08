@@ -171,6 +171,80 @@ describe('Payments and receipts (E2E)', () => {
       ])
     )[0].id;
 
+  describe('credit limit', () => {
+    const sell = (customerId: string, units: number) =>
+      http()
+        .post('/api/v1/sales')
+        .set('Authorization', `Bearer ${sellerToken}`)
+        .send({
+          customerId,
+          isCreditSale: true,
+          requiresFiscalInvoice: true,
+          paymentMethod: PaymentMethod.CTA_CTE,
+          items: [{ productId: product.id, quantityBase: units }],
+        });
+
+    it('rejects a credit sale that would push the balance over the limit, rolling back stock', async () => {
+      const customer = await createCustomer(
+        'Cliente Límite',
+        '30710000014',
+        '200.00',
+      );
+      await sell(customer.id, 1).expect(201); // $121 <= $200
+      const res = await sell(customer.id, 1).expect(409); // $242 > $200
+      expect(res.body.code).toBe('SALE_CREDIT_LIMIT_EXCEEDED');
+      expect(await ds.query('SELECT 1 FROM sales')).toHaveLength(1);
+    });
+
+    it('treats creditLimit 0 as no limit', async () => {
+      const customer = await createCustomer('Cliente Libre', '30710000015');
+      await sell(customer.id, 5).expect(201);
+    });
+  });
+
+  describe('idempotency', () => {
+    it('creates a single payment and receipt for a double-submitted GLOBAL_AGE payment', async () => {
+      const customer = await createCustomer('Cliente Doble', '30710000012');
+      await seedThree(customer.id);
+      const body = {
+        customerId: customer.id,
+        paymentMethod: PaymentMethod.EFECTIVO,
+        mode: PaymentAllocationType.GLOBAL_AGE,
+        totalAmount: '100.00',
+        idempotencyKey: 'pay-key-1',
+      };
+
+      const [a, b] = await Promise.all([post(body), post(body)]);
+      expect([a.status, b.status]).toEqual([201, 201]);
+      expect(b.body.payment.id).toBe(a.body.payment.id);
+      expect(b.body.receipt.id).toBe(a.body.receipt.id);
+
+      expect(await ds.query('SELECT 1 FROM payments')).toHaveLength(1);
+      expect(await ds.query('SELECT 1 FROM receipts')).toHaveLength(1);
+      expect(
+        await ds.query(
+          'SELECT 1 FROM treasury_movements WHERE reference_id = $1',
+          [a.body.payment.id],
+        ),
+      ).toHaveLength(1);
+    });
+
+    it('409s when the key is reused with a different body', async () => {
+      const customer = await createCustomer('Cliente Clave', '30710000013');
+      await seedThree(customer.id);
+      const body = {
+        customerId: customer.id,
+        paymentMethod: PaymentMethod.EFECTIVO,
+        mode: PaymentAllocationType.GLOBAL_AGE,
+        totalAmount: '100.00',
+        idempotencyKey: 'pay-key-2',
+      };
+      await post(body).expect(201);
+      const res = await post({ ...body, totalAmount: '50.00' }).expect(409);
+      expect(res.body.code).toBe('PAYMENT_IDEMPOTENCY_CONFLICT');
+    });
+  });
+
   describe('access control', () => {
     it('returns 401 without token', async () => {
       await http().post('/api/v1/payments').send({}).expect(401);
