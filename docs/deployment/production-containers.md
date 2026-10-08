@@ -89,7 +89,7 @@ The template intentionally leaves secrets empty, and Compose refuses to start un
 
 ### Automatic Startup Sequence
 
-1. `postgres` and `redis` start and undergo health checks (`pg_isready`, `redis-cli ping`).
+1. `postgres` and `redis` start and undergo health checks (`pg_isready`, authenticated `redis-cli ping`; `REDIS_PASSWORD` is required).
 2. `migration` executes compiled TypeORM migrations (`dist/database/data-source.js`) and terminates with exit code `0`.
 3. `backend` starts only after `migration` completes successfully.
 4. `frontend` starts and opens port `8080` once `backend` reports healthy (`/api/v1/health`).
