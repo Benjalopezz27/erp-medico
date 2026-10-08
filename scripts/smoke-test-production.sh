@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# ERP Distribuidora Médica — Automated Staging Smoke Test Suite
+# ERP Distribuidora Médica — Automated Production Smoke Test Suite
 # ==============================================================================
 # Verifies TLS, HTTP redirects, health endpoints, version metadata, SPA fallback,
 # and zero public exposure for the managed PostgreSQL service.
@@ -9,23 +9,23 @@
 set -euo pipefail
 
 if [ "$#" -lt 2 ]; then
-  echo "Usage: $0 <staging_url> <expected_commit_sha>" >&2
-  echo "Example: $0 https://staging.erp-medico.com 3575c1a1b49079f8b4..." >&2
+  echo "Usage: $0 <production_url> <expected_commit_sha>" >&2
+  echo "Example: $0 https://erp-medico.example.com 3575c1a1b49079f8b4..." >&2
   exit 1
 fi
 
-STAGING_URL="${1%/}"
+PRODUCTION_URL="${1%/}"
 EXPECTED_SHA="$2"
 
 # Extract domain/host from URL
-DOMAIN=$(echo "$STAGING_URL" | awk -F[/:] '{print $4}')
+DOMAIN=$(echo "$PRODUCTION_URL" | awk -F[/:] '{print $4}')
 if [ -z "$DOMAIN" ]; then
-  DOMAIN=$(echo "$STAGING_URL" | awk -F[/:] '{print $1}')
+  DOMAIN=$(echo "$PRODUCTION_URL" | awk -F[/:] '{print $1}')
 fi
 
 echo "=============================================================================="
-echo " Starting Staging Smoke Test Suite"
-echo " Target URL:    $STAGING_URL"
+echo " Starting Production Smoke Test Suite"
+echo " Target URL:    $PRODUCTION_URL"
 echo " Target Domain: $DOMAIN"
 echo " Expected SHA:  $EXPECTED_SHA"
 echo "=============================================================================="
@@ -46,7 +46,7 @@ fi
 # Test 2: Valid HTTPS & TLS Handshake
 # ------------------------------------------------------------------------------
 echo -n "[2/6] Testing HTTPS TLS Handshake & Certificate Validity... "
-if curl -sSfI "${STAGING_URL}" >/dev/null; then
+if curl -sSfI "${PRODUCTION_URL}" >/dev/null; then
   echo "PASS (Valid TLS certificate)"
 else
   echo "FAIL (TLS handshake failed)" >&2
@@ -57,7 +57,7 @@ fi
 # Test 3: Backend Health Endpoint & Database Status (/api/v1/health)
 # ------------------------------------------------------------------------------
 echo -n "[3/6] Testing Backend Health Endpoint (/api/v1/health)... "
-HEALTH_JSON=$(curl -sSf "${STAGING_URL}/api/v1/health")
+HEALTH_JSON=$(curl -sSf "${PRODUCTION_URL}/api/v1/health")
 STATUS=$(echo "$HEALTH_JSON" | jq -r '.status // empty')
 DB_STATUS=$(echo "$HEALTH_JSON" | jq -r '.services.database // empty')
 ACTUAL_BACKEND_SHA=$(echo "$HEALTH_JSON" | jq -r '.commitSha // empty')
@@ -82,7 +82,7 @@ echo "PASS (status: ok, database: up, SHA matched)"
 # Test 4: Frontend Version Metadata (/version.json)
 # ------------------------------------------------------------------------------
 echo -n "[4/6] Testing Frontend Version Metadata (/version.json)... "
-VERSION_JSON=$(curl -sSf "${STAGING_URL}/version.json")
+VERSION_JSON=$(curl -sSf "${PRODUCTION_URL}/version.json")
 ACTUAL_FRONTEND_SHA=$(echo "$VERSION_JSON" | jq -r '.commitSha // empty')
 
 if [[ "$EXPECTED_SHA" != "$ACTUAL_FRONTEND_SHA"* ]] && [[ "$ACTUAL_FRONTEND_SHA" != "$EXPECTED_SHA"* ]]; then
@@ -95,7 +95,7 @@ echo "PASS (SHA matched: $ACTUAL_FRONTEND_SHA)"
 # Test 5: SPA Client-Side Routing Fallback
 # ------------------------------------------------------------------------------
 echo -n "[5/6] Testing SPA Route Fallback (/stock/quarantine)... "
-SPA_HTML=$(curl -sSf "${STAGING_URL}/stock/quarantine")
+SPA_HTML=$(curl -sSf "${PRODUCTION_URL}/stock/quarantine")
 if echo "$SPA_HTML" | grep -q '<div id="root">'; then
   echo "PASS (SPA HTML shell returned)"
 else
@@ -115,5 +115,5 @@ fi
 echo "PASS (Port 5432 is closed to the public internet)"
 
 echo "=============================================================================="
-echo " All Staging Smoke Tests PASSED Successfully!"
+echo " All Production Smoke Tests PASSED Successfully!"
 echo "=============================================================================="
