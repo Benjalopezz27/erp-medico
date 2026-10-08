@@ -6,19 +6,19 @@
 
 ## 1. Gates externos (#71)
 
-| #   | Gate                                                              | Estado    | Responsable | Fecha      | Decisión / referencia                                       |
-| --- | ----------------------------------------------------------------- | --------- | ----------- | ---------- | ----------------------------------------------------------- |
-| 1   | Plan de Railway, presupuesto mensual y responsable de facturación | APROBADO  | Benjamin    | 2026-10-08 | Railway Hobby, paga el responsable técnico                  |
-| 2   | Dominio y acceso DNS (o uso del dominio Railway)                  | PENDIENTE |             |            | Se usa el dominio Railway; dominio propio fuera del Go-Live |
-| 3   | Ventana de Go-Live y ventana de rollback                          | PROPUESTO | Benjamin    | 2026-10-08 | Lunes 2026-10-12 (feriado), tarde; ventana de rollback 4 h  |
-| 4   | Responsable técnico y representante del cliente presentes         | PENDIENTE |             |            | Confirmar quién del cliente está presente                   |
-| 5   | Certificado ARCA productivo, CUIT y punto de venta confirmados    | PENDIENTE | Benjamin    |            | Falta hablar con la contadora (2026-10-09)                  |
-| 6   | Almacenamiento de backups operativo (gates de `backup-gates.md`)  | PENDIENTE |             |            | Ver sección 8: backup manual para el Go-Live                |
-| 7   | SMTP productivo, si se habilitan notificaciones                   | PENDIENTE |             |            | Confirmar si se habilitan mails (reset de contraseña)       |
-| 8   | Datos iniciales y autorización para cargarlos                     | APROBADO  | Benjamin    | 2026-10-08 | Sin datos iniciales: el cliente carga todo                  |
-| 9   | Criterios objetivos de éxito y de rollback (sección 3)            | PROPUESTO | Benjamin    | 2026-10-08 | Sección 3, a aprobar con el cliente y la contadora          |
-| 10  | Plan de comunicación ante incidentes                              | PROPUESTO | Benjamin    | 2026-10-08 | Sección 7                                                   |
-| 11  | Aceptación del cliente para poner el sistema en producción        | PENDIENTE |             |            |                                                             |
+| #   | Gate                                                              | Estado    | Responsable | Fecha      | Decisión / referencia                                                |
+| --- | ----------------------------------------------------------------- | --------- | ----------- | ---------- | -------------------------------------------------------------------- |
+| 1   | Plan de Railway, presupuesto mensual y responsable de facturación | APROBADO  | Benjamin    | 2026-10-08 | Railway Hobby, paga el responsable técnico                           |
+| 2   | Dominio y acceso DNS (o uso del dominio Railway)                  | PENDIENTE |             |            | Se usa el dominio Railway; dominio propio fuera del Go-Live          |
+| 3   | Ventana de Go-Live y ventana de rollback                          | APROBADO  | Benjamin    | 2026-10-08 | Lunes 2026-10-12 (feriado), tarde; rollback 4 h; hora exacta a fijar |
+| 4   | Responsable técnico y representante del cliente presentes         | PENDIENTE |             |            | Confirmar quién del cliente está presente                            |
+| 5   | Certificado ARCA productivo, CUIT y punto de venta confirmados    | PENDIENTE | Benjamin    |            | Falta hablar con la contadora (2026-10-09)                           |
+| 6   | Almacenamiento de backups operativo (gates de `backup-gates.md`)  | PENDIENTE |             |            | Ver sección 8: backup manual para el Go-Live                         |
+| 7   | SMTP productivo, si se habilitan notificaciones                   | PENDIENTE |             |            | Confirmar si se habilitan mails (reset de contraseña)                |
+| 8   | Datos iniciales y autorización para cargarlos                     | APROBADO  | Benjamin    | 2026-10-08 | Sin datos iniciales: el cliente carga todo                           |
+| 9   | Criterios objetivos de éxito y de rollback (sección 3)            | APROBADO  | Benjamin    | 2026-10-08 | Sección 3, aprobados por el responsable técnico                      |
+| 10  | Plan de comunicación ante incidentes                              | APROBADO  | Benjamin    | 2026-10-08 | Sección 7; canal: WhatsApp con el cliente                            |
+| 11  | Aceptación del cliente para poner el sistema en producción        | PENDIENTE |             |            |                                                                      |
 
 Estados: `PENDIENTE` · `APROBADO` · `RECHAZADO`. Cada aprobación referencia un comentario en #71.
 
@@ -44,7 +44,7 @@ Los agentes no ejecutan estos pasos (AGENTS §6 y §8).
 - [ ] Postgres y Redis sin dominio público ni TCP proxy.
 - [ ] Alertas y responsables activos ([runbook de operaciones](railway-operations-runbook.md) §9).
 
-## 3. Criterios de éxito y rollback (propuestos)
+## 3. Criterios de éxito y rollback (aprobados 2026-10-08)
 
 **Ventana:** lunes 2026-10-12 (feriado), por la tarde (hora exacta a confirmar). Ventana de rollback: 4 h desde el inicio del cutover.
 
@@ -65,11 +65,11 @@ Los agentes no ejecutan estos pasos (AGENTS §6 y §8).
 - Errores 5xx sostenidos por más de 15 min.
 - Se llega a la hora 3 de la ventana sin criterios de éxito cumplidos: decisión final de continuar o volver atrás antes de la hora 4.
 
-| Tiempo máximo                       | Valor propuesto |
-| ----------------------------------- | --------------- |
-| Rollback de aplicación              | 15 min          |
-| Restore de datos (RTO)              | 1 h             |
-| Decisión final continuar o rollback | hora 3 de 4     |
+| Tiempo máximo                       | Valor aprobado |
+| ----------------------------------- | -------------- |
+| Rollback de aplicación              | 15 min         |
+| Restore de datos (RTO)              | 1 h            |
+| Decisión final continuar o rollback | hora 3 de 4    |
 
 ## 4. Go-Live
 
@@ -94,10 +94,10 @@ Los agentes no ejecutan estos pasos (AGENTS §6 y §8).
 - [ ] `v1.0.0` publicado, runbooks y handoff entregados.
 - [ ] #283 y #71 cerradas, board en Done.
 
-## 7. Plan de comunicación (propuesto)
+## 7. Plan de comunicación (aprobado 2026-10-08)
 
 - **Contactos:** responsable técnico (Benjamin), representante del cliente y contadora (nombres y teléfonos a completar fuera del repo).
-- **Canal:** un grupo de mensajería con los tres. Sin secretos ni datos fiscales reales en los mensajes.
+- **Canal:** WhatsApp con el cliente (la contadora se suma al grupo si el cliente lo acepta). Sin secretos ni datos fiscales reales en los mensajes.
 - **Antes:** aviso al cliente 24 h antes con fecha, franja y qué esperar.
 - **Durante:** mensaje al inicio, al terminar el deploy, al terminar los smoke tests y al decidir continuar o rollback.
 - **Incidente:** aviso inmediato si se activa un criterio de rollback, con estado y hora estimada de resolución. Cada hora hasta resolver.
