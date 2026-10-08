@@ -19,6 +19,8 @@ import {
   SaleStatus,
   SalesErrorCode,
   StockMovementType,
+  TreasuryAccountType,
+  TreasuryMovementType,
 } from '@erp/shared-types';
 import { Sale } from '../../entities/sale.entity';
 import { SaleItem } from '../../entities/sale-item.entity';
@@ -26,6 +28,8 @@ import { FiscalDocument } from '../../entities/fiscal-document.entity';
 import { StockService } from '../../../stock/stock.service';
 import { QuarantineService } from '../../../quarantine/quarantine.service';
 import { ReceivablesService } from '../../../receivables/receivables.service';
+import { TreasuryService } from '../../../treasury/treasury.service';
+import { accountForPaymentMethod } from '../../../treasury/payment-method-account';
 import { AuditService } from '../../../audit/audit.service';
 import { SaleReturn } from '../entities/sale-return.entity';
 import { SaleReturnItem } from '../entities/sale-return-item.entity';
@@ -58,6 +62,7 @@ export class SaleReturnsService {
     private readonly auditService: AuditService,
     private readonly fiscalInvoiceQueueService: FiscalInvoiceQueueService,
     private readonly pdfGenerateQueueService: PdfGenerateQueueService,
+    private readonly treasuryService: TreasuryService,
   ) {}
 
   async createReturn(
@@ -117,6 +122,16 @@ export class SaleReturnsService {
             code: SaleReturnErrorCode.SALE_RETURN_SALE_NOT_CONFIRMED,
             message:
               'Sólo se pueden realizar devoluciones sobre ventas confirmadas.',
+          });
+        }
+
+        // A credit note needs an authorized invoice to reference (CbteAsoc).
+        const invoice = fiscalDocuments.find((d) => !d.saleReturnId);
+        if (invoice && invoice.arcaStatus !== ArcaStatus.EMITIDO) {
+          throw new ConflictException({
+            code: SaleReturnErrorCode.SALE_RETURN_INVOICE_NOT_EMITTED,
+            message:
+              'La factura original todavía no fue emitida; no se puede devolver hasta que tenga CAE.',
           });
         }
 
@@ -296,7 +311,15 @@ export class SaleReturnsService {
         }
 
         // 7. Process physical destination
-        for (let i = 0; i < preparedItems.length; i++) {
+        // Same lock order as sales (productId ASC) to avoid stock deadlocks.
+        const stockOrder = preparedItems
+          .map((_, i) => i)
+          .sort((a, b) =>
+            preparedItems[a].saleItem.productId.localeCompare(
+              preparedItems[b].saleItem.productId,
+            ),
+          );
+        for (const i of stockOrder) {
           const prepared = preparedItems[i];
           const savedItem = savedReturnItems[i];
 
@@ -359,12 +382,37 @@ export class SaleReturnsService {
         }
 
         // 9. Account Receivable compensation movement (if credit sale)
+        let compensated = new Decimal(0);
         if (sale.isCreditSale) {
-          await this.receivablesService.recordCreditNoteCompensation(manager, {
-            saleId: sale.id,
-            saleReturnId: savedSaleReturn.id,
-            fiscalDocumentId: fiscalDoc?.id ?? null,
-            creditNoteAmount: totalGross.toFixed(2),
+          const compensation =
+            await this.receivablesService.recordCreditNoteCompensation(
+              manager,
+              {
+                saleId: sale.id,
+                saleReturnId: savedSaleReturn.id,
+                fiscalDocumentId: fiscalDoc?.id ?? null,
+                creditNoteAmount: totalGross.toFixed(2),
+                userId,
+              },
+            );
+          compensated = new Decimal(compensation?.applied ?? 0);
+        }
+
+        // 9b. Whatever the open debt does not absorb (cash sale, or invoice
+        // already collected) goes back to the customer: cash/bank outflow.
+        const refund = totalGross.minus(compensated);
+        if (refund.greaterThan(0)) {
+          await this.treasuryService.recordMovement(manager, {
+            accountType:
+              (sale.isCreditSale
+                ? null
+                : accountForPaymentMethod(sale.paymentMethod)) ??
+              TreasuryAccountType.EFECTIVO,
+            movementType: TreasuryMovementType.EGRESO,
+            amount: refund.toFixed(2),
+            concept: `Devolución ${sale.saleNumber}`,
+            referenceType: 'SALE_RETURN',
+            referenceId: savedSaleReturn.id,
             userId,
           });
         }

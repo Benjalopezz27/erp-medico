@@ -218,8 +218,10 @@ export class ReceivablesService {
       userId: string;
     },
   ): Promise<{
-    movement: AccountReceivableMovement;
+    movement: AccountReceivableMovement | null;
     accountReceivable: AccountReceivable;
+    /** Part of the credit note absorbed by the open debt. */
+    applied: string;
   } | null> {
     if (!manager.queryRunner?.isTransactionActive) {
       throw new Error(
@@ -244,18 +246,20 @@ export class ReceivablesService {
       where: { saleReturnId: input.saleReturnId },
     });
     if (existingMovement) {
-      return { movement: existingMovement, accountReceivable };
+      return {
+        movement: existingMovement,
+        accountReceivable,
+        applied: existingMovement.amount,
+      };
     }
 
-    const creditAmount = new Decimal(input.creditNoteAmount);
+    const requested = new Decimal(input.creditNoteAmount);
     const prevBalance = new Decimal(accountReceivable.currentBalance);
-
-    if (creditAmount.greaterThan(prevBalance)) {
-      throw new ConflictException({
-        code: SaleReturnErrorCode.SALE_RETURN_RECEIVABLE_INCONSISTENCY,
-        message:
-          'El monto de la nota de crédito no puede exceder el saldo pendiente de la cuenta corriente.',
-      });
+    // The invoice may already be (partly) collected: the debt absorbs only what
+    // is still open, the caller refunds the rest.
+    const creditAmount = Decimal.min(requested, prevBalance);
+    if (!creditAmount.greaterThan(0)) {
+      return { movement: null, accountReceivable, applied: '0.00' };
     }
 
     const nextBalance = prevBalance
@@ -282,7 +286,7 @@ export class ReceivablesService {
       }),
     );
 
-    return { movement, accountReceivable };
+    return { movement, accountReceivable, applied: creditAmount.toFixed(2) };
   }
 
   /**

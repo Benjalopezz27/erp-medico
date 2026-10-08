@@ -274,6 +274,7 @@ describe('SaleReturnsService', () => {
       auditService as any,
       fiscalInvoiceQueueService as any,
       pdfGenerateQueueService as any,
+      { recordMovement: jest.fn() } as any,
     );
   });
 
