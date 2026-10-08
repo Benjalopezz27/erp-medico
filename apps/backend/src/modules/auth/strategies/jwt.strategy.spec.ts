@@ -158,4 +158,26 @@ describe('JwtStrategy', () => {
       strategy.validate({ sub: '' } as unknown as any),
     ).rejects.toThrow(UnauthorizedException);
   });
+
+  it('rejects a token issued before the last password change', async () => {
+    const changedAt = new Date('2026-10-01T12:00:00Z');
+    const user = {
+      id: 'u1',
+      name: 'U',
+      email: 'u@erp.com',
+      role: UserRole.VENDEDOR,
+      isActive: true,
+      passwordChangedAt: changedAt,
+    };
+    usersService.findById = jest.fn().mockResolvedValue(user);
+    const payload = { sub: 'u1', email: user.email, role: user.role };
+    const at = (d: Date) => Math.floor(d.getTime() / 1000);
+
+    await expect(
+      strategy.validate({ ...payload, iat: at(changedAt) - 60 }),
+    ).rejects.toThrow(UnauthorizedException);
+    await expect(
+      strategy.validate({ ...payload, iat: at(changedAt) + 60 }),
+    ).resolves.toMatchObject({ id: 'u1' });
+  });
 });

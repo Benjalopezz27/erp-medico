@@ -71,7 +71,10 @@ export class PasswordRecoveryService {
         throw new BadRequestException('Invalid or expired reset token');
       }
 
-      await manager.update(User, record.userId, { passwordHash });
+      await manager.update(User, record.userId, {
+        passwordHash,
+        passwordChangedAt: new Date(),
+      });
       await repo.update(
         { userId: record.userId, usedAt: IsNull() },
         { usedAt: new Date() },

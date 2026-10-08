@@ -32,6 +32,10 @@ export class User {
   @Column({ type: 'varchar', length: 30, default: UserRole.VENDEDOR })
   role!: UserRole;
 
+  /** Tokens issued before this instant are rejected (see JwtStrategy). */
+  @Column({ name: 'password_changed_at', type: 'timestamptz', nullable: true })
+  passwordChangedAt?: Date | null;
+
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive!: boolean;
 
