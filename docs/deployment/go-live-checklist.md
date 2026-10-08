@@ -9,7 +9,7 @@
 | #   | Gate                                                              | Estado    | Responsable | Fecha      | Decisión / referencia                                                |
 | --- | ----------------------------------------------------------------- | --------- | ----------- | ---------- | -------------------------------------------------------------------- |
 | 1   | Plan de Railway, presupuesto mensual y responsable de facturación | APROBADO  | Benjamin    | 2026-10-08 | Railway Hobby, paga el responsable técnico                           |
-| 2   | Dominio y acceso DNS (o uso del dominio Railway)                  | PENDIENTE |             |            | Se usa el dominio Railway; dominio propio fuera del Go-Live          |
+| 2   | Dominio y acceso DNS (o uso del dominio Railway)                  | APROBADO  | Benjamin    | 2026-10-08 | Dominio `app.distribuidoramedica.store`; falta confirmar acceso DNS  |
 | 3   | Ventana de Go-Live y ventana de rollback                          | APROBADO  | Benjamin    | 2026-10-08 | Lunes 2026-10-12 (feriado), tarde; rollback 4 h; hora exacta a fijar |
 | 4   | Responsable técnico y representante del cliente presentes         | PENDIENTE |             |            | Confirmar quién del cliente está presente                            |
 | 5   | Certificado ARCA productivo, CUIT y punto de venta confirmados    | PENDIENTE | Benjamin    |            | Falta hablar con la contadora (2026-10-09)                           |
@@ -40,7 +40,8 @@ Los agentes no ejecutan estos pasos (AGENTS §6 y §8).
 - [ ] Project token del entorno resultante guardado como `RAILWAY_TOKEN` en el GitHub Environment `production`, con required reviewers activos. Eliminar el GitHub Environment `staging`.
 - [ ] Variables revisadas: `NODE_ENV`, URLs, CORS, secrets nuevos (no reutilizar los de desarrollo), `ARCA_ENV`.
 - [ ] Certificado ARCA productivo cargado como variable sellada (`ARCA_CERT_BASE64`, `ARCA_CERT_PASSWORD`); nunca en Git ni logs.
-- [ ] Dominios y TLS movidos al entorno resultante; HTTPS y redirecciones verificados.
+- [ ] Dominio `app.distribuidoramedica.store` agregado al servicio `frontend` (Settings → Networking → Custom Domain, puerto 8080). Crear en el DNS el registro CNAME que Railway indica (más el TXT de verificación si lo pide) y esperar el certificado TLS.
+- [ ] `CORS_ALLOWED_ORIGINS=https://app.distribuidoramedica.store` en el backend. Verificar HTTPS y la redirección HTTP→HTTPS.
 - [ ] Postgres y Redis sin dominio público ni TCP proxy.
 - [ ] Alertas y responsables activos ([runbook de operaciones](railway-operations-runbook.md) §9).
 
